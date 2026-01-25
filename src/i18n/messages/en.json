@@ -3,7 +3,23 @@
         "login": "Login",
         "register": "Register",
         "email": "Email",
-        "password": "Password"
+        "password": "Password",
+        "name": "Full Name",
+        "confirmPassword": "Confirm Password",
+        "createAccount": "Create an account",
+        "createAccountDesc": "Enter your details to create a new account",
+        "alreadyHaveAccount": "Already have an account? Login",
+        "loginDesc": "Login to your account",
+        "dontHaveAccount": "Don't have an account? Register",
+        "success": "Registration successful! Please check your email.",
+        "error": "Something went wrong",
+        "passwordsDontMatch": "Passwords don't match",
+        "nameMin": "Name must be at least 2 characters",
+        "passwordMin": "Password must be at least 6 characters",
+        "emailInvalid": "Invalid email address",
+        "forgotPassword": "Forgot Password?",
+        "signIn": "Sign In",
+        "signUp": "Sign Up"
     },
     "common": {
         "loading": "Loading..."

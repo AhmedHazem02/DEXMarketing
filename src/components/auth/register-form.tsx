@@ -29,12 +29,12 @@ export function RegisterForm() {
     const supabase = createClient()
 
     const formSchema = z.object({
-        name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-        email: z.string().email(),
-        password: z.string().min(6),
+        name: z.string().min(2, { message: t('nameMin') }),
+        email: z.string().email({ message: t('emailInvalid') }),
+        password: z.string().min(6, { message: t('passwordMin') }),
         confirmPassword: z.string().min(6),
     }).refine((data) => data.password === data.confirmPassword, {
-        message: "Passwords don't match",
+        message: t('passwordsDontMatch'),
         path: ["confirmPassword"],
     })
 
@@ -68,11 +68,11 @@ export function RegisterForm() {
                 return
             }
 
-            toast.success('Registration successful! Please check your email.')
+            toast.success(t('success'))
             router.push('/login')
 
         } catch (error) {
-            toast.error('Something went wrong')
+            toast.error(t('error'))
         } finally {
             setIsLoading(false)
         }
@@ -81,8 +81,8 @@ export function RegisterForm() {
     return (
         <Card className="w-full">
             <CardHeader>
-                <CardTitle>{t('register')}</CardTitle>
-                <CardDescription>Create a new account</CardDescription>
+                <CardTitle>{t('createAccount')}</CardTitle>
+                <CardDescription>{t('createAccountDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -92,9 +92,9 @@ export function RegisterForm() {
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Full Name</FormLabel>
+                                    <FormLabel>{t('name')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="John Doe" {...field} />
+                                        <Input placeholder={t('name')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -107,7 +107,7 @@ export function RegisterForm() {
                                 <FormItem>
                                     <FormLabel>{t('email')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="name@example.com" {...field} />
+                                        <Input placeholder="name@example.com" dir="ltr" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -120,7 +120,7 @@ export function RegisterForm() {
                                 <FormItem>
                                     <FormLabel>{t('password')}</FormLabel>
                                     <FormControl>
-                                        <Input type="password" {...field} />
+                                        <Input type="password" dir="ltr" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -131,9 +131,9 @@ export function RegisterForm() {
                             name="confirmPassword"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Confirm Password</FormLabel>
+                                    <FormLabel>{t('confirmPassword')}</FormLabel>
                                     <FormControl>
-                                        <Input type="password" {...field} />
+                                        <Input type="password" dir="ltr" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -147,7 +147,7 @@ export function RegisterForm() {
             </CardContent>
             <CardFooter className="flex justify-center">
                 <Link href="/login" className="text-sm text-muted-foreground hover:underline">
-                    Already have an account? Login
+                    {t('alreadyHaveAccount')}
                 </Link>
             </CardFooter>
         </Card>

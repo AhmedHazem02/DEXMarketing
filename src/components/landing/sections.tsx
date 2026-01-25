@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useLocale } from 'next-intl'
 import { useRef, useState, useEffect } from 'react'
 import { useSiteSettingsContext } from '@/components/providers/site-settings-provider'
+import { LanguageSwitcher } from '@/components/common/language-switcher'
 
 // ============================================
 // NAVBAR - Floating Navigation
@@ -70,6 +71,7 @@ export function Navbar() {
 
                     {/* CTA Button */}
                     <div className="flex items-center gap-4">
+                        <LanguageSwitcher />
                         <Link href="/login" className="hidden sm:block">
                             <Button variant="ghost" className="font-semibold">
                                 {isAr ? 'تسجيل الدخول' : 'Login'}
