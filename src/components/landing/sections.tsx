@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Play, Sparkles, Rocket, Target, Lightbulb, Trend
 import Link from 'next/link'
 import { useLocale } from 'next-intl'
 import { useRef, useState, useEffect } from 'react'
+import { StarField, Nebula, FloatingPlanets, ShootingStars, CosmicGrid, GradientText } from '@/components/landing/space-elements'
 import { useSiteSettingsContext } from '@/components/providers/site-settings-provider'
 import { LanguageSwitcher } from '@/components/common/language-switcher'
 
@@ -123,7 +124,7 @@ export function Navbar() {
 }
 
 // ============================================
-// HERO SECTION - Marketing Agency Style
+// HERO SECTION - Space Theme "Launch Your Brand"
 // ============================================
 export function HeroSection() {
     const locale = useLocale()
@@ -131,205 +132,264 @@ export function HeroSection() {
     const Arrow = isAr ? ArrowLeft : ArrowRight
     const ref = useRef(null)
     const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
-    const y = useTransform(scrollYProgress, [0, 1], ['0%', '50%'])
-    const opacity = useTransform(scrollYProgress, [0, 1], [1, 0])
-
-    const [particles, setParticles] = useState<Array<{ left: string, top: string, duration: number, delay: number, size: number }>>([])
-
-    useEffect(() => {
-        setParticles([...Array(30)].map(() => ({
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            duration: 3 + Math.random() * 4,
-            delay: Math.random() * 2,
-            size: 2 + Math.random() * 6,
-        })))
-    }, [])
+    const y = useTransform(scrollYProgress, [0, 1], ['0%', '30%'])
+    const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
 
     return (
         <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-            {/* Video-like Animated Background */}
-            <motion.div style={{ y }} className="absolute inset-0">
-                {/* Gradient Background */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,215,0,0.3),rgba(0,0,0,0))]" />
-                <div className="absolute inset-0 bg-gradient-to-b from-background/0 via-background/50 to-background" />
+            {/* Deep Space Background */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0A1628] via-[#0d1d35] to-[#0A1628]" />
 
-                {/* Animated Grid */}
-                <div className="absolute inset-0 opacity-[0.03]" style={{
-                    backgroundImage: `linear-gradient(rgba(255,215,0,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,215,0,0.5) 1px, transparent 1px)`,
-                    backgroundSize: '60px 60px',
-                }} />
-
-                {/* Animated Shapes */}
-                <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 1000 1000">
-                    <motion.circle
-                        cx="150" cy="150" r="80"
-                        fill="url(#heroGrad1)" fillOpacity="0.3"
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-                        transition={{ duration: 8, repeat: Infinity }}
-                    />
-                    <motion.circle
-                        cx="850" cy="250" r="120"
-                        fill="url(#heroGrad2)" fillOpacity="0.2"
-                        animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }}
-                        transition={{ duration: 10, repeat: Infinity }}
-                    />
-                    <motion.circle
-                        cx="900" cy="800" r="100"
-                        fill="url(#heroGrad1)" fillOpacity="0.2"
-                        animate={{ y: [0, -50, 0] }}
-                        transition={{ duration: 12, repeat: Infinity }}
-                    />
-                    <defs>
-                        <radialGradient id="heroGrad1">
-                            <stop offset="0%" stopColor="#FFD700" />
-                            <stop offset="100%" stopColor="transparent" />
-                        </radialGradient>
-                        <radialGradient id="heroGrad2">
-                            <stop offset="0%" stopColor="#00D4FF" />
-                            <stop offset="100%" stopColor="transparent" />
-                        </radialGradient>
-                    </defs>
-                </svg>
-
-                {/* Floating Particles */}
-                {particles.map((particle, i) => (
-                    <motion.div
-                        key={i}
-                        className="absolute rounded-full bg-gradient-to-r from-primary to-yellow-400"
-                        style={{
-                            left: particle.left,
-                            top: particle.top,
-                            width: particle.size,
-                            height: particle.size,
-                        }}
-                        animate={{
-                            y: [0, -40, 0],
-                            opacity: [0.2, 0.8, 0.2],
-                            scale: [1, 1.5, 1],
-                        }}
-                        transition={{
-                            duration: particle.duration,
-                            repeat: Infinity,
-                            delay: particle.delay,
-                        }}
-                    />
-                ))}
-            </motion.div>
+            {/* Space Elements Components */}
+            <StarField />
+            <Nebula />
+            <FloatingPlanets />
+            <ShootingStars />
+            <CosmicGrid />
 
             {/* Main Content */}
             <motion.div style={{ opacity }} className="relative z-10 container mx-auto px-6 py-20">
-                <div className="max-w-6xl mx-auto text-center">
-                    {/* Top Badge */}
+                <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
+
+                    {/* Astronaut Image - Left Side */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        className="flex justify-center mb-8"
+                        initial={{ opacity: 0, x: isAr ? 100 : -100 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 1, delay: 0.3 }}
+                        className={`relative ${isAr ? 'lg:order-2' : 'lg:order-1'} flex justify-center lg:justify-start`}
                     >
-                        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-primary/20 to-cyan-500/20 border border-primary/30 backdrop-blur-sm">
-                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>
-                                <Sparkles className="h-5 w-5 text-primary" />
-                            </motion.div>
-                            <span className="text-base font-semibold bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
-                                {isAr ? '🚀 وكالة تسويق رقمي متكاملة' : '🚀 Full-Service Digital Marketing Agency'}
-                            </span>
-                        </div>
+                        {/* Main Container with Floating Animation */}
+                        <motion.div
+                            animate={{ y: [0, -12, 0] }}
+                            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                            className="relative"
+                        >
+                            {/* LAYER 1: Rotating Light Rays (Sunburst) */}
+                            <motion.div
+                                className="absolute -inset-48 opacity-40 pointer-events-none"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+                                style={{
+                                    background: `conic-gradient(
+                                        from 0deg at 50% 50%,
+                                        transparent 0deg,
+                                        rgba(255,215,0,0.5) 20deg,
+                                        transparent 40deg,
+                                        transparent 60deg,
+                                        rgba(255,180,0,0.4) 80deg,
+                                        transparent 100deg,
+                                        transparent 120deg,
+                                        rgba(255,230,100,0.5) 140deg,
+                                        transparent 160deg,
+                                        transparent 180deg,
+                                        rgba(255,215,0,0.5) 200deg,
+                                        transparent 220deg,
+                                        transparent 240deg,
+                                        rgba(255,180,0,0.4) 260deg,
+                                        transparent 280deg,
+                                        transparent 300deg,
+                                        rgba(255,230,100,0.5) 320deg,
+                                        transparent 340deg,
+                                        transparent 360deg
+                                    )`,
+                                    filter: 'blur(15px)',
+                                }}
+                            />
+
+                            {/* LAYER 1.5: Static Core Glow to Blend Rays */}
+                            <div
+                                className="absolute -inset-24 blur-[80px] opacity-60 pointer-events-none"
+                                style={{
+                                    background: 'radial-gradient(circle at 50% 50%, rgba(255,215,0,0.6) 0%, rgba(255,160,0,0.3) 50%, transparent 80%)',
+                                }}
+                            />
+
+
+
+                            {/* LAYER 2: The Astronaut Image with Screen Blend */}
+                            <img
+                                src="/images/astronaut-solid.png"
+                                alt="DEX Astronaut"
+                                className="relative z-10 w-full h-auto max-w-md lg:max-w-lg object-contain"
+                                style={{
+                                    mixBlendMode: 'screen',
+                                    filter: 'brightness(1.1) saturate(1.1)',
+                                }}
+                            />
+
+                            {/* LAYER 3: Ambient Floor Light (Below astronaut visually) */}
+                            <div
+                                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-32 blur-3xl opacity-50 z-0"
+                                style={{
+                                    background: 'radial-gradient(ellipse at 50% 100%, rgba(255,215,0,0.5) 0%, rgba(0,212,255,0.3) 40%, transparent 70%)',
+                                }}
+                            />
+
+                            {/* LAYER 4: Particles IN FRONT of astronaut (z-20) */}
+                            <motion.div
+                                className="absolute z-20 w-3 h-3 rounded-full bg-yellow-400"
+                                style={{ top: '20%', right: '5%', boxShadow: '0 0 25px rgba(255,215,0,1)' }}
+                                animate={{ y: [0, -25, 0], scale: [1, 1.3, 1] }}
+                                transition={{ duration: 4, repeat: Infinity }}
+                            />
+                            <motion.div
+                                className="absolute z-20 w-2 h-2 rounded-full bg-cyan-400"
+                                style={{ top: '50%', left: '0%', boxShadow: '0 0 20px rgba(0,212,255,1)' }}
+                                animate={{ x: [0, 20, 0], opacity: [0.5, 1, 0.5] }}
+                                transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+                            />
+                            <motion.div
+                                className="absolute z-20 w-4 h-4 rounded-full bg-orange-400/50"
+                                style={{ bottom: '30%', right: '10%', boxShadow: '0 0 30px rgba(249,115,22,0.8)' }}
+                                animate={{ y: [0, 15, 0], x: [0, -10, 0] }}
+                                transition={{ duration: 7, repeat: Infinity, delay: 2 }}
+                            />
+
+                            {/* LAYER 5: Light Streaks crossing OVER the image */}
+                            <motion.div
+                                className="absolute z-20 w-px h-40 bg-gradient-to-b from-transparent via-cyan-400/50 to-transparent"
+                                style={{ top: '10%', left: '20%', transform: 'rotate(-30deg)' }}
+                                animate={{ opacity: [0, 0.8, 0], y: [0, 50, 100] }}
+                                transition={{ duration: 3, repeat: Infinity, repeatDelay: 5 }}
+                            />
+                            <motion.div
+                                className="absolute z-20 w-px h-32 bg-gradient-to-b from-transparent via-yellow-400/40 to-transparent"
+                                style={{ top: '30%', right: '15%', transform: 'rotate(20deg)' }}
+                                animate={{ opacity: [0, 0.6, 0], y: [0, 40, 80] }}
+                                transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 7, delay: 3 }}
+                            />
+                        </motion.div>
                     </motion.div>
 
-                    {/* Main Title */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 40 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
-                        className="mb-8"
-                    >
-                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.1]">
-                            <span className="block text-foreground">
-                                {isAr ? 'نحوّل أفكارك' : 'We Transform'}
-                            </span>
-                            <span className="block mt-2">
-                                <span className="relative inline-block">
-                                    <span className="bg-gradient-to-r from-primary via-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                                        {isAr ? 'إلى علامات تجارية' : 'Ideas Into'}
+                    {/* Text Content - Right Side */}
+                    <div className={`${isAr ? 'lg:order-1 text-right' : 'lg:order-2 text-left'} lg:text-start text-center`}>
+                        {/* Top Badge */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6 }}
+                            className={`flex ${isAr ? 'justify-end lg:justify-start' : 'justify-start'} justify-center lg:justify-start mb-8`}
+                        >
+                            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/30 backdrop-blur-sm">
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                                >
+                                    <Rocket className="h-5 w-5 text-yellow-400" />
+                                </motion.div>
+                                <span className="text-base font-semibold bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent">
+                                    {isAr ? '🚀 نأخذ علامتك التجارية إلى آفاق جديدة' : '🚀 Launching Brands to New Heights'}
+                                </span>
+                            </div>
+                        </motion.div>
+
+                        {/* Main Title - DEX Style */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 40 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, delay: 0.2 }}
+                            className="mb-8"
+                        >
+                            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1]">
+                                {/* DEX Logo Text */}
+                                <span className="block mb-4">
+                                    <span className="text-white font-black tracking-wider">DEX</span>
+                                    <span className="text-yellow-400/80 text-xl md:text-2xl font-light ms-2 tracking-widest">FOR ADVERTISING</span>
+                                </span>
+
+                                {/* Main Tagline with Golden Gradient */}
+                                <span className="block mt-4">
+                                    <span className="relative inline-block">
+                                        <span className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                                            {isAr ? 'نصنع' : 'We Create'}
+                                        </span>
+                                    </span>
+                                    <span className="text-white mx-3">
+                                        {isAr ? 'علامات تجارية' : 'Iconic'}
+                                    </span>
+                                </span>
+                                <span className="block mt-2">
+                                    <span className="bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 bg-clip-text text-transparent">
+                                        {isAr ? 'لا تُنسى' : 'Brands'}
                                     </span>
                                     <motion.span
-                                        className="absolute -bottom-2 start-0 end-0 h-1.5 bg-gradient-to-r from-primary to-orange-500 rounded-full"
-                                        initial={{ scaleX: 0, originX: isAr ? 1 : 0 }}
-                                        animate={{ scaleX: 1 }}
-                                        transition={{ duration: 1, delay: 1 }}
+                                        className="inline-block ms-4"
+                                        animate={{ rotate: [0, 10, -10, 0] }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                    >
+                                        ✨
+                                    </motion.span>
+                                </span>
+                            </h1>
+                        </motion.div>
+
+                        {/* Subtitle */}
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.4 }}
+                            className="text-lg md:text-xl text-gray-400 max-w-xl mb-10"
+                        >
+                            {isAr
+                                ? 'وكالة تسويق رقمي متكاملة - من التصميم الإبداعي إلى إدارة الحملات الرقمية'
+                                : 'Full-Service Digital Marketing Agency - From Creative Design to Digital Campaign Management'
+                            }
+                        </motion.p>
+
+                        {/* CTA Buttons */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.6 }}
+                            className={`flex flex-col sm:flex-row items-center gap-4 ${isAr ? 'lg:justify-start' : 'lg:justify-start'} justify-center lg:justify-start mb-12`}
+                        >
+                            <Link href="/register">
+                                <Button size="lg" className="group relative text-lg px-8 py-6 bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 hover:from-orange-500 hover:via-yellow-500 hover:to-yellow-400 transition-all duration-500 shadow-2xl shadow-yellow-500/30 rounded-full overflow-hidden text-background font-bold">
+                                    <span className="relative z-10 flex items-center">
+                                        <Rocket className="me-2 h-5 w-5 group-hover:-translate-y-1 group-hover:rotate-12 transition-transform" />
+                                        {isAr ? 'ابدأ رحلتك' : 'Start Your Journey'}
+                                        <Arrow className="ms-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                                    </span>
+                                    <motion.div
+                                        className="absolute inset-0 bg-white/20"
+                                        animate={{ x: ['100%', '-100%'] }}
+                                        transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
                                     />
-                                </span>
-                            </span>
-                            <span className="block mt-2 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">
-                                {isAr ? 'لا تُنسى' : 'Iconic Brands'}
-                            </span>
-                        </h1>
-                    </motion.div>
-
-                    {/* Subtitle */}
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.4 }}
-                        className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12"
-                    >
-                        {isAr
-                            ? 'من التصميم الإبداعي إلى إدارة الحملات الرقمية، نقدم حلولاً تسويقية شاملة تحقق نتائج استثنائية'
-                            : 'From creative design to digital campaign management, we deliver comprehensive marketing solutions that achieve exceptional results'
-                        }
-                    </motion.p>
-
-                    {/* CTA Buttons */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.6 }}
-                        className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
-                    >
-                        <Link href="/login">
-                            <Button size="lg" className="group relative text-lg px-10 py-7 bg-gradient-to-r from-primary via-yellow-500 to-orange-500 hover:from-orange-500 hover:via-yellow-500 hover:to-primary transition-all duration-500 shadow-2xl shadow-primary/40 rounded-full overflow-hidden">
-                                <span className="relative z-10 flex items-center font-bold">
-                                    {isAr ? 'ابدأ مشروعك' : 'Start Your Project'}
-                                    <Arrow className="ms-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                                </span>
-                                <motion.div
-                                    className="absolute inset-0 bg-white/20"
-                                    animate={{ x: ['100%', '-100%'] }}
-                                    transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
-                                />
+                                </Button>
+                            </Link>
+                            <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-yellow-400/50 text-yellow-400 rounded-full hover:bg-yellow-400/10 group">
+                                <Play className="me-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+                                {isAr ? 'شاهد أعمالنا' : 'View Our Work'}
                             </Button>
-                        </Link>
-                        <Button size="lg" variant="outline" className="text-lg px-10 py-7 border-2 rounded-full hover:bg-primary/10 group">
-                            <Play className="me-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                            {isAr ? 'شاهد أعمالنا' : 'View Our Work'}
-                        </Button>
-                    </motion.div>
+                        </motion.div>
 
-                    {/* Stats Highlights */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 1, delay: 0.8 }}
-                        className="grid grid-cols-3 gap-8 max-w-2xl mx-auto"
-                    >
-                        {[
-                            { value: '500+', labelAr: 'مشروع', labelEn: 'Projects' },
-                            { value: '200+', labelAr: 'عميل', labelEn: 'Clients' },
-                            { value: '15+', labelAr: 'سنة خبرة', labelEn: 'Years' },
-                        ].map((stat, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 1 + i * 0.1 }}
-                                className="text-center"
-                            >
-                                <div className="text-3xl md:text-4xl font-black text-primary">{stat.value}</div>
-                                <div className="text-sm text-muted-foreground">{isAr ? stat.labelAr : stat.labelEn}</div>
-                            </motion.div>
-                        ))}
-                    </motion.div>
+                        {/* Stats Highlights */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 1, delay: 0.8 }}
+                            className="grid grid-cols-3 gap-6 max-w-md"
+                        >
+                            {[
+                                { value: '500+', labelAr: 'مشروع', labelEn: 'Projects' },
+                                { value: '200+', labelAr: 'عميل', labelEn: 'Clients' },
+                                { value: '15+', labelAr: 'سنة', labelEn: 'Years' },
+                            ].map((stat, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 1 + i * 0.1 }}
+                                    className={`${isAr ? 'text-right' : 'text-left'} text-center lg:text-start`}
+                                >
+                                    <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent">
+                                        {stat.value}
+                                    </div>
+                                    <div className="text-sm text-gray-500">{isAr ? stat.labelAr : stat.labelEn}</div>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    </div>
                 </div>
             </motion.div>
 
@@ -340,10 +400,10 @@ export function HeroSection() {
                 transition={{ duration: 2, repeat: Infinity }}
             >
                 <div className="flex flex-col items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-gray-500">
                         {isAr ? 'اكتشف المزيد' : 'Discover More'}
                     </span>
-                    <MousePointer2 className="h-5 w-5 text-primary animate-bounce" />
+                    <MousePointer2 className="h-5 w-5 text-yellow-400 animate-bounce" />
                 </div>
             </motion.div>
         </section>
