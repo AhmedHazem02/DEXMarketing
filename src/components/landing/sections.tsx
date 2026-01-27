@@ -137,8 +137,29 @@ export function HeroSection() {
 
     return (
         <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-            {/* Deep Space Background */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0A1628] via-[#0d1d35] to-[#0A1628]" />
+            {/* Atmospheric Background - Matching Reference Image */}
+            <div className="absolute inset-0 bg-[#020617]">
+                {/* Base Gradient: Deep Space */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#000000] via-[#0f172a] to-[#1e293b] opacity-90" />
+
+                {/* Golden Sunrise Glow (Bottom Left) - Reduced Opacity */}
+                <div
+                    className="absolute -bottom-1/2 -left-1/4 w-[150%] h-[150%] rounded-full opacity-40 pointer-events-none"
+                    style={{
+                        background: 'radial-gradient(circle at 30% 80%, rgba(255, 180, 0, 0.3) 0%, rgba(255, 100, 0, 0.1) 20%, transparent 60%)',
+                        filter: 'blur(100px)',
+                    }}
+                />
+
+                {/* Cyan/Teal Atmosphere (Top Right) - Reduced Opacity */}
+                <div
+                    className="absolute -top-1/2 -right-1/4 w-[150%] h-[150%] rounded-full opacity-30 pointer-events-none"
+                    style={{
+                        background: 'radial-gradient(circle at 70% 20%, rgba(0, 212, 255, 0.2) 0%, rgba(0, 100, 200, 0.1) 30%, transparent 70%)',
+                        filter: 'blur(100px)',
+                    }}
+                />
+            </div>
 
             {/* Space Elements Components */}
             <StarField />
@@ -164,43 +185,44 @@ export function HeroSection() {
                             transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
                             className="relative"
                         >
-                            {/* LAYER 1: Rotating Light Rays (Sunburst) */}
+                            {/* LAYER 1: Rotating Light Rays (Sunburst) - Reduced Opacity */}
                             <motion.div
-                                className="absolute -inset-48 opacity-40 pointer-events-none"
+                                className="absolute -inset-48 opacity-30 pointer-events-none"
                                 animate={{ rotate: 360 }}
                                 transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
                                 style={{
                                     background: `conic-gradient(
                                         from 0deg at 50% 50%,
                                         transparent 0deg,
-                                        rgba(255,215,0,0.5) 20deg,
-                                        transparent 40deg,
-                                        transparent 60deg,
-                                        rgba(255,180,0,0.4) 80deg,
-                                        transparent 100deg,
-                                        transparent 120deg,
-                                        rgba(255,230,100,0.5) 140deg,
-                                        transparent 160deg,
-                                        transparent 180deg,
-                                        rgba(255,215,0,0.5) 200deg,
-                                        transparent 220deg,
-                                        transparent 240deg,
-                                        rgba(255,180,0,0.4) 260deg,
-                                        transparent 280deg,
-                                        transparent 300deg,
-                                        rgba(255,230,100,0.5) 320deg,
-                                        transparent 340deg,
-                                        transparent 360deg
+                                        rgba(255, 170, 0, 0.3) 15deg,  /* Deep Saturated Gold */
+                                        transparent 30deg,
+                                        transparent 50deg,
+                                        rgba(255, 120, 0, 0.2) 70deg,  /* Deep Orange */
+                                        transparent 90deg,
+                                        transparent 110deg,
+                                        rgba(255, 190, 0, 0.3) 130deg, /* Rich Amber */
+                                        transparent 150deg,
+                                        transparent 170deg,
+                                        rgba(255, 170, 0, 0.3) 190deg,
+                                        transparent 210deg,
+                                        transparent 230deg,
+                                        rgba(255, 120, 0, 0.2) 250deg,
+                                        transparent 270deg,
+                                        transparent 290deg,
+                                        rgba(255, 190, 0, 0.3) 310deg,
+                                        transparent 330deg,
+                                        transparent 350deg,
+                                        rgba(255, 170, 0, 0.2) 360deg
                                     )`,
                                     filter: 'blur(15px)',
                                 }}
                             />
 
-                            {/* LAYER 1.5: Static Core Glow to Blend Rays */}
+                            {/* LAYER 1.5: Static Core Glow to Blend Rays - Reduced Opacity */}
                             <div
-                                className="absolute -inset-24 blur-[80px] opacity-60 pointer-events-none"
+                                className="absolute -inset-24 blur-[80px] opacity-40 pointer-events-none"
                                 style={{
-                                    background: 'radial-gradient(circle at 50% 50%, rgba(255,215,0,0.6) 0%, rgba(255,160,0,0.3) 50%, transparent 80%)',
+                                    background: 'radial-gradient(circle at 50% 50%, rgba(255,215,0,0.5) 0%, rgba(255,160,0,0.2) 50%, transparent 80%)',
                                 }}
                             />
 
