@@ -57,14 +57,30 @@ export function LoginForm() {
 
             toast.success(t('login') + ' success')
             router.refresh()
-            // Redirect handled by middleware logic or simple push
-            // Usually middleware will redirect if authenticated accessing login page?
-            // Or we redirect to dashboard manually
 
-            // Determine role logic or just go to /admin for now as placeholder or root
-            // Ideally we fetch user role and redirect.
-            // For now, let's redirect to / (which should be dashboard or home)
-            router.push('/')
+            // Fetch user to check role
+            const { data: { user } } = await supabase.auth.getUser()
+            const role = user?.user_metadata?.role
+
+            switch (role) {
+                case 'admin':
+                    router.push('/admin')
+                    break;
+                case 'client':
+                    router.push('/client')
+                    break;
+                case 'team_leader':
+                    router.push('/team-leader')
+                    break;
+                case 'creator':
+                    router.push('/creator')
+                    break;
+                case 'accountant':
+                    router.push('/accountant')
+                    break;
+                default:
+                    router.push('/client') // Fallback
+            }
 
         } catch (error) {
             toast.error('Something went wrong')

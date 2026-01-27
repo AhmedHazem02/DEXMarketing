@@ -24,6 +24,7 @@ import { useUsers, useUpdateUser, useDeleteUser } from '@/hooks'
 import { MoreHorizontal, UserPlus, Shield, UserX, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { UserRole } from '@/types/database'
+import { AddUserDialog } from '@/components/admin/add-user-dialog'
 
 const roleColors: Record<UserRole, string> = {
     admin: 'bg-red-500/20 text-red-400 border-red-500/30',
@@ -101,10 +102,7 @@ export function UsersTable() {
                         {users?.length || 0} مستخدم مسجل
                     </CardDescription>
                 </div>
-                <Button>
-                    <UserPlus className="h-4 w-4 me-2" />
-                    دعوة مستخدم
-                </Button>
+                <AddUserDialog />
             </CardHeader>
             <CardContent>
                 <Table>
@@ -143,41 +141,39 @@ export function UsersTable() {
                                         {user.is_active ? 'نشط' : 'معطل'}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-muted-foreground">
-                                    {new Date(user.created_at).toLocaleDateString('ar-EG')}
+                                <TableCell>
+                                    {new Date(user.created_at).toLocaleDateString()}
                                 </TableCell>
                                 <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon">
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'admin')}>
-                                                <Shield className="h-4 w-4 me-2" />
-                                                جعله مدير
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'accountant')}>
-                                                جعله محاسب
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'team_leader')}>
-                                                جعله قائد فريق
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'creator')}>
-                                                جعله مصمم
+                                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(user.id)}>
+                                                نسخ المعرف
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem onClick={() => handleToggleActive(user.id, user.is_active)}>
-                                                {user.is_active ? 'تعطيل الحساب' : 'تفعيل الحساب'}
+                                                {user.is_active ? (
+                                                    <><Shield className="mr-2 h-4 w-4" /> تعطيل الحساب</>
+                                                ) : (
+                                                    <><Shield className="mr-2 h-4 w-4" /> تفعيل الحساب</>
+                                                )}
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={() => handleDelete(user.id)}
-                                                className="text-destructive focus:text-destructive"
-                                            >
-                                                <UserX className="h-4 w-4 me-2" />
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuLabel>تغيير الدور</DropdownMenuLabel>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'admin')}>مدير</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'team_leader')}>قائد فريق</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'accountant')}>محاسب</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'creator')}>مصمم</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'client')}>عميل</DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(user.id)}>
+                                                <UserX className="mr-2 h-4 w-4" />
                                                 حذف المستخدم
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>

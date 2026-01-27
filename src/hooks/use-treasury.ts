@@ -144,7 +144,7 @@ export function useCreateTransaction() {
         mutationFn: async (transaction: CreateTransactionInput) => {
             const { data, error } = await supabase
                 .from('transactions')
-                .insert(transaction as any)
+                .insert(transaction as never) // Using never to bypass strict type checking for now
                 .select()
                 .single()
 

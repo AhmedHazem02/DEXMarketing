@@ -1,0 +1,417 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { useLocale } from 'next-intl'
+import { format } from 'date-fns'
+import { ar, enUS } from 'date-fns/locale'
+import { Calendar as CalendarIcon, Loader2, Save, X } from 'lucide-react'
+
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Calendar } from '@/components/ui/calendar'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form'
+
+import { useCreateTask, useUpdateTask } from '@/hooks/use-tasks'
+import { useUsers } from '@/hooks/use-users'
+import { PRIORITY_CONFIG, KANBAN_COLUMNS } from '@/types/task'
+import type { TaskStatus, TaskPriority } from '@/types/database'
+import type { TaskWithRelations, CreateTaskInput, UpdateTaskInput } from '@/types/task'
+
+// ============================================
+// Validation Schema
+// ============================================
+
+const taskFormSchema = z.object({
+    title: z.string().min(3, { message: 'العنوان يجب أن يكون 3 أحرف على الأقل' }).max(200),
+    description: z.string().optional(),
+    priority: z.enum(['low', 'medium', 'high', 'urgent']),
+    status: z.enum(['new', 'in_progress', 'review', 'revision', 'approved', 'rejected']),
+    assigned_to: z.string().optional(),
+    project_id: z.string().optional(),
+    deadline: z.date().optional(),
+})
+
+type TaskFormValues = z.infer<typeof taskFormSchema>
+
+// ============================================
+// Props
+// ============================================
+
+interface TaskFormProps {
+    open: boolean
+    onOpenChange: (open: boolean) => void
+    task?: TaskWithRelations | null
+    defaultStatus?: TaskStatus
+    currentUserId: string
+    onSuccess?: () => void
+}
+
+// ============================================
+// Component
+// ============================================
+
+export function TaskForm({
+    open,
+    onOpenChange,
+    task,
+    defaultStatus = 'new',
+    currentUserId,
+    onSuccess,
+}: TaskFormProps) {
+    const locale = useLocale()
+    const isAr = locale === 'ar'
+    const isEditing = !!task
+
+    // Hooks
+    const createTask = useCreateTask()
+    const updateTask = useUpdateTask()
+    const { data: users, isLoading: usersLoading } = useUsers()
+
+    // Filter to creators/team members only
+    const assignableUsers = users?.filter(u =>
+        ['creator', 'team_leader', 'admin'].includes(u.role) && u.is_active
+    ) ?? []
+
+    // Form setup
+    const form = useForm<TaskFormValues>({
+        resolver: zodResolver(taskFormSchema),
+        defaultValues: {
+            title: '',
+            description: '',
+            priority: 'medium',
+            status: defaultStatus,
+            assigned_to: undefined,
+            project_id: undefined,
+            deadline: undefined,
+        },
+    })
+
+    // Reset form when task changes
+    useEffect(() => {
+        if (task) {
+            form.reset({
+                title: task.title,
+                description: task.description ?? '',
+                priority: task.priority,
+                status: task.status,
+                assigned_to: task.assigned_to ?? undefined,
+                project_id: task.project_id ?? undefined,
+                deadline: task.deadline ? new Date(task.deadline) : undefined,
+            })
+        } else {
+            form.reset({
+                title: '',
+                description: '',
+                priority: 'medium',
+                status: defaultStatus,
+                assigned_to: undefined,
+                project_id: undefined,
+                deadline: undefined,
+            })
+        }
+    }, [task, defaultStatus, form])
+
+    // Submit handler
+    const onSubmit = async (values: TaskFormValues) => {
+        try {
+            if (isEditing && task) {
+                const updateInput: UpdateTaskInput = {
+                    id: task.id,
+                    title: values.title,
+                    description: values.description,
+                    priority: values.priority,
+                    status: values.status,
+                    assigned_to: values.assigned_to || undefined,
+                    project_id: values.project_id || undefined,
+                    deadline: values.deadline?.toISOString(),
+                }
+                await updateTask.mutateAsync(updateInput)
+            } else {
+                const createInput: CreateTaskInput = {
+                    title: values.title,
+                    description: values.description,
+                    priority: values.priority,
+                    status: values.status,
+                    assigned_to: values.assigned_to || undefined,
+                    project_id: values.project_id || undefined,
+                    deadline: values.deadline?.toISOString(),
+                    created_by: currentUserId,
+                }
+                await createTask.mutateAsync(createInput)
+            }
+            onSuccess?.()
+            onOpenChange(false)
+            form.reset()
+        } catch (error) {
+            console.error('Failed to save task:', error)
+        }
+    }
+
+    const isSubmitting = createTask.isPending || updateTask.isPending
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>
+                        {isEditing
+                            ? (isAr ? 'تعديل المهمة' : 'Edit Task')
+                            : (isAr ? 'إنشاء مهمة جديدة' : 'Create New Task')
+                        }
+                    </DialogTitle>
+                    <DialogDescription>
+                        {isAr
+                            ? 'أدخل تفاصيل المهمة وقم بتعيينها لأحد أعضاء الفريق'
+                            : 'Enter task details and assign it to a team member'
+                        }
+                    </DialogDescription>
+                </DialogHeader>
+
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        {/* Title */}
+                        <FormField
+                            control={form.control}
+                            name="title"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{isAr ? 'عنوان المهمة' : 'Task Title'} *</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            placeholder={isAr ? 'أدخل عنوان المهمة...' : 'Enter task title...'}
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Description */}
+                        <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{isAr ? 'الوصف' : 'Description'}</FormLabel>
+                                    <FormControl>
+                                        <Textarea
+                                            placeholder={isAr ? 'وصف تفصيلي للمهمة...' : 'Detailed task description...'}
+                                            rows={4}
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Priority & Status Row */}
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Priority */}
+                            <FormField
+                                control={form.control}
+                                name="priority"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{isAr ? 'الأولوية' : 'Priority'}</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {PRIORITY_CONFIG.map((p) => (
+                                                    <SelectItem key={p.id} value={p.id}>
+                                                        <span className={cn('flex items-center gap-2', p.color)}>
+                                                            <span className={cn('w-2 h-2 rounded-full', p.bgColor.replace('/10', ''))} />
+                                                            {isAr ? p.labelAr : p.label}
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {/* Status */}
+                            <FormField
+                                control={form.control}
+                                name="status"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{isAr ? 'الحالة' : 'Status'}</FormLabel>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value}
+                                            disabled={!isEditing} // Only change status when editing
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {KANBAN_COLUMNS.map((col) => (
+                                                    <SelectItem key={col.id} value={col.id}>
+                                                        <span className={cn('flex items-center gap-2', col.color)}>
+                                                            {isAr ? col.titleAr : col.title}
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
+                        {/* Assigned To */}
+                        <FormField
+                            control={form.control}
+                            name="assigned_to"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{isAr ? 'تعيين إلى' : 'Assign To'}</FormLabel>
+                                    <Select
+                                        onValueChange={(val) => field.onChange(val === 'unassigned' ? undefined : val)}
+                                        value={field.value || 'unassigned'}
+                                        disabled={usersLoading}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={isAr ? 'اختر عضو الفريق...' : 'Select team member...'} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="unassigned">
+                                                {isAr ? 'بدون تعيين' : 'Unassigned'}
+                                            </SelectItem>
+                                            {assignableUsers.map((user) => (
+                                                <SelectItem key={user.id} value={user.id}>
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">
+                                                            {(user.name ?? 'U').charAt(0)}
+                                                        </span>
+                                                        {user.name ?? user.email}
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Deadline */}
+                        <FormField
+                            control={form.control}
+                            name="deadline"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>{isAr ? 'الموعد النهائي' : 'Deadline'}</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                        'w-full justify-start text-start font-normal',
+                                                        !field.value && 'text-muted-foreground'
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="me-2 h-4 w-4" />
+                                                    {field.value ? (
+                                                        format(field.value, 'PPP', {
+                                                            locale: isAr ? ar : enUS
+                                                        })
+                                                    ) : (
+                                                        <span>{isAr ? 'اختر التاريخ' : 'Pick a date'}</span>
+                                                    )}
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={field.value}
+                                                onSelect={field.onChange}
+                                                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Actions */}
+                        <DialogFooter className="gap-2 sm:gap-0">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
+                                disabled={isSubmitting}
+                            >
+                                <X className="me-2 h-4 w-4" />
+                                {isAr ? 'إلغاء' : 'Cancel'}
+                            </Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? (
+                                    <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Save className="me-2 h-4 w-4" />
+                                )}
+                                {isEditing
+                                    ? (isAr ? 'حفظ التعديلات' : 'Save Changes')
+                                    : (isAr ? 'إنشاء المهمة' : 'Create Task')
+                                }
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+export default TaskForm

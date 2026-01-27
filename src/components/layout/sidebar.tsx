@@ -19,42 +19,53 @@ import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
-const adminRoutes = [
-    { name: 'Overview', href: '/admin', icon: LayoutDashboard },
-    { name: 'Users', href: '/admin/users', icon: Users },
-    { name: 'Content (CMS)', href: '/admin/pages', icon: FileText },
-    { name: 'Theme', href: '/admin/theme', icon: Palette },
-    { name: 'Reports', href: '/admin/reports', icon: BarChart3 },
-    { name: 'Settings', href: '/admin/settings', icon: Settings },
-]
+// Define base routes
+const getRoutes = (role: string, isAr: boolean) => {
+    const t = (en: string, ar: string) => isAr ? ar : en
 
-const accountantRoutes = [
-    { name: 'Treasury', href: '/accountant', icon: Wallet },
-]
-
-const teamLeaderRoutes = [
-    { name: 'Tasks Board', href: '/team-leader', icon: LayoutDashboard },
-    { name: 'Create Task', href: '/team-leader/tasks/new', icon: CheckSquare },
-]
-
-const creatorRoutes = [
-    { name: 'My Tasks', href: '/creator', icon: CheckSquare },
-    { name: 'Uploads', href: '/creator/uploads', icon: Upload },
-]
+    switch (role) {
+        case 'admin':
+            return [
+                { name: t('Overview', 'نظرة عامة'), href: '/admin', icon: LayoutDashboard },
+                { name: t('Users', 'المستخدمين'), href: '/admin/users', icon: Users },
+                { name: t('Treasury', 'الخزينة'), href: '/admin/treasury', icon: Wallet },
+                { name: t('Tasks', 'المهام'), href: '/admin/tasks', icon: CheckSquare },
+                { name: t('Content (CMS)', 'المحتوى'), href: '/admin/pages', icon: FileText },
+                { name: t('Theme', 'المظهر'), href: '/admin/theme', icon: Palette },
+                { name: t('Reports', 'التقارير'), href: '/admin/reports', icon: BarChart3 },
+                { name: t('Settings', 'الإعدادات'), href: '/admin/settings', icon: Settings },
+            ]
+        case 'client':
+            return [
+                { name: t('Dashboard', 'الرئيسية'), href: '/client', icon: LayoutDashboard },
+                // Projects are accessed via dashboard
+            ]
+        case 'team_leader':
+            return [
+                { name: t('Tasks Board', 'لوحة المهام'), href: '/team-leader', icon: LayoutDashboard },
+                { name: t('Revisions Hub', 'المراجعات'), href: '/team-leader/revisions', icon: FileText },
+            ]
+        case 'creator':
+            return [
+                { name: t('My Tasks', 'مهامي'), href: '/creator', icon: CheckSquare },
+            ]
+        case 'accountant':
+            return [
+                { name: t('Treasury', 'الخزينة'), href: '/accountant', icon: Wallet },
+            ]
+        default:
+            return []
+    }
+}
 
 export function Sidebar({ role }: { role?: string }) {
     const pathname = usePathname()
     const router = useRouter()
     const supabase = createClient()
 
-    let routes: { name: string; href: string; icon: any }[] = []
-
-    // Simple role logic (expand later)
-    if (role === 'admin') routes = adminRoutes
-    else if (role === 'accountant') routes = accountantRoutes
-    else if (role === 'team_leader') routes = teamLeaderRoutes
-    else if (role === 'creator') routes = creatorRoutes
-    else routes = [] // Client or unknown
+    // Naively extract locale from pathname (e.g. /ar/...) or assume 'en'
+    const isAr = pathname.startsWith('/ar')
+    const routes = getRoutes(role || 'guest', isAr)
 
     const handleLogout = async () => {
         await supabase.auth.signOut()

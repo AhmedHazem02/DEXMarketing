@@ -96,6 +96,28 @@ export function usePage(slug: string) {
     })
 }
 
+export function useCreatePage() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (page: Omit<Page, 'id' | 'created_at' | 'updated_at'>) => {
+            const { data, error } = await supabase
+                .from('pages')
+                // @ts-ignore
+                .insert(page)
+                .select()
+                .single()
+
+            if (error) throw error
+            return data as unknown as Page
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: PAGES_KEY })
+        },
+    })
+}
+
 export function useUpdatePage() {
     const supabase = createClient()
     const queryClient = useQueryClient()
@@ -106,6 +128,25 @@ export function useUpdatePage() {
                 .from('pages')
                 // @ts-ignore
                 .update({ ...updates, updated_at: new Date().toISOString() })
+                .eq('id', id)
+
+            if (error) throw error
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: PAGES_KEY })
+        },
+    })
+}
+
+export function useDeletePage() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase
+                .from('pages')
+                .delete()
                 .eq('id', id)
 
             if (error) throw error

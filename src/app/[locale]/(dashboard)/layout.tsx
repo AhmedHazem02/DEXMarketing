@@ -1,4 +1,5 @@
 import { Sidebar } from '@/components/layout/sidebar'
+import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { locales } from '@/i18n/config'
@@ -36,9 +37,12 @@ export default async function DashboardLayout({
     return (
         <div className="flex h-screen overflow-hidden bg-background">
             <Sidebar role={role} />
-            <main className="flex-1 overflow-y-auto p-8">
-                {children}
-            </main>
+            <div className="flex flex-col flex-1 overflow-hidden">
+                <Header user={user} />
+                <main className="flex-1 overflow-y-auto p-8">
+                    {children}
+                </main>
+            </div>
         </div>
     )
 }

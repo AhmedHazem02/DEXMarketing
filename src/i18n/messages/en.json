@@ -22,6 +22,9 @@
         "signUp": "Sign Up"
     },
     "common": {
-        "loading": "Loading..."
+        "loading": "Loading...",
+        "services": "Services",
+        "portfolio": "Portfolio",
+        "contact": "Contact Us"
     }
 }

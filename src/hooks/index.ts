@@ -1,12 +1,29 @@
 export { useUsers, useUser, useUpdateUser, useDeleteUser } from './use-users'
 export {
+    // Query keys
+    taskKeys,
+    // Task lists
     useTasks,
     useTasksKanban,
-    useTask,
+    useMyTasks,
+    useRevisionsTasks,
+    // Single task
+    useTaskDetails,
+    // Task mutations
     useCreateTask,
     useUpdateTask,
     useUpdateTaskStatus,
-    useDeleteTask
+    useAssignTask,
+    useDeleteTask,
+    // Comments
+    useTaskComments,
+    useAddComment,
+    useDeleteComment,
+    // Attachments
+    useTaskAttachments,
+    useAddAttachment,
+    useDeleteAttachment,
+    useMarkAttachmentFinal,
 } from './use-tasks'
 export {
     useTreasury,
@@ -38,3 +55,10 @@ export {
     useActivityLog,
     useLogActivity,
 } from './use-cms'
+export {
+    useClientProfile,
+    useClientProjects,
+    useClientProjectDetails,
+    useApproveTask,
+    useRejectTask,
+} from './use-client-portal'

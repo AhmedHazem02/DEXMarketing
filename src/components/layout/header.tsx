@@ -1,0 +1,76 @@
+'use client'
+
+import { useLocale } from 'next-intl'
+import { Menu, Search } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { NotificationsPopover } from '@/components/shared/notifications-popover'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+
+export function Header({ user }: { user?: any }) { // Simplify user type for now
+    const locale = useLocale()
+    const isAr = locale === 'ar'
+    const router = useRouter()
+    const supabase = createClient()
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut()
+        router.refresh()
+        router.push('/login')
+    }
+
+    return (
+        <header className="flex h-16 items-center border-b bg-background px-6">
+            <Button variant="ghost" size="icon" className="md:hidden me-4">
+                <Menu className="h-5 w-5" />
+            </Button>
+
+            <div className="flex flex-1 items-center gap-4">
+                <div className="relative w-full max-w-sm hidden md:flex">
+                    <Search className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder={isAr ? 'بحث...' : 'Search...'}
+                        className="w-full bg-background ps-8"
+                    />
+                </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+                <NotificationsPopover />
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                            <Avatar className="h-8 w-8">
+                                <AvatarImage src={user?.user_metadata?.avatar_url || ''} alt={user?.email || ''} />
+                                <AvatarFallback>{user?.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>{isAr ? 'حسابي' : 'My Account'}</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>{isAr ? 'الملف الشخصي' : 'Profile'}</DropdownMenuItem>
+                        <DropdownMenuItem>{isAr ? 'الإعدادات' : 'Settings'}</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                            {isAr ? 'تسجيل الخروج' : 'Log out'}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </header>
+    )
+}
