@@ -18,9 +18,7 @@ const formSchema = z.object({
     name: z.string().min(2, 'الاسم يجب أن يكون حرفين على الأقل'),
     email: z.string().email('بريد إلكتروني غير صالح'),
     password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
-    role: z.enum(['admin', 'accountant', 'team_leader', 'creator', 'client'], {
-        required_error: "يرجى اختيار الدور",
-    })
+    role: z.enum(['admin', 'accountant', 'team_leader', 'creator', 'client'])
 })
 
 export function AddUserDialog() {

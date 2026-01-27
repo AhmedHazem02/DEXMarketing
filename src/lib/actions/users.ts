@@ -29,21 +29,23 @@ export async function createUser(data: { email: string; name: string; role: stri
     // Explicitly update public user table to ensure consistent state
     // Although trigger handles insertion, specific update ensures role is correct
     if (user.user) {
+        // @ts-ignore
         const { error: updateError } = await supabase.from('users').update({
             name: data.name,
             role: data.role as any
-        }).eq('id', user.user.id)
+        } as any).eq('id', user.user.id)
 
         if (updateError) console.error('Profile Update Error:', updateError)
 
         // Automatically create client profile if role is client
         if (data.role === 'client') {
+            // @ts-ignore
             const { error: clientError } = await supabase.from('clients').insert({
                 user_id: user.user.id,
                 name: data.name,
                 email: data.email,
                 company: 'New Client'
-            })
+            } as any)
             if (clientError) console.error('Client Record Create Error:', clientError)
         }
     }

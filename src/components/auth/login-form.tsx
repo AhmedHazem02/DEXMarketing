@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -24,13 +24,15 @@ import Link from 'next/link'
 export function LoginForm() {
     const t = useTranslations('auth')
     const common = useTranslations('common')
+    const locale = useLocale()
+    const isAr = locale === 'ar'
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const supabase = createClient()
 
     const formSchema = z.object({
-        email: z.string().email({ message: t('email') + ' invalid' }), // Simplified validation message
-        password: z.string().min(6, { message: t('password') + ' min 6 chars' }),
+        email: z.string().email({ message: isAr ? 'البريد الإلكتروني غير صالح' : 'Invalid email address' }),
+        password: z.string().min(6, { message: isAr ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' : 'Password must be at least 6 characters' }),
     })
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -51,11 +53,11 @@ export function LoginForm() {
             })
 
             if (error) {
-                toast.error(error.message)
+                toast.error(isAr ? 'فشل تسجيل الدخول: ' + error.message : 'Login failed: ' + error.message)
                 return
             }
 
-            toast.success(t('login') + ' success')
+            toast.success(isAr ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully')
             router.refresh()
 
             // Fetch user to check role
@@ -83,7 +85,7 @@ export function LoginForm() {
             }
 
         } catch (error) {
-            toast.error('Something went wrong')
+            toast.error(isAr ? 'حدث خطأ ما' : 'Something went wrong')
         } finally {
             setIsLoading(false)
         }
@@ -92,8 +94,10 @@ export function LoginForm() {
     return (
         <Card className="w-full">
             <CardHeader>
-                <CardTitle>{t('login')}</CardTitle>
-                <CardDescription>Enter your credentials to access the system</CardDescription>
+                <CardTitle>{isAr ? 'تسجيل الدخول' : t('login')}</CardTitle>
+                <CardDescription>
+                    {isAr ? 'أدخل بيانات الدخول للوصول إلى النظام' : 'Enter your credentials to access the system'}
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -103,9 +107,9 @@ export function LoginForm() {
                             name="email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>{t('email')}</FormLabel>
+                                    <FormLabel>{isAr ? 'البريد الإلكتروني' : t('email')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="name@example.com" {...field} />
+                                        <Input placeholder="name@example.com" {...field} className={isAr ? "text-right" : ""} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -116,23 +120,23 @@ export function LoginForm() {
                             name="password"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>{t('password')}</FormLabel>
+                                    <FormLabel>{isAr ? 'كلمة المرور' : t('password')}</FormLabel>
                                     <FormControl>
-                                        <Input type="password" {...field} />
+                                        <Input type="password" {...field} className={isAr ? "text-right" : ""} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
                         <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? common('loading') : t('login')}
+                            {isLoading ? (isAr ? 'جاري التحميل...' : common('loading')) : (isAr ? 'تسجيل الدخول' : t('login'))}
                         </Button>
                     </form>
                 </Form>
             </CardContent>
             <CardFooter className="flex justify-center">
                 <Link href="/register" className="text-sm text-muted-foreground hover:underline">
-                    Don't have an account? Register
+                    {isAr ? 'ليس لديك حساب؟ سجل الآن' : "Don't have an account? Register"}
                 </Link>
             </CardFooter>
         </Card>

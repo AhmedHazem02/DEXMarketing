@@ -50,8 +50,8 @@ export function TasksManager() {
     const { data: tasks, isLoading, error } = useAdminTasks({
         search: search.length > 2 ? search : undefined,
         status: statusFilter === 'all' ? undefined : statusFilter as any,
-        dateFrom: date?.from,
-        dateTo: date?.to
+        dateFrom: date?.from?.toISOString(),
+        dateTo: date?.to?.toISOString()
     })
 
     // Client-side filtering & Pagination (since API filters apply on fetch)
@@ -60,7 +60,7 @@ export function TasksManager() {
     const paginatedTasks = useMemo(() => {
         if (!tasks) return []
         const startIndex = (currentPage - 1) * ROWS_PER_PAGE
-        return tasks.slice(startIndex, startIndex + ROWS_PER_PAGE)
+        return (tasks as any[]).slice(startIndex, startIndex + ROWS_PER_PAGE)
     }, [tasks, currentPage])
 
     const totalPages = tasks ? Math.ceil(tasks.length / ROWS_PER_PAGE) : 0
@@ -71,7 +71,7 @@ export function TasksManager() {
         const headers = ['Task Title', 'Project', 'Client', 'Team Leader', 'Designer', 'Status', 'Date', 'Feedback/Notes']
         const csvContent = [
             headers.join(','),
-            ...tasks.map(t => {
+            ...(tasks as any[]).map(t => {
                 const row = [
                     `"${t.title.replace(/"/g, '""')}"`,
                     `"${(t as any).project?.name || '-'}"`,
