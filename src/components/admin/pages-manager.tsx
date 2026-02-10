@@ -306,9 +306,47 @@ export function PagesManager() {
             is_published: page.is_published,
         })
 
-        // Initialize items for items-based pages
+        // Initialize items for items-based pages — merge en + ar into bilingual items
         if (ITEMS_PAGES.has(page.slug)) {
-            setItems(extractItems(contentEnStr))
+            const enItems = extractItems(contentEnStr)
+            const arItems = extractItems(contentArStr)
+            const fields = ITEMS_FIELDS[page.slug] || []
+
+            const mergedItems: ContentItem[] = enItems.map((enItem, i) => {
+                const arItem = arItems[i] || {}
+                const merged: ContentItem = { id: enItem.id || generateItemId() }
+
+                for (const f of fields) {
+                    if (f.bilingual === false) {
+                        // Non-bilingual (media, link): take from en
+                        merged[f.key] = enItem[f.key] || arItem[f.key] || ''
+                    } else {
+                        // Bilingual: en version → _en, ar version → _ar
+                        merged[`${f.key}_en`] = enItem[f.key] || ''
+                        merged[`${f.key}_ar`] = arItem[f.key] || ''
+                    }
+                }
+                return merged
+            })
+
+            // Also include any extra ar items not matched with en
+            if (arItems.length > enItems.length) {
+                for (let i = enItems.length; i < arItems.length; i++) {
+                    const arItem = arItems[i]
+                    const merged: ContentItem = { id: arItem.id || generateItemId() }
+                    for (const f of fields) {
+                        if (f.bilingual === false) {
+                            merged[f.key] = arItem[f.key] || ''
+                        } else {
+                            merged[`${f.key}_en`] = ''
+                            merged[`${f.key}_ar`] = arItem[f.key] || ''
+                        }
+                    }
+                    mergedItems.push(merged)
+                }
+            }
+
+            setItems(mergedItems)
         }
 
         setIsEditOpen(true)
