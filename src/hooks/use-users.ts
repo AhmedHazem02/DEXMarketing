@@ -2,9 +2,42 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import type { User, UserRole } from '@/types/database'
+import type { User, UserRole, Department } from '@/types/database'
 
 const USERS_KEY = ['users']
+const CURRENT_USER_KEY = ['current-user']
+const TEAM_MEMBERS_KEY = ['team-members']
+
+// Role-to-department mapping
+const DEPARTMENT_ROLES: Record<Department, UserRole[]> = {
+    photography: ['videographer', 'photographer', 'editor'],
+    content: ['creator'],
+}
+
+/**
+ * Hook to fetch the currently logged-in user's profile
+ */
+export function useCurrentUser() {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: CURRENT_USER_KEY,
+        queryFn: async () => {
+            const { data: { user: authUser } } = await supabase.auth.getUser()
+            if (!authUser) throw new Error('Not authenticated')
+
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', authUser.id)
+                .single()
+
+            if (error) throw error
+            return data as unknown as User
+        },
+        staleTime: 5 * 60 * 1000, // 5 min
+    })
+}
 
 /**
  * Hook to fetch all users (Admin only)
@@ -23,6 +56,8 @@ export function useUsers() {
             if (error) throw error
             return data as unknown as User[]
         },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 15 * 60 * 1000, // 15 minutes
     })
 }
 
@@ -94,4 +129,62 @@ export function useDeleteUser() {
             queryClient.invalidateQueries({ queryKey: USERS_KEY })
         },
     })
+}
+
+/**
+ * Hook to fetch team members for a given team leader's department.
+ * Returns all active users with roles belonging to that department.
+ * @param teamLeaderId - The team leader's user ID (used to determine department)
+ */
+export function useTeamMembers(teamLeaderId: string) {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: [...TEAM_MEMBERS_KEY, teamLeaderId],
+        enabled: !!teamLeaderId,
+        queryFn: async () => {
+            // Get the team leader's department
+            const { data: tl, error: tlError } = await supabase
+                .from('users')
+                .select('department')
+                .eq('id', teamLeaderId)
+                .single()
+
+            if (tlError) throw tlError
+            if (!tl?.department) return []
+
+            const dept = tl.department as Department
+            const roles = DEPARTMENT_ROLES[dept] || []
+
+            if (roles.length === 0) return []
+
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, name, email, avatar_url, role, department')
+                .in('role', roles)
+                .eq('is_active', true)
+                .order('name')
+
+            if (error) throw error
+            return (data ?? []) as unknown as Pick<User, 'id' | 'name' | 'email' | 'avatar_url' | 'role' | 'department'>[]
+        },
+        staleTime: 10 * 60 * 1000, // 10 minutes - team members rarely change
+    })
+}
+
+/**
+ * Get human-readable role label for display
+ */
+export function getRoleLabel(role: string, isAr: boolean): string {
+    const labels: Record<string, { en: string; ar: string }> = {
+        videographer: { en: 'Videographer', ar: 'مصور فيديو' },
+        photographer: { en: 'Photographer', ar: 'مصور' },
+        editor: { en: 'Editor', ar: 'محرر' },
+        creator: { en: 'Creator', ar: 'صانع محتوى' },
+        team_leader: { en: 'Team Leader', ar: 'قائد فريق' },
+        admin: { en: 'Admin', ar: 'مسؤول' },
+        accountant: { en: 'Accountant', ar: 'محاسب' },
+        client: { en: 'Client', ar: 'عميل' },
+    }
+    return labels[role]?.[isAr ? 'ar' : 'en'] || role
 }

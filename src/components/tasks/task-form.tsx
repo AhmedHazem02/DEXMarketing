@@ -45,8 +45,8 @@ import {
 } from '@/components/ui/form'
 
 import { useCreateTask, useUpdateTask } from '@/hooks/use-tasks'
-import { useUsers } from '@/hooks/use-users'
-import { PRIORITY_CONFIG, KANBAN_COLUMNS } from '@/types/task'
+import { useUsers, useCurrentUser } from '@/hooks/use-users'
+import { PRIORITY_CONFIG, KANBAN_COLUMNS, PHOTOGRAPHY_ROLES, CONTENT_ROLES } from '@/types/task'
 import type { TaskStatus, TaskPriority } from '@/types/database'
 import type { TaskWithRelations, CreateTaskInput, UpdateTaskInput } from '@/types/task'
 
@@ -99,11 +99,22 @@ export function TaskForm({
     const createTask = useCreateTask()
     const updateTask = useUpdateTask()
     const { data: users, isLoading: usersLoading } = useUsers()
+    const { data: currentUser } = useCurrentUser()
 
-    // Filter to creators/team members only
-    const assignableUsers = users?.filter(u =>
-        ['creator', 'team_leader', 'admin'].includes(u.role) && u.is_active
-    ) ?? []
+    // Filter assignable users based on the current user's department
+    const assignableUsers = users?.filter(u => {
+        if (!u.is_active) return false
+        if (currentUser?.role === 'admin') {
+            return ['creator', ...PHOTOGRAPHY_ROLES].includes(u.role as string)
+        }
+        if (currentUser?.department === 'photography') {
+            return (PHOTOGRAPHY_ROLES as readonly string[]).includes(u.role)
+        }
+        if (currentUser?.department === 'content') {
+            return (CONTENT_ROLES as readonly string[]).includes(u.role)
+        }
+        return u.role === 'creator'
+    }) ?? []
 
     // Form setup
     const form = useForm<TaskFormValues>({

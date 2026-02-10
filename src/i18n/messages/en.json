@@ -26,5 +26,67 @@
         "services": "Services",
         "portfolio": "Portfolio",
         "contact": "Contact Us"
+    },
+    "departments": {
+        "photography": "Photography",
+        "content": "Content"
+    },
+    "roles": {
+        "admin": "Admin",
+        "accountant": "Accountant",
+        "team_leader": "Team Leader",
+        "creator": "Creator",
+        "client": "Client",
+        "videographer": "Videographer",
+        "editor": "Editor / Monteur",
+        "photographer": "Photographer"
+    },
+    "dashboard": {
+        "myTasks": "My Tasks",
+        "schedule": "Schedule",
+        "messages": "Messages",
+        "tasksBoard": "Tasks Board",
+        "revisions": "Revisions Hub",
+        "treasury": "Treasury",
+        "noTasks": "No tasks assigned",
+        "markDone": "Mark Done",
+        "deliver": "Deliver to Client",
+        "uploadFiles": "Upload Files",
+        "filming": "Filming",
+        "editing": "Editing",
+        "shooting": "Photo Shooting",
+        "finalReview": "Final Review"
+    },
+    "chat": {
+        "conversations": "Conversations",
+        "search": "Search...",
+        "noConversations": "No conversations yet",
+        "selectConversation": "Select a conversation",
+        "selectConversationDesc": "Choose a conversation from the list to start messaging",
+        "typeMessage": "Type a message...",
+        "startConversation": "Start the conversation...",
+        "loadMore": "Load More",
+        "typing": "typing...",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "image": "Image",
+        "file": "File"
+    },
+    "schedule": {
+        "title": "Schedule",
+        "newSchedule": "New Schedule",
+        "editSchedule": "Edit Schedule",
+        "noSchedules": "No schedules this month",
+        "today": "Today",
+        "companyName": "Company Name",
+        "location": "Location",
+        "time": "Time",
+        "date": "Date",
+        "notes": "Notes",
+        "status": "Status",
+        "scheduled": "Scheduled",
+        "inProgress": "In Progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
     }
 }

@@ -4,68 +4,22 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-    LayoutDashboard,
-    Users,
-    Settings,
-    FileText,
-    Wallet,
-    CheckSquare,
-    Upload,
-    Palette,
     LogOut,
-    BarChart3
+    Home
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { getRoutes } from '@/lib/routes'
+import type { Department } from '@/types/database'
 
-// Define base routes
-const getRoutes = (role: string, isAr: boolean) => {
-    const t = (en: string, ar: string) => isAr ? ar : en
-
-    switch (role) {
-        case 'admin':
-            return [
-                { name: t('Overview', 'نظرة عامة'), href: '/admin', icon: LayoutDashboard },
-                { name: t('Users', 'المستخدمين'), href: '/admin/users', icon: Users },
-                { name: t('Treasury', 'الخزينة'), href: '/admin/treasury', icon: Wallet },
-                { name: t('Tasks', 'المهام'), href: '/admin/tasks', icon: CheckSquare },
-                { name: t('Content (CMS)', 'المحتوى'), href: '/admin/pages', icon: FileText },
-                { name: t('Theme', 'المظهر'), href: '/admin/theme', icon: Palette },
-                { name: t('Reports', 'التقارير'), href: '/admin/reports', icon: BarChart3 },
-                { name: t('Settings', 'الإعدادات'), href: '/admin/settings', icon: Settings },
-            ]
-        case 'client':
-            return [
-                { name: t('Dashboard', 'الرئيسية'), href: '/client', icon: LayoutDashboard },
-                // Projects are accessed via dashboard
-            ]
-        case 'team_leader':
-            return [
-                { name: t('Tasks Board', 'لوحة المهام'), href: '/team-leader', icon: LayoutDashboard },
-                { name: t('Revisions Hub', 'المراجعات'), href: '/team-leader/revisions', icon: FileText },
-            ]
-        case 'creator':
-            return [
-                { name: t('My Tasks', 'مهامي'), href: '/creator', icon: CheckSquare },
-            ]
-        case 'accountant':
-            return [
-                { name: t('Treasury', 'الخزينة'), href: '/accountant', icon: Wallet },
-            ]
-        default:
-            return []
-    }
-}
-
-export function Sidebar({ role }: { role?: string }) {
+export function Sidebar({ role, department }: { role?: string; department?: Department | null }) {
     const pathname = usePathname()
     const router = useRouter()
     const supabase = createClient()
 
-    // Naively extract locale from pathname (e.g. /ar/...) or assume 'en'
     const isAr = pathname.startsWith('/ar')
-    const routes = getRoutes(role || 'guest', isAr)
+    const routes = getRoutes(role || 'guest', isAr, department)
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
@@ -74,9 +28,12 @@ export function Sidebar({ role }: { role?: string }) {
     }
 
     return (
-        <div className="flex h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground">
+        <div className="hidden h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">
             <div className="flex h-16 items-center border-b px-6">
-                <span className="text-lg font-bold text-primary">DEX ERP</span>
+                <Link href="/" className="flex items-center gap-2">
+                    <span className="text-xl font-black text-primary tracking-tighter">DEX</span>
+                    <span className="text-sm font-light text-muted-foreground uppercase tracking-widest">ERP</span>
+                </Link>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
                 <nav className="space-y-1 px-2">
@@ -101,10 +58,16 @@ export function Sidebar({ role }: { role?: string }) {
                     })}
                 </nav>
             </div>
-            <div className="border-t p-4">
-                <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
+            <div className="border-t p-4 space-y-2">
+                <Link href="/" className="block">
+                    <Button variant="outline" className="w-full justify-start gap-2 border-dashed hover:border-primary hover:text-primary transition-colors">
+                        <Home className="h-4 w-4" />
+                        {isAr ? 'موقع الشركة' : 'Website'}
+                    </Button>
+                </Link>
+                <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-red-500 hover:bg-red-500/10" onClick={handleLogout}>
                     <LogOut className="h-4 w-4" />
-                    Logout
+                    {isAr ? 'تسجيل الخروج' : 'Logout'}
                 </Button>
             </div>
         </div>

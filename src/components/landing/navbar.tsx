@@ -41,29 +41,46 @@ export function Navbar({ initialUser, initialRole }: NavbarProps) {
         const handleScroll = () => setIsScrolled(window.scrollY > 50)
         window.addEventListener('scroll', handleScroll)
 
-        // Auth Check & Role Logic
-        const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            await updateUserAndLink(session?.user ?? null)
+        // Only fetch if we don't have initial data, otherwise just listen for changes
+        if (!initialUser) {
+            const checkUser = async () => {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.user) {
+                    await updateUserAndLink(session.user)
+                }
+            }
+            checkUser()
         }
 
-        checkUser()
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            await updateUserAndLink(session?.user ?? null)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+                await updateUserAndLink(session?.user ?? null)
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null)
+                setDashboardLink('/login')
+            }
         })
 
         return () => {
             window.removeEventListener('scroll', handleScroll)
             subscription.unsubscribe()
         }
-    }, [])
+    }, [initialUser])
 
     const updateUserAndLink = async (currentUser: any) => {
+        if (!currentUser) {
+            setUser(null)
+            setDashboardLink('/login')
+            return
+        }
+
         setUser(currentUser)
-        if (currentUser) {
-            // Check DB first for role accuracy
-            let role = ''
+
+        // Use metadata if available to avoid DB call
+        let role = currentUser.user_metadata?.role
+
+        if (!role) {
+            // Only fetch from DB if not in metadata
             const { data } = await supabase
                 .from('users')
                 .select('role')
@@ -73,41 +90,11 @@ export function Navbar({ initialUser, initialRole }: NavbarProps) {
             if (data) {
                 role = (data as any).role
             }
+        }
 
-            // Fallback to metadata if DB failed or empty
-            if (!role) {
-                role = currentUser.user_metadata?.role
-            }
-
-            // Normalize role
-            const normalizedRole = role ? String(role).toLowerCase().trim() : '';
-
-            switch (normalizedRole) {
-                case 'admin': setDashboardLink('/admin'); break;
-                case 'client': setDashboardLink('/client'); break;
-                case 'team_leader': setDashboardLink('/team-leader'); break;
-                case 'creator': setDashboardLink('/creator'); break;
-                case 'accountant': setDashboardLink('/accountant'); break;
-                default:
-                    if (normalizedRole) {
-                        setDashboardLink('/client');
-                    }
-                    else {
-                        // Fallback if role is totally unknown but user exists? 
-                        // Maybe keep it as login or default to client? 
-                        // For now, let's behave like footer: stay at login or handled
-                        // actually, keeping at login might confuse logged in users. 
-                        // Let's default to client if ambiguous, but only if we really cant find role
-                        // But previous logic caused issues. 
-                        // If normalizedRole is empty, it means we really have no clue.
-                    }
-                    break;
-            }
-            // If normalizedRole was found, we set the link. 
-            // If not found, dashboardLink stays as initialized (usually /login). 
-            // In Navbar, we initialized it: const [dashboardLink, setDashboardLink] = useState('/login')
-        } else {
-            setDashboardLink('/login')
+        if (role) {
+            const normalizedRole = String(role).toLowerCase().trim()
+            setDashboardLink(getLink(normalizedRole))
         }
     }
 
@@ -171,7 +158,7 @@ export function Navbar({ initialUser, initialRole }: NavbarProps) {
                         {user ? (
                             <>
                                 <Link href={dashboardLink} className="hidden sm:block">
-                                    <Button className="bg-gradient-to-r from-primary to-orange-500 hover:from-orange-500 hover:to-primary rounded-full px-6 font-semibold shadow-lg shadow-primary/30">
+                                    <Button className="bg-primary hover:bg-primary/90 rounded-full px-6 font-semibold shadow-lg shadow-primary/30">
                                         {isAr ? 'لوحة التحكم' : 'Dashboard'}
                                     </Button>
                                 </Link>
@@ -187,7 +174,7 @@ export function Navbar({ initialUser, initialRole }: NavbarProps) {
                                     </Button>
                                 </Link>
                                 <Link href="/register">
-                                    <Button className="bg-gradient-to-r from-primary to-orange-500 hover:from-orange-500 hover:to-primary rounded-full px-6 font-semibold shadow-lg shadow-primary/30">
+                                    <Button className="bg-primary hover:bg-primary/90 rounded-full px-6 font-semibold shadow-lg shadow-primary/30">
                                         {isAr ? 'ابدأ الآن' : 'Get Started'}
                                     </Button>
                                 </Link>
@@ -200,6 +187,7 @@ export function Navbar({ initialUser, initialRole }: NavbarProps) {
                             size="icon"
                             className="md:hidden"
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            aria-label="Toggle menu"
                         >
                             {isMobileMenuOpen ? <X /> : <Menu />}
                         </Button>

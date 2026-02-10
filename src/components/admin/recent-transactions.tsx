@@ -49,8 +49,8 @@ export function RecentTransactions() {
                             <div key={transaction.id} className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className={`p-2 rounded-full ${transaction.type === 'income'
-                                            ? 'bg-green-500/20 text-green-500'
-                                            : 'bg-red-500/20 text-red-500'
+                                        ? 'bg-green-500/20 text-green-500'
+                                        : 'bg-red-500/20 text-red-500'
                                         }`}>
                                         {transaction.type === 'income' ? (
                                             <ArrowUpRight className="h-4 w-4" />
@@ -58,16 +58,16 @@ export function RecentTransactions() {
                                             <ArrowDownRight className="h-4 w-4" />
                                         )}
                                     </div>
-                                    <div>
-                                        <p className="font-medium text-sm">
+                                    <div className="min-w-0 flex-1 px-3">
+                                        <p className="font-medium text-sm truncate">
                                             {transaction.description || (transaction.type === 'income' ? 'إيراد' : 'مصروف')}
                                         </p>
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs text-muted-foreground truncate">
                                             {transaction.category || 'عام'} • {formatDate(transaction.created_at)}
                                         </p>
                                     </div>
                                 </div>
-                                <span className={`font-bold ${transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
+                                <span className={`font-bold whitespace-nowrap ${transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
                                     }`}>
                                     {transaction.type === 'income' ? '+' : '-'}
                                     {formatCurrency(transaction.amount)}

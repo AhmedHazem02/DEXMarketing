@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useLocale } from 'next-intl'
+import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
 import {
     ClipboardList, Clock, Calendar, CheckCircle, AlertTriangle,
-    ChevronRight, Filter, RefreshCw, Search, Upload, Eye
+    ChevronRight, Filter, RefreshCw, Search, Upload, Eye, Loader2
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -31,9 +32,6 @@ import { useTasksRealtime } from '@/hooks/use-realtime'
 import type { TaskWithRelations } from '@/types/task'
 import type { TaskStatus } from '@/types/database'
 
-// Temporary mock user - Replace with actual auth
-const CURRENT_USER_ID = '00000000-0000-0000-0000-000000000002'
-
 // ============================================
 // Task Card for Creator View
 // ============================================
@@ -43,9 +41,10 @@ interface TaskCardProps {
     onView: () => void
     onSubmit: () => void
     isSubmitting: boolean
+    currentUserId: string
 }
 
-function CreatorTaskCard({ task, onView, onSubmit, isSubmitting }: TaskCardProps) {
+function CreatorTaskCard({ task, onView, onSubmit, isSubmitting, currentUserId }: TaskCardProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const [showUpload, setShowUpload] = useState(false)
@@ -135,7 +134,7 @@ function CreatorTaskCard({ task, onView, onSubmit, isSubmitting }: TaskCardProps
                     >
                         <FileUploadZone
                             taskId={task.id}
-                            userId={CURRENT_USER_ID}
+                            userId={currentUserId}
                             maxFileSize={25}
                         />
                     </motion.div>
@@ -182,6 +181,19 @@ function CreatorTaskCard({ task, onView, onSubmit, isSubmitting }: TaskCardProps
 export default function CreatorDashboard() {
     const locale = useLocale()
     const isAr = locale === 'ar'
+    const [userId, setUserId] = useState<string | null>(null)
+
+    // Fetch current user
+    useEffect(() => {
+        const fetchUser = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                setUserId(user.id)
+            }
+        }
+        fetchUser()
+    }, [])
 
     const [searchQuery, setSearchQuery] = useState('')
     const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active')
@@ -189,12 +201,12 @@ export default function CreatorDashboard() {
     const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
     const [submittingId, setSubmittingId] = useState<string | null>(null)
 
-    // Data
-    const { data: tasks, isLoading, refetch, isRefetching } = useMyTasks(CURRENT_USER_ID)
+    // Data - only fetch if userId is available
+    const { data: tasks, isLoading, refetch, isRefetching } = useMyTasks(userId ?? '')
     const updateTask = useUpdateTask()
 
     // Real-time
-    useTasksRealtime(CURRENT_USER_ID)
+    useTasksRealtime(userId ?? undefined)
 
     // Filter tasks
     const { activeTasks, completedTasks } = useMemo(() => {
@@ -234,6 +246,14 @@ export default function CreatorDashboard() {
         } finally {
             setSubmittingId(null)
         }
+    }
+
+    if (!userId) {
+        return (
+            <div className="flex items-center justify-center h-[50vh]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        )
     }
 
     // Stats
@@ -360,6 +380,7 @@ export default function CreatorDashboard() {
                                         }}
                                         onSubmit={() => handleSubmitTask(task.id)}
                                         isSubmitting={submittingId === task.id}
+                                        currentUserId={userId}
                                     />
                                 ))}
                             </AnimatePresence>
@@ -390,6 +411,7 @@ export default function CreatorDashboard() {
                                         }}
                                         onSubmit={() => { }}
                                         isSubmitting={false}
+                                        currentUserId={userId}
                                     />
                                 ))}
                             </AnimatePresence>
@@ -403,7 +425,7 @@ export default function CreatorDashboard() {
                 open={isDetailsOpen}
                 onOpenChange={setIsDetailsOpen}
                 taskId={selectedTask?.id ?? null}
-                currentUserId={CURRENT_USER_ID}
+                currentUserId={userId}
             />
         </div>
     )

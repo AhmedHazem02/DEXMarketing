@@ -3,19 +3,41 @@
 import { motion } from 'framer-motion'
 import { useLocale } from 'next-intl'
 import { Megaphone, Palette, Video, TrendingUp, Camera, PenTool } from 'lucide-react'
+import { usePage } from '@/hooks/use-cms'
+
+// Fallback data when CMS has no content
+const FALLBACK_SERVICES = [
+    { icon: Megaphone, titleAr: 'إدارة الحملات الإعلانية', titleEn: 'Ad Campaigns', descAr: 'حملات إعلانية مستهدفة لتحقيق أعلى عائد استثمار', descEn: 'Targeted campaigns for maximum ROI', color: 'from-red-500 to-orange-500' },
+    { icon: Palette, titleAr: 'التصميم الإبداعي', titleEn: 'Creative Design', descAr: 'تصاميم مبتكرة تعكس هوية علامتك', descEn: 'Designs that reflect your brand', color: 'from-purple-500 to-pink-500' },
+    { icon: Video, titleAr: 'إنتاج الفيديو', titleEn: 'Video Production', descAr: 'فيديوهات احترافية تروي قصتك', descEn: 'Professional videos that tell your story', color: 'from-cyan-500 to-blue-500' },
+    { icon: TrendingUp, titleAr: 'تحسين SEO', titleEn: 'SEO Optimization', descAr: 'استراتيجيات لتصدر نتائج البحث', descEn: 'Strategies to dominate search', color: 'from-green-500 to-emerald-500' },
+    { icon: Camera, titleAr: 'التصوير الاحترافي', titleEn: 'Photography', descAr: 'صور عالية الجودة لمنتجاتك', descEn: 'High-quality product photos', color: 'from-yellow-500 to-primary' },
+    { icon: PenTool, titleAr: 'كتابة المحتوى', titleEn: 'Content Writing', descAr: 'محتوى إبداعي يحوّل الزوار لعملاء', descEn: 'Content that converts', color: 'from-indigo-500 to-violet-500' },
+]
+
+const GRADIENT_COLORS = [
+    'from-red-500 to-orange-500',
+    'from-purple-500 to-pink-500',
+    'from-cyan-500 to-blue-500',
+    'from-green-500 to-emerald-500',
+    'from-yellow-500 to-primary',
+    'from-indigo-500 to-violet-500',
+]
+
+const ICONS = [Megaphone, Palette, Video, TrendingUp, Camera, PenTool]
 
 export function ServicesSection() {
     const locale = useLocale()
     const isAr = locale === 'ar'
+    const { data: page } = usePage('services')
 
-    const services = [
-        { icon: Megaphone, titleAr: 'إدارة الحملات الإعلانية', titleEn: 'Ad Campaigns', descAr: 'حملات إعلانية مستهدفة لتحقيق أعلى عائد استثمار', descEn: 'Targeted campaigns for maximum ROI', color: 'from-red-500 to-orange-500' },
-        { icon: Palette, titleAr: 'التصميم الإبداعي', titleEn: 'Creative Design', descAr: 'تصاميم مبتكرة تعكس هوية علامتك', descEn: 'Designs that reflect your brand', color: 'from-purple-500 to-pink-500' },
-        { icon: Video, titleAr: 'إنتاج الفيديو', titleEn: 'Video Production', descAr: 'فيديوهات احترافية تروي قصتك', descEn: 'Professional videos that tell your story', color: 'from-cyan-500 to-blue-500' },
-        { icon: TrendingUp, titleAr: 'تحسين SEO', titleEn: 'SEO Optimization', descAr: 'استراتيجيات لتصدر نتائج البحث', descEn: 'Strategies to dominate search', color: 'from-green-500 to-emerald-500' },
-        { icon: Camera, titleAr: 'التصوير الاحترافي', titleEn: 'Photography', descAr: 'صور عالية الجودة لمنتجاتك', descEn: 'High-quality product photos', color: 'from-yellow-500 to-primary' },
-        { icon: PenTool, titleAr: 'كتابة المحتوى', titleEn: 'Content Writing', descAr: 'محتوى إبداعي يحوّل الزوار لعملاء', descEn: 'Content that converts', color: 'from-indigo-500 to-violet-500' }
-    ]
+    // Try to read CMS items
+    const content = isAr ? page?.content_ar : page?.content_en
+    const cmsItems = (content && typeof content === 'object' && 'items' in (content as Record<string, unknown>))
+        ? ((content as Record<string, unknown>).items as Array<Record<string, string>>)
+        : null
+
+    const hasCmsData = cmsItems && cmsItems.length > 0
 
     return (
         <section id="services" className="py-32 relative overflow-hidden">
@@ -42,23 +64,54 @@ export function ServicesSection() {
 
                 {/* Services Grid */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {services.map((service, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 40 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: i * 0.1 }}
-                            whileHover={{ y: -8, scale: 1.02 }}
-                            className="group relative p-8 rounded-3xl bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all duration-300"
-                        >
-                            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${service.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
-                                <service.icon className="h-7 w-7 text-white" />
-                            </div>
-                            <h3 className="text-xl font-bold mb-2">{isAr ? service.titleAr : service.titleEn}</h3>
-                            <p className="text-muted-foreground text-sm">{isAr ? service.descAr : service.descEn}</p>
-                        </motion.div>
-                    ))}
+                    {hasCmsData ? (
+                        cmsItems.map((item, i) => {
+                            const IconComponent = ICONS[i % ICONS.length]
+                            const color = GRADIENT_COLORS[i % GRADIENT_COLORS.length]
+                            return (
+                                <motion.div
+                                    key={item.id || i}
+                                    initial={{ opacity: 0, y: 40 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.1 }}
+                                    whileHover={{ y: -8, scale: 1.02 }}
+                                    className="group relative p-8 rounded-3xl bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all duration-300"
+                                >
+                                    {item.image ? (
+                                        <div className={`w-14 h-14 rounded-2xl overflow-hidden mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={item.image} alt={item.title || ''} className="w-full h-full object-cover" />
+                                        </div>
+                                    ) : (
+                                        <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
+                                            <IconComponent className="h-7 w-7 text-white" />
+                                        </div>
+                                    )}
+                                    <h3 className="text-xl font-bold mb-2">{item.title || ''}</h3>
+                                    <p className="text-muted-foreground text-sm">{item.description || ''}</p>
+                                </motion.div>
+                            )
+                        })
+                    ) : (
+                        FALLBACK_SERVICES.map((service, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 40 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.1 }}
+                                whileHover={{ y: -8, scale: 1.02 }}
+                                className="group relative p-8 rounded-3xl bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all duration-300"
+                            >
+                                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${service.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
+                                    <service.icon className="h-7 w-7 text-white" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-2">{isAr ? service.titleAr : service.titleEn}</h3>
+                                <p className="text-muted-foreground text-sm">{isAr ? service.descAr : service.descEn}</p>
+                            </motion.div>
+                        ))
+                    )}
                 </div>
             </div>
         </section>

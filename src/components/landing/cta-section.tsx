@@ -47,7 +47,7 @@ export function CTASection() {
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Link href="/register">
-                            <Button size="lg" className="text-lg px-10 py-7 bg-gradient-to-r from-primary to-orange-500 hover:from-orange-500 hover:to-primary shadow-2xl shadow-primary/40 rounded-full font-bold">
+                            <Button size="lg" className="text-lg px-10 py-7 bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/40 rounded-full font-bold">
                                 {isAr ? 'احجز استشارتك المجانية' : 'Book Free Consultation'}
                                 <Arrow className="ms-2 h-5 w-5" />
                             </Button>

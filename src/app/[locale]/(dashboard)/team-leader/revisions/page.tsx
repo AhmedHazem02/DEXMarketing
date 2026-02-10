@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { Loader2 } from 'lucide-react'
 import { RevisionsHub, TaskDetails, type TaskWithRelations } from '@/components/tasks'
-
-// Temporary mock user - Replace with actual auth
-const CURRENT_USER_ID = '00000000-0000-0000-0000-000000000001'
+import { useCurrentUser } from '@/hooks/use-users'
 
 export default function RevisionsPage() {
+    const { data: currentUser, isLoading } = useCurrentUser()
+
     // State
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
@@ -17,6 +18,14 @@ export default function RevisionsPage() {
         setIsDetailsOpen(true)
     }, [])
 
+    if (isLoading || !currentUser) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
+    }
+
     return (
         <>
             <RevisionsHub onTaskClick={handleTaskClick} />
@@ -26,7 +35,7 @@ export default function RevisionsPage() {
                 open={isDetailsOpen}
                 onOpenChange={setIsDetailsOpen}
                 taskId={selectedTask?.id ?? null}
-                currentUserId={CURRENT_USER_ID}
+                currentUserId={currentUser.id}
             />
         </>
     )

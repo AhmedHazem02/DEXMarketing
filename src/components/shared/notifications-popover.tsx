@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '@/hooks/use-notifications'
-import { useUser } from '@/hooks/use-users'
+import { useCurrentUser } from '@/hooks/use-users'
 import { Badge } from '@/components/ui/badge'
 
 export function NotificationsPopover() {
@@ -22,14 +22,8 @@ export function NotificationsPopover() {
     const isAr = locale === 'ar'
     const [open, setOpen] = useState(false)
 
-    // We need current user ID
-    // Assuming simple hook or context usage. If useUser fetches full profile, we might just need session id
-    // For now using client-side auth via Supabase in hook or passing it down
-    // But hooks usually need the ID. Let's rely on useUser() or session context.
-    // I'll assume useUser() returns { user: { id: ... } }
-
-    // TODO: get real user ID
-    const userId = '00000000-0000-0000-0000-000000000000' // Mock for now until Auth context is clearer
+    const { data: currentUser } = useCurrentUser()
+    const userId = currentUser?.id || ''
 
     const { data: notifications, isLoading } = useNotifications(userId)
     const markRead = useMarkNotificationRead()

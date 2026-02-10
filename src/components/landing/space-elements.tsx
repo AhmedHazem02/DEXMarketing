@@ -6,10 +6,11 @@ import { useEffect, useState } from 'react'
 // ============================================
 // STAR FIELD - Animated Twinkling Stars
 // ============================================
-export function StarField({ count = 100 }: { count?: number }) {
+export function StarField({ count = 40 }: { count?: number }) {
     const [stars, setStars] = useState<Array<{ x: number; y: number; size: number; delay: number }>>([])
 
     useEffect(() => {
+        // Reduced max count for mobile performance
         const generatedStars = Array.from({ length: count }, () => ({
             x: Math.random() * 100,
             y: Math.random() * 100,
@@ -30,13 +31,13 @@ export function StarField({ count = 100 }: { count?: number }) {
                         top: `${star.y}%`,
                         width: star.size,
                         height: star.size,
+                        willChange: 'opacity', // Hint to browser
                     }}
                     animate={{
-                        opacity: [0.2, 1, 0.2],
-                        scale: [1, 1.5, 1],
+                        opacity: [0.2, 0.8, 0.2], // Removed scale animation for performance
                     }}
                     transition={{
-                        duration: 2 + Math.random() * 2,
+                        duration: 3 + Math.random() * 2,
                         repeat: Infinity,
                         delay: star.delay,
                     }}
@@ -52,61 +53,64 @@ export function StarField({ count = 100 }: { count?: number }) {
 export function Nebula() {
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* Cyan Nebula */}
+            {/* Cyan Nebula - Reduced Blur */}
             <motion.div
                 className="absolute w-[600px] h-[600px] rounded-full opacity-20"
                 style={{
                     background: 'radial-gradient(circle, rgba(0,212,255,0.4) 0%, transparent 70%)',
                     left: '60%',
                     top: '20%',
-                    filter: 'blur(60px)',
+                    filter: 'blur(40px)', // Reduced from 60px
+                    willChange: 'transform',
                 }}
                 animate={{
-                    scale: [1, 1.2, 1],
-                    x: [0, 30, 0],
-                    y: [0, -20, 0],
+                    scale: [1, 1.1, 1], // Reduced scale range
+                    x: [0, 20, 0],
+                    y: [0, -10, 0],
                 }}
                 transition={{
                     duration: 15,
                     repeat: Infinity,
-                    ease: 'easeInOut',
+                    ease: 'linear', // Simplified ease
                 }}
             />
-            {/* Golden Nebula */}
+            {/* Golden Nebula - Reduced Blur */}
             <motion.div
                 className="absolute w-[500px] h-[500px] rounded-full opacity-15"
                 style={{
                     background: 'radial-gradient(circle, rgba(255,215,0,0.5) 0%, rgba(249,115,22,0.3) 50%, transparent 70%)',
                     left: '10%',
                     bottom: '10%',
-                    filter: 'blur(80px)',
+                    filter: 'blur(50px)', // Reduced from 80px
+                    willChange: 'transform',
                 }}
                 animate={{
-                    scale: [1.2, 1, 1.2],
-                    x: [0, -20, 0],
+                    scale: [1.1, 1, 1.1],
+                    x: [0, -10, 0],
                 }}
                 transition={{
                     duration: 20,
                     repeat: Infinity,
-                    ease: 'easeInOut',
+                    ease: 'linear',
                 }}
             />
-            {/* Deep Purple Nebula */}
+            {/* Deep Purple Nebula - Reduced Blur */}
             <motion.div
                 className="absolute w-[400px] h-[400px] rounded-full opacity-10"
                 style={{
                     background: 'radial-gradient(circle, rgba(139,92,246,0.4) 0%, transparent 70%)',
                     right: '20%',
                     bottom: '30%',
-                    filter: 'blur(70px)',
+                    filter: 'blur(40px)', // Reduced from 70px
+                    willChange: 'transform',
                 }}
                 animate={{
-                    scale: [1, 1.3, 1],
+                    scale: [1, 1.2, 1],
                 }}
                 transition={{
                     duration: 18,
                     repeat: Infinity,
-                    ease: 'easeInOut',
+                    ease: 'linear',
                 }}
             />
         </div>
@@ -251,9 +255,9 @@ export function FloatingAstronaut({ imageSrc }: { imageSrc?: string }) {
                 <img
                     src={imageSrc}
                     alt="Astronaut"
-                    className="w-full h-auto max-w-md drop-shadow-2xl"
+                    className="w-full h-auto max-w-md drop-shadow-xl"
                     style={{
-                        filter: 'drop-shadow(0 0 40px rgba(0,212,255,0.3))',
+                        filter: 'drop-shadow(0 0 20px rgba(0,212,255,0.3))', // Reduced from 40px
                     }}
                 />
             ) : (

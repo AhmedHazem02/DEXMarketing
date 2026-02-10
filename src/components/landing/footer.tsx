@@ -40,27 +40,45 @@ export function Footer({ initialUser, initialRole }: FooterProps) {
     const supabase = createClient()
 
     useEffect(() => {
-        // Auth Check Logic
-        const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            await updateUserAndLink(session?.user ?? null)
+        // Only check if we don't have initial data
+        if (!initialUser) {
+            const checkUser = async () => {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.user) {
+                    await updateUserAndLink(session.user)
+                }
+            }
+            checkUser()
         }
-        checkUser()
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            await updateUserAndLink(session?.user ?? null)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+                await updateUserAndLink(session?.user ?? null)
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null)
+                setDashboardLink('/login')
+            }
         })
 
         return () => {
             subscription.unsubscribe()
         }
-    }, [])
+    }, [initialUser])
 
     const updateUserAndLink = async (currentUser: any) => {
+        if (!currentUser) {
+            setUser(null)
+            setDashboardLink('/login')
+            return
+        }
+
         setUser(currentUser)
-        if (currentUser) {
-            // Check DB first for role accuracy
-            let role = ''
+
+        // Use metadata first to avoid extra DB call
+        let role = currentUser.user_metadata?.role
+
+        if (!role) {
+            // Check DB only if not in metadata
             const { data } = await supabase
                 .from('users')
                 .select('role')
@@ -70,31 +88,11 @@ export function Footer({ initialUser, initialRole }: FooterProps) {
             if (data) {
                 role = (data as any).role
             }
+        }
 
-            // Fallback to metadata if DB failed or empty
-            if (!role) {
-                role = currentUser.user_metadata?.role
-            }
-
-            // Normalize role
-            const normalizedRole = role ? String(role).toLowerCase().trim() : '';
-
-            switch (normalizedRole) {
-                case 'admin': setDashboardLink('/admin'); break;
-                case 'client': setDashboardLink('/client'); break;
-                case 'team_leader': setDashboardLink('/team-leader'); break;
-                case 'creator': setDashboardLink('/creator'); break;
-                case 'accountant': setDashboardLink('/accountant'); break;
-                default:
-                    // Only default to client if we have a role string but it didn't match specific roles
-                    // If no role found at all, keep it as login or home
-                    if (normalizedRole) {
-                        setDashboardLink('/client');
-                    }
-                    break;
-            }
-        } else {
-            setDashboardLink('/login')
+        if (role) {
+            const normalizedRole = String(role).toLowerCase().trim()
+            setDashboardLink(getLink(normalizedRole))
         }
     }
 

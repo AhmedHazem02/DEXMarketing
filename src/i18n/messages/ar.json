@@ -26,5 +26,67 @@
         "services": "خدماتنا",
         "portfolio": "أعمالنا",
         "contact": "تواصل معنا"
+    },
+    "departments": {
+        "photography": "قسم التصوير",
+        "content": "قسم المحتوى"
+    },
+    "roles": {
+        "admin": "مدير",
+        "accountant": "محاسب",
+        "team_leader": "قائد الفريق",
+        "creator": "صانع محتوى",
+        "client": "عميل",
+        "videographer": "مصور فيديو",
+        "editor": "مونتير",
+        "photographer": "مصور فوتوغرافي"
+    },
+    "dashboard": {
+        "myTasks": "مهامي",
+        "schedule": "جدول المواعيد",
+        "messages": "المراسلات",
+        "tasksBoard": "لوحة المهام",
+        "revisions": "المراجعات",
+        "treasury": "الخزينة",
+        "noTasks": "لا توجد مهام",
+        "markDone": "تم الانتهاء",
+        "deliver": "تسليم للعميل",
+        "uploadFiles": "رفع ملفات",
+        "filming": "تصوير",
+        "editing": "مونتاج",
+        "shooting": "جلسة تصوير",
+        "finalReview": "مراجعة نهائية"
+    },
+    "chat": {
+        "conversations": "المحادثات",
+        "search": "بحث...",
+        "noConversations": "لا توجد محادثات",
+        "selectConversation": "اختر محادثة",
+        "selectConversationDesc": "اختر محادثة من القائمة لبدء المراسلة",
+        "typeMessage": "اكتب رسالة...",
+        "startConversation": "ابدأ المحادثة...",
+        "loadMore": "تحميل المزيد",
+        "typing": "يكتب...",
+        "today": "اليوم",
+        "yesterday": "أمس",
+        "image": "صورة",
+        "file": "ملف"
+    },
+    "schedule": {
+        "title": "جدول المواعيد",
+        "newSchedule": "جدولة جديدة",
+        "editSchedule": "تعديل الجدول",
+        "noSchedules": "لا توجد مواعيد هذا الشهر",
+        "today": "اليوم",
+        "companyName": "اسم الشركة",
+        "location": "الموقع",
+        "time": "الوقت",
+        "date": "التاريخ",
+        "notes": "ملاحظات",
+        "status": "الحالة",
+        "scheduled": "مجدول",
+        "inProgress": "جاري",
+        "completed": "مكتمل",
+        "cancelled": "ملغي"
     }
 }

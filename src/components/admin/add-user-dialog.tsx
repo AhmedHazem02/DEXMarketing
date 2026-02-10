@@ -14,11 +14,14 @@ import { toast } from 'sonner'
 import { createUser } from '@/lib/actions/users'
 import { useQueryClient } from '@tanstack/react-query'
 
+const DEPARTMENT_REQUIRED_ROLES = ['team_leader', 'videographer', 'editor', 'photographer', 'creator'] as const
+
 const formSchema = z.object({
     name: z.string().min(2, 'الاسم يجب أن يكون حرفين على الأقل'),
     email: z.string().email('بريد إلكتروني غير صالح'),
     password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
-    role: z.enum(['admin', 'accountant', 'team_leader', 'creator', 'client'])
+    role: z.enum(['admin', 'accountant', 'team_leader', 'creator', 'client', 'videographer', 'editor', 'photographer']),
+    department: z.enum(['photography', 'content']).nullable().optional(),
 })
 
 export function AddUserDialog() {
@@ -32,14 +35,28 @@ export function AddUserDialog() {
             name: '',
             email: '',
             password: '',
-            role: 'client'
+            role: 'client',
+            department: null,
         }
     })
 
+    const selectedRole = form.watch('role')
+    const needsDepartment = DEPARTMENT_REQUIRED_ROLES.includes(selectedRole as any)
+
+    // Auto-set department for photography-only roles
+    const autoDepartmentRoles: Record<string, 'photography' | 'content'> = {
+        videographer: 'photography',
+        editor: 'photography',
+        photographer: 'photography',
+        creator: 'content',
+    }
+
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
+        // Auto-resolve department if role has a fixed department
+        const department = autoDepartmentRoles[values.role] || values.department || null
         setIsLoading(true)
         try {
-            const res = await createUser(values)
+            const res = await createUser({ ...values, department })
             if (res.success) {
                 toast.success('تم إنشاء المستخدم بنجاح')
                 setOpen(false)
@@ -127,7 +144,10 @@ export function AddUserDialog() {
                                             <SelectItem value="admin">مدير (Admin)</SelectItem>
                                             <SelectItem value="team_leader">قائد فريق</SelectItem>
                                             <SelectItem value="accountant">محاسب</SelectItem>
-                                            <SelectItem value="creator">مصمم / منشئ</SelectItem>
+                                            <SelectItem value="creator">صانع محتوى</SelectItem>
+                                            <SelectItem value="videographer">مصور فيديو</SelectItem>
+                                            <SelectItem value="editor">مونتير</SelectItem>
+                                            <SelectItem value="photographer">مصور فوتوغرافي</SelectItem>
                                             <SelectItem value="client">عميل</SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -135,6 +155,30 @@ export function AddUserDialog() {
                                 </FormItem>
                             )}
                         />
+                        {/* Department selector for team_leader role */}
+                        {selectedRole === 'team_leader' && (
+                            <FormField
+                                control={form.control}
+                                name="department"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>القسم</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="اختر القسم" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="photography">قسم التصوير</SelectItem>
+                                                <SelectItem value="content">قسم المحتوى</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
                         <DialogFooter className="pt-4">
                             <Button type="submit" disabled={isLoading} className="w-full">
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

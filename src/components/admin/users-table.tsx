@@ -32,14 +32,20 @@ const roleColors: Record<UserRole, string> = {
     team_leader: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
     creator: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
     client: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    videographer: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+    editor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    photographer: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
 }
 
 const roleLabels: Record<UserRole, string> = {
     admin: 'مدير',
     accountant: 'محاسب',
     team_leader: 'قائد فريق',
-    creator: 'مصمم',
+    creator: 'صانع محتوى',
     client: 'عميل',
+    videographer: 'مصور فيديو',
+    editor: 'مونتير',
+    photographer: 'مصور فوتوغرافي',
 }
 
 export function UsersTable() {
@@ -95,7 +101,7 @@ export function UsersTable() {
 
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <CardTitle>إدارة المستخدمين</CardTitle>
                     <CardDescription>
@@ -109,10 +115,10 @@ export function UsersTable() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>المستخدم</TableHead>
-                            <TableHead>البريد الإلكتروني</TableHead>
+                            <TableHead className="hidden md:table-cell">البريد الإلكتروني</TableHead>
                             <TableHead>الدور</TableHead>
                             <TableHead>الحالة</TableHead>
-                            <TableHead>تاريخ التسجيل</TableHead>
+                            <TableHead className="hidden md:table-cell">تاريخ التسجيل</TableHead>
                             <TableHead className="text-left">إجراءات</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -130,7 +136,7 @@ export function UsersTable() {
                                         <span className="font-medium">{user.name || 'بدون اسم'}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                                <TableCell className="text-muted-foreground hidden md:table-cell">{user.email}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className={roleColors[user.role]}>
                                         {roleLabels[user.role]}
@@ -141,7 +147,7 @@ export function UsersTable() {
                                         {user.is_active ? 'نشط' : 'معطل'}
                                     </Badge>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="hidden md:table-cell">
                                     {new Date(user.created_at).toLocaleDateString()}
                                 </TableCell>
                                 <TableCell>

@@ -16,8 +16,10 @@ export function useRealtimeSubscription(
     const queryClient = useQueryClient()
 
     useEffect(() => {
+        const channelName = `realtime-${table}-${queryKey.join('-')}`
+
         const channel = supabase
-            .channel(`realtime-${table}`)
+            .channel(channelName)
             .on(
                 'postgres_changes',
                 {
@@ -35,7 +37,8 @@ export function useRealtimeSubscription(
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [supabase, queryClient, table, queryKey])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [table])
 }
 
 /**
@@ -70,40 +73,57 @@ export function useNotificationsRealtime(userId: string) {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [supabase, queryClient, userId])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId])
 }
 
 /**
  * Hook to subscribe to task updates for a specific user
+ * Also listens to comments and attachments changes
  */
 export function useTasksRealtime(userId?: string) {
     const supabase = createClient()
     const queryClient = useQueryClient()
 
     useEffect(() => {
-        let filter = undefined
-        if (userId) {
-            filter = `assigned_to=eq.${userId}`
-        }
-
-        const channel = supabase
-            .channel('tasks-realtime')
+        // Create channels for each table separately
+        const tasksChannel = supabase
+            .channel('db-tasks')
             .on(
                 'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'tasks',
-                    filter,
-                },
-                () => {
+                { event: '*', schema: 'public', table: 'tasks' },
+                (payload) => {
+                    queryClient.invalidateQueries({ queryKey: ['tasks'] })
+                }
+            )
+            .subscribe()
+
+        const commentsChannel = supabase
+            .channel('db-comments')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'comments' },
+                (payload) => {
+                    queryClient.invalidateQueries({ queryKey: ['tasks'] })
+                }
+            )
+            .subscribe()
+
+        const attachmentsChannel = supabase
+            .channel('db-attachments')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'attachments' },
+                (payload) => {
                     queryClient.invalidateQueries({ queryKey: ['tasks'] })
                 }
             )
             .subscribe()
 
         return () => {
-            supabase.removeChannel(channel)
+            supabase.removeChannel(tasksChannel)
+            supabase.removeChannel(commentsChannel)
+            supabase.removeChannel(attachmentsChannel)
         }
-    }, [supabase, queryClient, userId])
+    }, []) // Empty dependency - only subscribe once
 }

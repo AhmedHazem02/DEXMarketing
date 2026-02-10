@@ -11,10 +11,15 @@ export type Json =
     | Json[]
 
 // Enums
-export type UserRole = 'admin' | 'accountant' | 'team_leader' | 'creator' | 'client'
+export type UserRole = 'admin' | 'accountant' | 'team_leader' | 'creator' | 'client' | 'videographer' | 'editor' | 'photographer'
+export type Department = 'photography' | 'content'
 export type ProjectStatus = 'active' | 'completed' | 'on_hold' | 'cancelled'
 export type TaskStatus = 'new' | 'in_progress' | 'review' | 'revision' | 'approved' | 'rejected'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type TaskType = 'video' | 'photo' | 'editing' | 'content' | 'general'
+export type WorkflowStage = 'filming' | 'filming_done' | 'editing' | 'editing_done' | 'final_review' | 'shooting' | 'shooting_done' | 'delivered' | 'none'
+export type ScheduleStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
+export type MessageType = 'text' | 'image' | 'file'
 export type TransactionType = 'income' | 'expense'
 
 // ============================================
@@ -27,6 +32,7 @@ export interface User {
     name: string | null
     phone: string | null
     role: UserRole
+    department: Department | null
     avatar_url: string | null
     is_active: boolean
     created_at: string
@@ -49,6 +55,7 @@ export interface Project {
     name: string
     description: string | null
     status: ProjectStatus
+    department: Department | null
     budget: number | null
     start_date: string | null
     end_date: string | null
@@ -63,10 +70,18 @@ export interface Task {
     description: string | null
     status: TaskStatus
     priority: TaskPriority
+    department: Department | null
+    task_type: TaskType
+    workflow_stage: WorkflowStage
     assigned_to: string | null
     created_by: string | null
+    editor_id: string | null
     deadline: string | null
     client_feedback: string | null
+    company_name: string | null
+    location: string | null
+    scheduled_date: string | null
+    scheduled_time: string | null
     created_at: string
     updated_at: string
 }
@@ -181,6 +196,60 @@ export interface StorageSettings {
 }
 
 // ============================================
+// New Tables - v2 Department System
+// ============================================
+
+export interface Schedule {
+    id: string
+    department: Department
+    team_leader_id: string
+    client_id: string | null
+    project_id: string | null
+    task_id: string | null
+    assigned_members: string[]
+    company_name: string
+    title: string
+    description: string | null
+    scheduled_date: string
+    start_time: string
+    end_time: string | null
+    location: string | null
+    status: ScheduleStatus
+    notes: string | null
+    created_at: string
+    updated_at: string
+}
+
+export interface Conversation {
+    id: string
+    project_id: string | null
+    department: Department | null
+    created_at: string
+    updated_at: string
+    last_message_at: string
+}
+
+export interface ConversationParticipant {
+    id: string
+    conversation_id: string
+    user_id: string
+    last_read_at: string | null
+    joined_at: string
+}
+
+export interface Message {
+    id: string
+    conversation_id: string
+    sender_id: string
+    content: string | null
+    message_type: MessageType
+    file_url: string | null
+    file_name: string | null
+    is_read: boolean
+    created_at: string
+}
+
+// ============================================
 // Database Schema Type (for Supabase Client)
 // ============================================
 export interface Database {
@@ -261,12 +330,37 @@ export interface Database {
                 Insert: Omit<StorageSettings, 'id'> & { id?: string }
                 Update: Partial<Omit<StorageSettings, 'id'>>
             }
+            schedules: {
+                Row: Schedule
+                Insert: Omit<Schedule, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string }
+                Update: Partial<Omit<Schedule, 'id'>>
+            }
+            conversations: {
+                Row: Conversation
+                Insert: Omit<Conversation, 'id' | 'created_at' | 'updated_at' | 'last_message_at'> & { id?: string; created_at?: string; updated_at?: string; last_message_at?: string }
+                Update: Partial<Omit<Conversation, 'id'>>
+            }
+            conversation_participants: {
+                Row: ConversationParticipant
+                Insert: Omit<ConversationParticipant, 'id' | 'joined_at'> & { id?: string; joined_at?: string }
+                Update: Partial<Omit<ConversationParticipant, 'id'>>
+            }
+            messages: {
+                Row: Message
+                Insert: Omit<Message, 'id' | 'created_at'> & { id?: string; created_at?: string }
+                Update: Partial<Omit<Message, 'id'>>
+            }
         }
         Enums: {
             user_role: UserRole
+            department: Department
             project_status: ProjectStatus
             task_status: TaskStatus
             task_priority: TaskPriority
+            task_type: TaskType
+            workflow_stage: WorkflowStage
+            schedule_status: ScheduleStatus
+            message_type: MessageType
             transaction_type: TransactionType
         }
     }

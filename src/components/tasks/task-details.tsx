@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLocale } from 'next-intl'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
@@ -54,6 +54,7 @@ import {
     useDeleteAttachment,
     useMarkAttachmentFinal,
 } from '@/hooks/use-tasks'
+import { FileUploadZone } from './file-upload-zone'
 import { getPriorityConfig, getColumnConfig } from '@/types/task'
 import type { TaskWithRelations, CommentWithUser } from '@/types/task'
 import type { Attachment } from '@/types/database'
@@ -270,6 +271,9 @@ export function TaskDetails({
     const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
     const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null)
 
+    // Ref for auto-scroll to latest comment
+    const commentsEndRef = useRef<HTMLDivElement>(null)
+
     // Hooks
     const { data: task, isLoading } = useTaskDetails(taskId ?? '')
     const addComment = useAddComment()
@@ -277,6 +281,13 @@ export function TaskDetails({
     const deleteTask = useDeleteTask()
     const deleteAttachment = useDeleteAttachment()
     const markFinal = useMarkAttachmentFinal()
+
+    // Auto-scroll to bottom when comments change
+    useEffect(() => {
+        if (task?.comments && commentsEndRef.current) {
+            commentsEndRef.current.scrollIntoView({ behavior: 'smooth' })
+        }
+    }, [task?.comments?.length])
 
     if (!taskId) return null
 
@@ -294,8 +305,8 @@ export function TaskDetails({
                 content: newComment.trim(),
             })
             setNewComment('')
-        } catch (e) {
-            console.error('Failed to add comment:', e)
+        } catch (e: any) {
+            console.error('Failed to add comment:', e.message || e)
         }
     }
 
@@ -344,6 +355,14 @@ export function TaskDetails({
                 side={isAr ? 'left' : 'right'}
                 className="w-full sm:max-w-xl p-0 flex flex-col"
             >
+                {/* Accessibility: Always render a hidden title if visible title is missing */}
+                <SheetTitle className="sr-only">
+                    {task?.title ?? (isAr ? 'تفاصيل المهمة' : 'Task Details')}
+                </SheetTitle>
+                <SheetDescription className="sr-only">
+                    {isAr ? 'عرض تفاصيل المهمة وإدارتها' : 'View and manage task details'}
+                </SheetDescription>
+
                 {isLoading ? (
                     <div className="flex-1 flex items-center justify-center">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -536,7 +555,7 @@ export function TaskDetails({
 
                             {/* Comments Tab */}
                             <TabsContent value="comments" className="flex-1 flex flex-col min-h-0 px-6 pb-4">
-                                <ScrollArea className="flex-1 -mx-6 px-6">
+                                <ScrollArea className="flex-1 -mx-6 px-6" style={{ maxHeight: 'calc(100vh - 400px)' }}>
                                     <div className="divide-y">
                                         {task.comments?.length === 0 ? (
                                             <p className="text-sm text-muted-foreground text-center py-8">
@@ -553,6 +572,8 @@ export function TaskDetails({
                                                 />
                                             ))
                                         )}
+                                        {/* Auto-scroll anchor */}
+                                        <div ref={commentsEndRef} />
                                     </div>
                                 </ScrollArea>
 
@@ -602,6 +623,15 @@ export function TaskDetails({
                                             />
                                         ))
                                     )}
+                                </div>
+                                <div className="mt-4 pt-4 border-t">
+                                    <FileUploadZone
+                                        taskId={task.id}
+                                        userId={currentUserId}
+                                        onUploadComplete={() => {
+                                            // Optional: Show toast or refresh (realtime handles refresh)
+                                        }}
+                                    />
                                 </div>
                             </TabsContent>
                         </Tabs>

@@ -18,7 +18,10 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
-export function Header({ user }: { user?: any }) { // Simplify user type for now
+import { MobileSidebar } from '@/components/layout/mobile-sidebar'
+import type { Department } from '@/types/database'
+
+export function Header({ user, role, department }: { user?: any, role?: string, department?: Department | null }) {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const router = useRouter()
@@ -32,9 +35,7 @@ export function Header({ user }: { user?: any }) { // Simplify user type for now
 
     return (
         <header className="flex h-16 items-center border-b bg-background px-6">
-            <Button variant="ghost" size="icon" className="md:hidden me-4">
-                <Menu className="h-5 w-5" />
-            </Button>
+            <MobileSidebar role={role} department={department} />
 
             <div className="flex flex-1 items-center gap-4">
                 <div className="relative w-full max-w-sm hidden md:flex">

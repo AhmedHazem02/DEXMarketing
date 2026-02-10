@@ -1,0 +1,726 @@
+'use client'
+
+import { useState, useMemo, memo } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+    useTreasury,
+    useTransactionSummary,
+    useTransactions,
+    useUsers,
+    useTasks,
+} from '@/hooks'
+import {
+    DollarSign,
+    Users,
+    TrendingUp,
+    TrendingDown,
+    ArrowUp,
+    ArrowUpRight,
+    ArrowDownRight,
+    Clock,
+    CheckCircle2,
+    AlertTriangle,
+    ListTodo,
+    Building2,
+    CalendarDays,
+    Activity,
+    RotateCcw,
+} from 'lucide-react'
+import { isBefore } from 'date-fns'
+import type { TaskStatus } from '@/types/database'
+import { Skeleton } from '@/components/ui/skeleton'
+
+// ============================================
+// Constants
+// ============================================
+
+const PERIOD_OPTIONS = [
+    { value: 'month', label: 'هذا الشهر' },
+    { value: 'week', label: 'هذا الأسبوع' },
+    { value: 'day', label: 'اليوم' },
+    { value: 'year', label: 'هذا العام' },
+] as const
+
+const DEPARTMENT_OPTIONS = [
+    { value: 'all', label: 'كل الأقسام' },
+    { value: 'content', label: 'المحتوى' },
+    { value: 'photography', label: 'التصوير' },
+] as const
+
+type Period = 'day' | 'week' | 'month' | 'year'
+
+// ============================================
+// Memoized Intl formatters (created once, reused)
+// ============================================
+
+const currencyFormatter = new Intl.NumberFormat('ar-EG', {
+    style: 'currency',
+    currency: 'EGP',
+    minimumFractionDigits: 0,
+})
+
+const dateFormatter = new Intl.DateTimeFormat('ar-EG', {
+    day: 'numeric',
+    month: 'short',
+})
+
+const formatCurrency = (amount: number) => currencyFormatter.format(amount)
+const formatDate = (date: string) => dateFormatter.format(new Date(date))
+
+// ============================================
+// Loading Skeleton
+// ============================================
+
+function DashboardSkeleton() {
+    return (
+        <div className="space-y-4 md:space-y-6">
+            <div className="flex justify-between items-center">
+                <div className="space-y-2">
+                    <Skeleton className="h-8 w-40" />
+                    <Skeleton className="h-4 w-60" />
+                </div>
+                <div className="flex gap-2">
+                    <Skeleton className="h-9 w-[140px]" />
+                    <Skeleton className="h-9 w-[130px]" />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+                {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 rounded-lg" />)}
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                {[1, 2, 3, 4, 5, 6, 7].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 rounded-lg" />)}
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// Main Component
+// ============================================
+
+export function AdminDashboardClient() {
+    const [period, setPeriod] = useState<Period>('month')
+    const [departmentFilter, setDepartmentFilter] = useState('all')
+
+    // Data hooks - each has staleTime for caching
+    const { data: treasury, isLoading: treasuryLoading } = useTreasury()
+    const { data: summary, isLoading: summaryLoading } = useTransactionSummary(period)
+    const { data: users, isLoading: usersLoading } = useUsers()
+    const { data: allTasks, isLoading: tasksLoading } = useTasks()
+    const { data: transactions, isLoading: txLoading } = useTransactions({ limit: 7 })
+
+    // Filter tasks by department
+    const tasks = useMemo(() => {
+        if (!allTasks) return []
+        if (departmentFilter === 'all') return allTasks
+        return allTasks.filter((t: any) => t.department === departmentFilter)
+    }, [allTasks, departmentFilter])
+
+    // Task statistics - single pass instead of multiple .filter() calls
+    const taskStats = useMemo(() => {
+        if (!tasks) return null
+        const arr = tasks as any[]
+        const now = new Date()
+
+        const stats = {
+            total: arr.length,
+            new: 0,
+            inProgress: 0,
+            review: 0,
+            revision: 0,
+            approved: 0,
+            rejected: 0,
+            overdue: 0,
+            contentDept: 0,
+            photoDept: 0,
+            noDept: 0,
+            urgent: 0,
+            high: 0,
+        }
+
+        for (const t of arr) {
+            // Status counts
+            switch (t.status) {
+                case 'new': stats.new++; break
+                case 'in_progress': stats.inProgress++; break
+                case 'review': stats.review++; break
+                case 'revision': stats.revision++; break
+                case 'approved': stats.approved++; break
+                case 'rejected': stats.rejected++; break
+            }
+
+            // Overdue check
+            if (t.deadline && isBefore(new Date(t.deadline), now) && t.status !== 'approved' && t.status !== 'rejected') {
+                stats.overdue++
+            }
+
+            // Department counts
+            if (t.department === 'content') stats.contentDept++
+            else if (t.department === 'photography') stats.photoDept++
+            else if (!t.department) stats.noDept++
+
+            // Priority counts
+            if (t.priority === 'urgent') stats.urgent++
+            else if (t.priority === 'high') stats.high++
+        }
+
+        return stats
+    }, [tasks])
+
+    // User statistics - single pass
+    const userStats = useMemo(() => {
+        if (!users) return null
+
+        const stats = {
+            total: users.length,
+            active: 0,
+            admins: 0,
+            teamLeaders: 0,
+            creators: 0,
+            editors: 0,
+            videographers: 0,
+            photographers: 0,
+            clients: 0,
+            contentDept: 0,
+            photoDept: 0,
+        }
+
+        for (const u of users) {
+            if (u.is_active) stats.active++
+
+            switch (u.role) {
+                case 'admin': stats.admins++; break
+                case 'team_leader': stats.teamLeaders++; break
+                case 'creator': stats.creators++; break
+                case 'editor': stats.editors++; break
+                case 'videographer': stats.videographers++; break
+                case 'photographer': stats.photographers++; break
+                case 'client': stats.clients++; break
+            }
+
+            if (u.department === 'content') stats.contentDept++
+            else if (u.department === 'photography') stats.photoDept++
+        }
+
+        return stats
+    }, [users])
+
+    // Recent tasks (latest 6)
+    const recentTasks = useMemo(() => {
+        if (!tasks) return []
+        return (tasks as any[]).slice(0, 6)
+    }, [tasks])
+
+    // Progressive loading - show content as it arrives instead of blocking all
+    const isInitialLoading = treasuryLoading && usersLoading && tasksLoading
+
+    // Memoized period label
+    const periodLabel = useMemo(() =>
+        PERIOD_OPTIONS.find(p => p.value === period)?.label ?? '',
+    [period])
+
+    if (isInitialLoading) {
+        return <DashboardSkeleton />
+    }
+
+    return (
+        <div className="space-y-4 md:space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">لوحة التحكم</h1>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                        نظرة عامة على النظام وأداء الفريق
+                    </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                        <SelectTrigger className="w-[140px] sm:w-[160px] h-9 text-sm">
+                            <Building2 className="w-3.5 h-3.5 ml-1.5 text-muted-foreground shrink-0" />
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {DEPARTMENT_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
+                        <SelectTrigger className="w-[130px] sm:w-[150px] h-9 text-sm">
+                            <CalendarDays className="w-3.5 h-3.5 ml-1.5 text-muted-foreground shrink-0" />
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {PERIOD_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            {/* ============================================ */}
+            {/* Financial Stats - Top Row */}
+            {/* ============================================ */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+                <StatCard
+                    title="رصيد الخزنة"
+                    value={formatCurrency(treasury?.current_balance || 0)}
+                    icon={<DollarSign className="h-4 w-4" />}
+                    iconBg="bg-emerald-500/10 text-emerald-600"
+                />
+                <StatCard
+                    title={`الإيرادات (${periodLabel})`}
+                    value={formatCurrency(summary?.totalIncome || 0)}
+                    icon={<TrendingUp className="h-4 w-4" />}
+                    iconBg="bg-green-500/10 text-green-600"
+                    subtitle={summary?.totalIncome ? `صافي: ${formatCurrency(summary.netBalance)}` : undefined}
+                    subtitleColor={summary && summary.netBalance >= 0 ? 'text-green-600' : 'text-red-500'}
+                />
+                <StatCard
+                    title={`المصروفات (${periodLabel})`}
+                    value={formatCurrency(summary?.totalExpense || 0)}
+                    icon={<TrendingDown className="h-4 w-4" />}
+                    iconBg="bg-red-500/10 text-red-600"
+                />
+                <StatCard
+                    title="المستخدمين النشطين"
+                    value={userStats?.active ?? 0}
+                    icon={<Users className="h-4 w-4" />}
+                    iconBg="bg-blue-500/10 text-blue-600"
+                    subtitle={`من ${userStats?.total ?? 0} إجمالي`}
+                />
+            </div>
+
+            {/* ============================================ */}
+            {/* Task Stats - Status Breakdown */}
+            {/* ============================================ */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                <MiniStatCard label="جديدة" value={taskStats?.new ?? 0} color="bg-blue-500" />
+                <MiniStatCard label="قيد التنفيذ" value={taskStats?.inProgress ?? 0} color="bg-yellow-500" />
+                <MiniStatCard label="مراجعة" value={taskStats?.review ?? 0} color="bg-purple-500" />
+                <MiniStatCard label="تعديل" value={taskStats?.revision ?? 0} color="bg-orange-500" />
+                <MiniStatCard label="معتمد" value={taskStats?.approved ?? 0} color="bg-green-500" />
+                <MiniStatCard label="مرفوض" value={taskStats?.rejected ?? 0} color="bg-red-500" />
+                <MiniStatCard
+                    label="متأخرة"
+                    value={taskStats?.overdue ?? 0}
+                    color="bg-red-600"
+                    alert={taskStats ? taskStats.overdue > 0 : false}
+                />
+            </div>
+
+            {/* ============================================ */}
+            {/* Middle Section: Departments + Team + Priorities */}
+            {/* ============================================ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                {/* Department Breakdown */}
+                <Card>
+                    <CardHeader className="pb-3 px-3 sm:px-6 pt-4">
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-muted-foreground" />
+                            توزيع المهام حسب القسم
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 sm:px-6 pb-4 space-y-3">
+                        <DeptBar
+                            label="المحتوى (Content)"
+                            count={taskStats?.contentDept ?? 0}
+                            total={taskStats?.total ?? 1}
+                            color="bg-indigo-500"
+                        />
+                        <DeptBar
+                            label="التصوير (Photography)"
+                            count={taskStats?.photoDept ?? 0}
+                            total={taskStats?.total ?? 1}
+                            color="bg-cyan-500"
+                        />
+                        <DeptBar
+                            label="بدون قسم"
+                            count={taskStats?.noDept ?? 0}
+                            total={taskStats?.total ?? 1}
+                            color="bg-gray-400"
+                        />
+                        <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
+                            <span>إجمالي المهام</span>
+                            <span className="font-bold text-foreground">{taskStats?.total ?? 0}</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Team Breakdown */}
+                <Card>
+                    <CardHeader className="pb-3 px-3 sm:px-6 pt-4">
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            الفريق
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 sm:px-6 pb-4">
+                        <div className="grid grid-cols-2 gap-2">
+                            <RoleStat label="أدمن" count={userStats?.admins ?? 0} icon="🛡️" />
+                            <RoleStat label="تيم ليدر" count={userStats?.teamLeaders ?? 0} icon="👑" />
+                            <RoleStat label="كريتور" count={userStats?.creators ?? 0} icon="✍️" />
+                            <RoleStat label="مصور فيديو" count={userStats?.videographers ?? 0} icon="🎬" />
+                            <RoleStat label="محرر" count={userStats?.editors ?? 0} icon="🎞️" />
+                            <RoleStat label="مصور فوتو" count={userStats?.photographers ?? 0} icon="📷" />
+                            <RoleStat label="عملاء" count={userStats?.clients ?? 0} icon="👤" />
+                            <RoleStat label="إجمالي" count={userStats?.total ?? 0} icon="📊" highlight />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Urgent & Priority */}
+                <Card>
+                    <CardHeader className="pb-3 px-3 sm:px-6 pt-4">
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-muted-foreground" />
+                            تنبيهات مهمة
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 sm:px-6 pb-4 space-y-3">
+                        {(taskStats?.overdue ?? 0) > 0 && (
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20">
+                                <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+                                    <Clock className="w-4 h-4 text-red-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-red-700 dark:text-red-400">{taskStats?.overdue} مهمة متأخرة</p>
+                                    <p className="text-[10px] text-red-500">تجاوزت الموعد النهائي</p>
+                                </div>
+                            </div>
+                        )}
+                        {(taskStats?.urgent ?? 0) > 0 && (
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20">
+                                <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
+                                    <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-orange-700 dark:text-orange-400">{taskStats?.urgent} مهمة عاجلة</p>
+                                    <p className="text-[10px] text-orange-500">تحتاج اهتمام فوري</p>
+                                </div>
+                            </div>
+                        )}
+                        {(taskStats?.high ?? 0) > 0 && (
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20">
+                                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                                    <ArrowUp className="w-4 h-4 text-amber-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">{taskStats?.high} مهمة أولوية عالية</p>
+                                    <p className="text-[10px] text-amber-500">تحتاج متابعة</p>
+                                </div>
+                            </div>
+                        )}
+                        {(taskStats?.revision ?? 0) > 0 && (
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 border border-purple-100 dark:border-purple-500/20">
+                                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0">
+                                    <RotateCcw className="w-4 h-4 text-purple-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-purple-700 dark:text-purple-400">{taskStats?.revision} مهمة تعديل</p>
+                                    <p className="text-[10px] text-purple-500">تحتاج تعديلات</p>
+                                </div>
+                            </div>
+                        )}
+                        {(taskStats?.overdue ?? 0) === 0 && (taskStats?.urgent ?? 0) === 0 && (taskStats?.high ?? 0) === 0 && (taskStats?.revision ?? 0) === 0 && (
+                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-500/10">
+                                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                <p className="text-sm text-green-700 dark:text-green-400">لا توجد تنبيهات - كل شيء تمام!</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* ============================================ */}
+            {/* Bottom Section: Recent Tasks + Recent Transactions */}
+            {/* ============================================ */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+                {/* Recent Tasks */}
+                <Card>
+                    <CardHeader className="pb-3 px-3 sm:px-6 pt-4">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                <ListTodo className="w-4 h-4 text-muted-foreground" />
+                                آخر المهام
+                                {departmentFilter !== 'all' && (
+                                    <Badge variant="secondary" className="text-[10px] px-1.5">
+                                        {departmentFilter === 'content' ? 'محتوى' : 'تصوير'}
+                                    </Badge>
+                                )}
+                            </CardTitle>
+                            <span className="text-xs text-muted-foreground">{taskStats?.total ?? 0} مهمة</span>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="px-3 sm:px-6 pb-4">
+                        <div className="space-y-2.5">
+                            {recentTasks.length === 0 ? (
+                                <p className="text-muted-foreground text-center py-6 text-sm">لا توجد مهام</p>
+                            ) : (
+                                recentTasks.map((task: any) => (
+                                    <div key={task.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-medium text-sm truncate">{task.title}</p>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                                <TaskStatusBadge status={task.status} />
+                                                {task.department && (
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                                        {task.department === 'content' ? 'محتوى' : 'تصوير'}
+                                                    </Badge>
+                                                )}
+                                                <PriorityDot priority={task.priority} />
+                                                {task.deadline && (
+                                                    <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                                        <Clock className="h-2.5 w-2.5" />
+                                                        {formatDate(task.deadline)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="text-left shrink-0">
+                                            {task.assigned_user ? (
+                                                <div className="flex items-center gap-1.5">
+                                                    {task.assigned_user.avatar_url ? (
+                                                        <img src={task.assigned_user.avatar_url} alt="" className="w-5 h-5 rounded-full" />
+                                                    ) : (
+                                                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px]">
+                                                            {task.assigned_user.name?.[0]}
+                                                        </div>
+                                                    )}
+                                                    <span className="text-xs text-muted-foreground hidden sm:inline">{task.assigned_user.name}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[10px] text-muted-foreground">غير معين</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Recent Transactions */}
+                <Card>
+                    <CardHeader className="pb-3 px-3 sm:px-6 pt-4">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                <Activity className="w-4 h-4 text-muted-foreground" />
+                                آخر المعاملات المالية
+                            </CardTitle>
+                            {summary && (
+                                <Badge variant={summary.netBalance >= 0 ? 'default' : 'destructive'} className="text-[10px]">
+                                    صافي: {formatCurrency(summary.netBalance)}
+                                </Badge>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="px-3 sm:px-6 pb-4">
+                        <div className="space-y-2.5">
+                            {!transactions || transactions.length === 0 ? (
+                                <p className="text-muted-foreground text-center py-6 text-sm">لا توجد معاملات</p>
+                            ) : (
+                                transactions.map((tx: any) => (
+                                    <div key={tx.id} className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                                            tx.type === 'income'
+                                                ? 'bg-green-500/15 text-green-600'
+                                                : 'bg-red-500/15 text-red-600'
+                                        }`}>
+                                            {tx.type === 'income' ? (
+                                                <ArrowUpRight className="h-4 w-4" />
+                                            ) : (
+                                                <ArrowDownRight className="h-4 w-4" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-sm truncate">
+                                                {tx.description || (tx.type === 'income' ? 'إيراد' : 'مصروف')}
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground">
+                                                {tx.category || 'عام'} • {formatDate(tx.created_at)}
+                                            </p>
+                                        </div>
+                                        <span className={`font-bold text-sm whitespace-nowrap ${
+                                            tx.type === 'income' ? 'text-green-600' : 'text-red-500'
+                                        }`}>
+                                            {tx.type === 'income' ? '+' : '-'}
+                                            {formatCurrency(tx.amount)}
+                                        </span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    )
+}
+
+// ============================================
+// Sub-Components (Memoized)
+// ============================================
+
+const StatCard = memo(function StatCard({
+    title,
+    value,
+    icon,
+    iconBg,
+    subtitle,
+    subtitleColor,
+}: {
+    title: string
+    value: string | number
+    icon: React.ReactNode
+    iconBg: string
+    subtitle?: string
+    subtitleColor?: string
+}) {
+    return (
+        <Card>
+            <CardContent className="p-3 sm:p-4 md:p-5">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">{title}</p>
+                        <p className="text-base sm:text-lg md:text-2xl font-bold mt-0.5 truncate">{value}</p>
+                        {subtitle && (
+                            <p className={`text-[10px] sm:text-xs mt-0.5 ${subtitleColor || 'text-muted-foreground'}`}>
+                                {subtitle}
+                            </p>
+                        )}
+                    </div>
+                    <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
+                        {icon}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+})
+
+const MiniStatCard = memo(function MiniStatCard({
+    label,
+    value,
+    color,
+    alert = false,
+}: {
+    label: string
+    value: number
+    color: string
+    alert?: boolean
+}) {
+    return (
+        <div className={`rounded-lg border p-2 sm:p-2.5 text-center transition-colors ${
+            alert ? 'border-red-300 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/5' : ''
+        }`}>
+            <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                <div className={`w-2 h-2 rounded-full ${color}`} />
+                <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{label}</span>
+            </div>
+            <p className={`text-lg sm:text-xl font-bold ${alert && value > 0 ? 'text-red-600' : ''}`}>{value}</p>
+        </div>
+    )
+})
+
+const DeptBar = memo(function DeptBar({
+    label,
+    count,
+    total,
+    color,
+}: {
+    label: string
+    count: number
+    total: number
+    color: string
+}) {
+    const percentage = total > 0 ? Math.round((count / total) * 100) : 0
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">{label}</span>
+                <span className="text-xs font-semibold">{count} <span className="text-muted-foreground font-normal">({percentage}%)</span></span>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                    className={`h-full rounded-full ${color} transition-all duration-500`}
+                    style={{ width: `${percentage}%` }}
+                />
+            </div>
+        </div>
+    )
+})
+
+const RoleStat = memo(function RoleStat({
+    label,
+    count,
+    icon,
+    highlight = false,
+}: {
+    label: string
+    count: number
+    icon: string
+    highlight?: boolean
+}) {
+    return (
+        <div className={`flex items-center gap-2 p-2 rounded-lg border text-sm ${
+            highlight ? 'bg-primary/5 border-primary/20' : ''
+        }`}>
+            <span className="text-sm">{icon}</span>
+            <div className="flex-1 min-w-0">
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{label}</p>
+                <p className="font-bold text-sm">{count}</p>
+            </div>
+        </div>
+    )
+})
+
+const TASK_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+    new: { label: 'جديدة', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+    in_progress: { label: 'قيد التنفيذ', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    review: { label: 'مراجعة', className: 'bg-purple-100 text-purple-700 border-purple-200' },
+    revision: { label: 'تعديل', className: 'bg-orange-100 text-orange-700 border-orange-200' },
+    approved: { label: 'معتمد', className: 'bg-green-100 text-green-700 border-green-200' },
+    rejected: { label: 'مرفوض', className: 'bg-red-100 text-red-700 border-red-200' },
+}
+
+const TaskStatusBadge = memo(function TaskStatusBadge({ status }: { status: TaskStatus }) {
+    const c = TASK_STATUS_CONFIG[status] || TASK_STATUS_CONFIG.new
+    return (
+        <Badge variant="outline" className={`${c.className} text-[10px] px-1.5 py-0`}>
+            {c.label}
+        </Badge>
+    )
+})
+
+const PRIORITY_COLORS: Record<string, string> = {
+    urgent: 'bg-red-500',
+    high: 'bg-orange-500',
+    medium: 'bg-blue-400',
+    low: 'bg-slate-300',
+}
+
+const PRIORITY_LABELS: Record<string, string> = {
+    urgent: 'عاجل',
+    high: 'عالي',
+    medium: 'متوسط',
+    low: 'منخفض',
+}
+
+const PriorityDot = memo(function PriorityDot({ priority }: { priority: string }) {
+    return (
+        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground" title={PRIORITY_LABELS[priority]}>
+            <span className={`w-1.5 h-1.5 rounded-full ${PRIORITY_COLORS[priority] || PRIORITY_COLORS.medium}`} />
+            <span className="hidden sm:inline">{PRIORITY_LABELS[priority]}</span>
+        </span>
+    )
+})

@@ -1,8 +1,8 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import type { TaskStatus, TaskPriority, Comment, Attachment } from '@/types/database'
+import type { TaskStatus, TaskPriority, Comment, Attachment, WorkflowStage, TaskType, Department } from '@/types/database'
 import type {
     TaskWithRelations,
     TaskDetails,
@@ -29,6 +29,8 @@ export const taskKeys = {
     attachments: (taskId: string) => [...taskKeys.all, 'attachments', taskId] as const,
     myTasks: (userId: string) => [...taskKeys.all, 'my', userId] as const,
     revisions: () => [...taskKeys.all, 'revisions'] as const,
+    departmentTasks: (dept: string) => [...taskKeys.all, 'department', dept] as const,
+    editorTasks: (userId: string) => [...taskKeys.all, 'editor', userId] as const,
 }
 
 // ============================================
@@ -76,6 +78,12 @@ export function useTasks(filters: TaskFilters = {}) {
             if (filters.dateTo) {
                 query = query.lte('created_at', filters.dateTo)
             }
+            if (filters.department && filters.department !== 'all') {
+                query = query.eq('department', filters.department)
+            }
+            if (filters.task_type && filters.task_type !== 'all') {
+                query = query.eq('task_type', filters.task_type)
+            }
 
             const { data, error } = await query
             if (error) throw error
@@ -93,11 +101,11 @@ export function useTasks(filters: TaskFilters = {}) {
  * Fetch tasks grouped by status for Kanban board
  * Optimized to fetch all at once and group client-side
  */
-export function useTasksKanban(projectId?: string) {
+export function useTasksKanban(projectId?: string, department?: Department) {
     const supabase = createClient()
 
     return useQuery({
-        queryKey: [...taskKeys.kanban(), projectId],
+        queryKey: [...taskKeys.kanban(), projectId, department],
         queryFn: async () => {
             let query = supabase
                 .from('tasks')
@@ -111,6 +119,10 @@ export function useTasksKanban(projectId?: string) {
 
             if (projectId) {
                 query = query.eq('project_id', projectId)
+            }
+
+            if (department) {
+                query = query.eq('department', department)
             }
 
             const { data, error } = await query
@@ -261,7 +273,7 @@ export function useTaskDetails(taskId: string) {
 // ============================================
 
 /**
- * Create a new task
+ * Create a new task (supports both content and photography departments)
  */
 export function useCreateTask() {
     const supabase = createClient()
@@ -274,10 +286,18 @@ export function useCreateTask() {
                 description: input.description ?? null,
                 status: input.status ?? 'new',
                 priority: input.priority ?? 'medium',
+                department: input.department ?? null,
+                task_type: input.task_type ?? 'general',
+                workflow_stage: input.workflow_stage ?? 'none',
                 project_id: input.project_id ?? null,
                 assigned_to: input.assigned_to ?? null,
+                editor_id: input.editor_id ?? null,
                 created_by: input.created_by,
                 deadline: input.deadline ?? null,
+                company_name: input.company_name ?? null,
+                location: input.location ?? null,
+                scheduled_date: input.scheduled_date ?? null,
+                scheduled_time: input.scheduled_time ?? null,
                 client_feedback: null,
             }
             const { data, error } = await supabase
@@ -636,11 +656,155 @@ export function useMarkAttachmentFinal() {
 // Admin Tasks - Full View
 // ============================================
 
-export function useAdminTasks(filters: TaskFilters = {}) {
+/**
+ * Apply common admin task filters to a Supabase query builder
+ */
+function applyAdminFilters(query: any, filters: TaskFilters) {
+    if (filters.status && filters.status !== 'all') {
+        query = query.eq('status', filters.status)
+    }
+    if (filters.priority && filters.priority !== 'all') {
+        query = query.eq('priority', filters.priority)
+    }
+    if (filters.assigned_to && filters.assigned_to !== 'all') {
+        query = query.eq('assigned_to', filters.assigned_to)
+    }
+    if (filters.project_id && filters.project_id !== 'all') {
+        query = query.eq('project_id', filters.project_id)
+    }
+    if (filters.search) {
+        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
+    }
+    if (filters.dateFrom) {
+        query = query.gte('created_at', filters.dateFrom)
+    }
+    if (filters.dateTo) {
+        query = query.lte('created_at', filters.dateTo)
+    }
+    if (filters.department && filters.department !== 'all') {
+        query = query.eq('department', filters.department)
+    }
+    if (filters.task_type && filters.task_type !== 'all') {
+        query = query.eq('task_type', filters.task_type)
+    }
+    return query
+}
+
+/**
+ * Server-side paginated admin tasks with exact count.
+ * Only fetches the needed page, reducing payload and improving speed.
+ */
+export function useAdminTasks(filters: TaskFilters = {}, page = 1, pageSize = 15) {
     const supabase = createClient()
 
     return useQuery({
-        queryKey: [...taskKeys.all, 'admin-full', filters],
+        queryKey: [...taskKeys.all, 'admin-full', filters, page, pageSize],
+        queryFn: async () => {
+            let query = supabase
+                .from('tasks')
+                .select(`
+                    id, title, description, status, priority, department, task_type,
+                    created_at, deadline, client_feedback,
+                    assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
+                    creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
+                    project:projects(
+                        id, name, status,
+                        client:clients(id, name, company)
+                    )
+                `, { count: 'exact' })
+                .order('created_at', { ascending: false })
+                .range((page - 1) * pageSize, page * pageSize - 1)
+
+            query = applyAdminFilters(query, filters)
+
+            const { data, error, count } = await query
+            if (error) throw error
+            return { data: data ?? [], totalCount: count ?? 0 }
+        },
+        placeholderData: keepPreviousData,
+        staleTime: 60 * 1000,
+    })
+}
+
+/**
+ * Lightweight stats query - fetches only status column for summary counts.
+ * Separate from main query so stats don't flicker on page changes.
+ */
+export function useAdminTasksStats(filters: TaskFilters = {}) {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: [...taskKeys.all, 'admin-stats', filters],
+        queryFn: async () => {
+            let query = supabase
+                .from('tasks')
+                .select('status')
+
+            query = applyAdminFilters(query, filters)
+
+            const { data, error } = await query
+            if (error) throw error
+
+            const statuses = data ?? []
+            return {
+                total: statuses.length,
+                in_progress: statuses.filter((t: any) => t.status === 'in_progress').length,
+                review: statuses.filter((t: any) => t.status === 'review').length,
+                approved: statuses.filter((t: any) => t.status === 'approved').length,
+            }
+        },
+        placeholderData: keepPreviousData,
+        staleTime: 120 * 1000, // 2 minutes - stats don't need to be as fresh
+    })
+}
+
+/**
+ * Fetch all admin tasks (unpaginated) for CSV export.
+ * Only called on demand via enabled flag.
+ */
+export function useAdminTasksExport(filters: TaskFilters = {}, enabled = false) {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: [...taskKeys.all, 'admin-export', filters],
+        queryFn: async () => {
+            let query = supabase
+                .from('tasks')
+                .select(`
+                    id, title, description, status, priority, department, task_type,
+                    created_at, client_feedback,
+                    assigned_user:users!tasks_assigned_to_fkey(id, name),
+                    creator:users!tasks_created_by_fkey(id, name),
+                    project:projects(
+                        id, name,
+                        client:clients(id, name, company)
+                    )
+                `)
+                .order('created_at', { ascending: false })
+
+            query = applyAdminFilters(query, filters)
+
+            const { data, error } = await query
+            if (error) throw error
+            return data ?? []
+        },
+        enabled,
+        staleTime: 0,
+    })
+}
+
+// ============================================
+// Photography Department - Specific Hooks
+// ============================================
+
+/**
+ * Fetch tasks for a photography department by workflow stage
+ */
+export function usePhotographyTasks(teamLeaderId?: string) {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: taskKeys.departmentTasks('photography'),
         queryFn: async () => {
             let query = supabase
                 .from('tasks')
@@ -648,42 +812,233 @@ export function useAdminTasks(filters: TaskFilters = {}) {
                     *,
                     assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
                     creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
-                    project:projects!inner(
-                        id, 
-                        name, 
-                        status,
-                        client:clients(id, name, company)
-                    )
+                    project:projects(id, name, status)
                 `)
-                .order('created_at', { ascending: false })
+                .eq('department', 'photography')
+                .order('scheduled_date', { ascending: true, nullsFirst: false })
 
-            // Apply filters
-            if (filters.status && filters.status !== 'all') {
-                query = query.eq('status', filters.status)
-            }
-            if (filters.priority && filters.priority !== 'all') {
-                query = query.eq('priority', filters.priority)
-            }
-            if (filters.assigned_to && filters.assigned_to !== 'all') {
-                query = query.eq('assigned_to', filters.assigned_to)
-            }
-            if (filters.project_id && filters.project_id !== 'all') {
-                query = query.eq('project_id', filters.project_id)
-            }
-            if (filters.search) {
-                query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
-            }
-            if (filters.dateFrom) {
-                query = query.gte('created_at', filters.dateFrom)
-            }
-            if (filters.dateTo) {
-                query = query.lte('created_at', filters.dateTo)
+            if (teamLeaderId) {
+                query = query.eq('created_by', teamLeaderId)
             }
 
             const { data, error } = await query
             if (error) throw error
+            return data as unknown as TaskWithRelations[]
+        },
+        staleTime: 15 * 1000,
+    })
+}
+
+/**
+ * Fetch tasks assigned to editor (for Editor/Monteur role)
+ */
+export function useEditorTasks(editorId: string) {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: taskKeys.editorTasks(editorId),
+        enabled: !!editorId,
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('tasks')
+                .select(`
+                    *,
+                    assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
+                    creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
+                    project:projects(id, name, status)
+                `)
+                .eq('editor_id', editorId)
+                .in('workflow_stage', ['editing', 'editing_done'])
+                .order('updated_at', { ascending: false })
+
+            if (error) throw error
+            return data as unknown as TaskWithRelations[]
+        },
+        staleTime: 15 * 1000,
+    })
+}
+
+/**
+ * Advance photography workflow stage
+ * Handles the full pipeline: filming → filming_done → editing → editing_done → final_review → delivered
+ */
+export function useAdvanceWorkflowStage() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({
+            taskId,
+            newStage,
+            editorId,
+        }: {
+            taskId: string
+            newStage: WorkflowStage
+            editorId?: string
+        }) => {
+            const updateData: Record<string, unknown> = {
+                workflow_stage: newStage,
+                updated_at: new Date().toISOString(),
+            }
+
+            // When moving to editing stage, assign the editor
+            if (newStage === 'editing' && editorId) {
+                updateData.editor_id = editorId
+            }
+
+            // When delivered, mark task as approved
+            if (newStage === 'delivered') {
+                updateData.status = 'review'
+            }
+
+            // When stage is *_done, update status to review for TL
+            if (['filming_done', 'editing_done', 'shooting_done'].includes(newStage)) {
+                updateData.status = 'review'
+            }
+
+            // When stage moves to active work (filming, editing, shooting)
+            if (['filming', 'editing', 'shooting'].includes(newStage)) {
+                updateData.status = 'in_progress'
+            }
+
+            const { data, error } = await supabase
+                .from('tasks')
+                .update(updateData as never)
+                .eq('id', taskId)
+                .select()
+                .single()
+
+            if (error) throw error
             return data
         },
-        staleTime: 60 * 1000,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskKeys.all })
+        },
+    })
+}
+
+/**
+ * Create a photography task with schedule integration
+ */
+export function useCreatePhotographyTask() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (input: CreateTaskInput & { schedule_id?: string }) => {
+            const taskType = input.task_type ?? 'video'
+            const initialStage: WorkflowStage = taskType === 'video' ? 'filming'
+                : taskType === 'photo' ? 'shooting'
+                : 'none'
+
+            const insertData = {
+                title: input.title,
+                description: input.description ?? null,
+                status: 'in_progress' as TaskStatus,
+                priority: input.priority ?? 'medium',
+                department: 'photography' as Department,
+                task_type: taskType,
+                workflow_stage: initialStage,
+                project_id: input.project_id ?? null,
+                assigned_to: input.assigned_to ?? null,
+                editor_id: input.editor_id ?? null,
+                created_by: input.created_by,
+                deadline: input.deadline ?? null,
+                company_name: input.company_name ?? null,
+                location: input.location ?? null,
+                scheduled_date: input.scheduled_date ?? null,
+                scheduled_time: input.scheduled_time ?? null,
+                client_feedback: null,
+            }
+
+            const { data: task, error } = await supabase
+                .from('tasks')
+                .insert(insertData as never)
+                .select()
+                .single()
+
+            if (error) throw error
+
+            // Link schedule if provided
+            if (input.schedule_id && task) {
+                await supabase
+                    .from('schedules')
+                    .update({ task_id: (task as any).id } as never)
+                    .eq('id', input.schedule_id)
+            }
+
+            return task as unknown as TaskWithRelations
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskKeys.all })
+        },
+    })
+}
+
+/**
+ * Mark a photography task as complete (by worker)
+ * Videographer marks filming_done, Photographer marks shooting_done, Editor marks editing_done
+ */
+export function useMarkTaskComplete() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({ taskId, currentStage }: { taskId: string; currentStage: WorkflowStage }) => {
+            let nextStage: WorkflowStage
+
+            switch (currentStage) {
+                case 'filming': nextStage = 'filming_done'; break
+                case 'editing': nextStage = 'editing_done'; break
+                case 'shooting': nextStage = 'shooting_done'; break
+                default: throw new Error(`Cannot mark complete from stage: ${currentStage}`)
+            }
+
+            const { data, error } = await supabase
+                .from('tasks')
+                .update({
+                    workflow_stage: nextStage,
+                    status: 'review',
+                    updated_at: new Date().toISOString(),
+                } as never)
+                .eq('id', taskId)
+                .select()
+                .single()
+
+            if (error) throw error
+            return data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskKeys.all })
+        },
+    })
+}
+
+/**
+ * Deliver task to client (by TL)
+ */
+export function useDeliverToClient() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (taskId: string) => {
+            const { data, error } = await supabase
+                .from('tasks')
+                .update({
+                    workflow_stage: 'delivered',
+                    status: 'review',
+                    updated_at: new Date().toISOString(),
+                } as never)
+                .eq('id', taskId)
+                .select()
+                .single()
+
+            if (error) throw error
+            return data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskKeys.all })
+        },
     })
 }

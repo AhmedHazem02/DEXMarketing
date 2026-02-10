@@ -9,7 +9,7 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))
 }
 
-export const dynamic = 'force-dynamic'
+
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
@@ -24,13 +24,14 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   let role = ''
   if (user) {
-    // Check metadata first
-    role = user.user_metadata?.role
-    if (!role) {
-      // Check DB
-      const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-      // @ts-ignore
-      if (data) role = data.role
+    // Always check DB for accurate role on the server
+    const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
+
+    if (data) {
+      role = (data as any).role
+    } else {
+      // Fallback to metadata if DB lookup fails
+      role = user.user_metadata?.role || ''
     }
   }
 

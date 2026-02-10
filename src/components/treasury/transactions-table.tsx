@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useLocale } from 'next-intl'
-import { format } from 'date-fns'
+import { format, isAfter, isBefore } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
 import {
     Table,
@@ -17,20 +17,260 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useTransactions } from '@/hooks/use-treasury'
-import { ArrowUpRight, ArrowDownLeft, MoreHorizontal, FileText, Search, Filter } from 'lucide-react'
+import { useDebounce, usePagination } from '@/hooks'
+import type { TransactionType } from '@/types/database'
+import {
+    ArrowUpRight,
+    ArrowDownLeft,
+    MoreHorizontal,
+    FileText,
+    Search,
+    CalendarIcon,
+    X,
+    SlidersHorizontal,
+    ArrowDownUp,
+    Download,
+    FileSpreadsheet,
+    ChevronLeft,
+    ChevronRight,
+    Loader2,
+} from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AlertCircle } from 'lucide-react'
+import { exportToCSV, exportToPDF, generateFilename, calculateStats } from '@/lib/export-utils'
+import { toast } from 'sonner'
+
+const CATEGORIES = ['General', 'Project', 'Salary', 'Equipment', 'Marketing', 'Software']
+
+type SortField = 'created_at' | 'amount'
+type SortDir = 'asc' | 'desc'
+
+interface FilterErrors {
+    dateRange?: string
+    minAmount?: string
+    maxAmount?: string
+    amountRange?: string
+}
 
 export function TransactionsTable() {
     const locale = useLocale()
     const isAr = locale === 'ar'
-    const [search, setSearch] = useState('')
 
-    const { data: transactions, isLoading } = useTransactions({ limit: 50 })
+    // Filter state
+    const [search, setSearch] = useState('')
+    const debouncedSearch = useDebounce(search, 300)
+    const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all')
+    const [categoryFilter, setCategoryFilter] = useState<string>('all')
+    const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined)
+    const [dateTo, setDateTo] = useState<Date | undefined>(undefined)
+    const [minAmount, setMinAmount] = useState('')
+    const [maxAmount, setMaxAmount] = useState('')
+    const [showFilters, setShowFilters] = useState(false)
+    const [sortField, setSortField] = useState<SortField>('created_at')
+    const [sortDir, setSortDir] = useState<SortDir>('desc')
+    const [isExporting, setIsExporting] = useState(false)
+
+    // Validation
+    const filterErrors = useMemo<FilterErrors>(() => {
+        const errors: FilterErrors = {}
+
+        // Date range: from must be before to
+        if (dateFrom && dateTo && isAfter(dateFrom, dateTo)) {
+            errors.dateRange = isAr
+                ? 'تاريخ البداية يجب أن يكون قبل تاريخ النهاية'
+                : 'Start date must be before end date'
+        }
+
+        // Min amount: cannot be negative
+        if (minAmount && Number(minAmount) < 0) {
+            errors.minAmount = isAr
+                ? 'لا يمكن أن يكون المبلغ سالب'
+                : 'Amount cannot be negative'
+        }
+
+        // Max amount: cannot be negative
+        if (maxAmount && Number(maxAmount) < 0) {
+            errors.maxAmount = isAr
+                ? 'لا يمكن أن يكون المبلغ سالب'
+                : 'Amount cannot be negative'
+        }
+
+        // Amount range: min must be <= max
+        if (
+            minAmount && maxAmount &&
+            Number(minAmount) >= 0 && Number(maxAmount) >= 0 &&
+            Number(minAmount) > Number(maxAmount)
+        ) {
+            errors.amountRange = isAr
+                ? 'الحد الأدنى يجب أن يكون أقل من أو يساوي الحد الأقصى'
+                : 'Min amount must be less than or equal to max amount'
+        }
+
+        return errors
+    }, [dateFrom, dateTo, minAmount, maxAmount, isAr])
+
+    const hasErrors = Object.keys(filterErrors).length > 0
+
+    // Validated date setters — auto-fix if possible
+    const handleDateFromChange = useCallback((date: Date | undefined) => {
+        setDateFrom(date)
+    }, [])
+
+    const handleDateToChange = useCallback((date: Date | undefined) => {
+        setDateTo(date)
+    }, [])
+
+    // Amount setters — block negative input
+    const handleMinAmountChange = useCallback((value: string) => {
+        if (value === '' || Number(value) >= 0) {
+            setMinAmount(value)
+        }
+    }, [])
+
+    const handleMaxAmountChange = useCallback((value: string) => {
+        if (value === '' || Number(value) >= 0) {
+            setMaxAmount(value)
+        }
+    }, [])
+
+    // Build query filters — only apply valid filters
+    const queryFilters = useMemo(() => {
+        // Don't send invalid filters to the server
+        const validDateFrom = dateFrom && !filterErrors.dateRange ? dateFrom : undefined
+        const validDateTo = dateTo && !filterErrors.dateRange ? dateTo : undefined
+        const validMin = minAmount && !filterErrors.minAmount && !filterErrors.amountRange ? Number(minAmount) : undefined
+        const validMax = maxAmount && !filterErrors.maxAmount && !filterErrors.amountRange ? Number(maxAmount) : undefined
+
+        return {
+            type: typeFilter !== 'all' ? typeFilter : undefined,
+            category: categoryFilter !== 'all' ? categoryFilter : undefined,
+            startDate: validDateFrom ? validDateFrom.toISOString() : undefined,
+            endDate: validDateTo ? validDateTo.toISOString() : undefined,
+            minAmount: validMin,
+            maxAmount: validMax,
+            limit: 100,
+        }
+    }, [typeFilter, categoryFilter, dateFrom, dateTo, minAmount, maxAmount, filterErrors])
+
+    const { data: transactions, isLoading } = useTransactions(queryFilters)
+
+    // Client-side search + sort (using debounced search)
+    const filteredTransactions = useMemo(() => {
+        let result = transactions?.filter(t =>
+            !debouncedSearch || 
+            t.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            t.category?.toLowerCase().includes(debouncedSearch.toLowerCase())
+        ) || []
+
+        // Sort
+        result = [...result].sort((a, b) => {
+            let cmp = 0
+            if (sortField === 'amount') {
+                cmp = a.amount - b.amount
+            } else {
+                cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            }
+            return sortDir === 'asc' ? cmp : -cmp
+        })
+
+        return result
+    }, [transactions, debouncedSearch, sortField, sortDir])
+
+    // Pagination
+    const pagination = usePagination({
+        totalItems: filteredTransactions.length,
+        itemsPerPage: 10,
+        initialPage: 1
+    })
+
+    const paginatedTransactions = useMemo(
+        () => pagination.paginateItems(filteredTransactions),
+        [filteredTransactions, pagination]
+    )
+
+    // Calculate stats for filtered data
+    const stats = useMemo(() => calculateStats(filteredTransactions), [filteredTransactions])
+
+    const activeFilterCount = [
+        typeFilter !== 'all',
+        categoryFilter !== 'all',
+        !!dateFrom,
+        !!dateTo,
+        !!minAmount,
+        !!maxAmount,
+    ].filter(Boolean).length
+
+    const clearAllFilters = () => {
+        setTypeFilter('all')
+        setCategoryFilter('all')
+        setDateFrom(undefined)
+        setDateTo(undefined)
+        setMinAmount('')
+        setMaxAmount('')
+        setSearch('')
+    }
+
+    // Export handlers
+    const handleExportCSV = useCallback(() => {
+        setIsExporting(true)
+        try {
+            const filename = generateFilename('treasury', 'csv', isAr)
+            exportToCSV(filteredTransactions, filename, isAr)
+            toast.success(
+                isAr ? 'تم تصدير البيانات بنجاح' : 'Data exported successfully',
+                { description: isAr ? `الملف: ${filename}` : `File: ${filename}` }
+            )
+        } catch (error) {
+            toast.error(
+                isAr ? 'فشل تصدير البيانات' : 'Failed to export data',
+                { description: isAr ? 'حدث خطأ أثناء التصدير' : 'An error occurred during export' }
+            )
+        } finally {
+            setIsExporting(false)
+        }
+    }, [filteredTransactions, isAr])
+
+    const handleExportPDF = useCallback(async () => {
+        setIsExporting(true)
+        try {
+            const filename = generateFilename('treasury', 'pdf', isAr)
+            await exportToPDF(filteredTransactions, filename, isAr, {
+                totalIncome: stats.totalIncome,
+                totalExpense: stats.totalExpense,
+                balance: stats.balance
+            })
+            toast.success(
+                isAr ? 'تم تصدير البيانات بنجاح' : 'Data exported successfully',
+                { description: isAr ? `الملف: ${filename}` : `File: ${filename}` }
+            )
+        } catch (error) {
+            toast.error(
+                isAr ? 'فشل تصدير البيانات' : 'Failed to export data',
+                { description: isAr ? 'حدث خطأ أثناء التصدير' : 'An error occurred during export' }
+            )
+        } finally {
+            setIsExporting(false)
+        }
+    }, [filteredTransactions, isAr, stats])
 
     if (isLoading) {
         return (
@@ -42,15 +282,10 @@ export function TransactionsTable() {
         )
     }
 
-    const filteredTransactions = transactions?.filter(t =>
-        t.description?.toLowerCase().includes(search.toLowerCase()) ||
-        t.category?.toLowerCase().includes(search.toLowerCase())
-    )
-
     return (
         <div className="space-y-4">
-            {/* Filters */}
-            <div className="flex items-center gap-4">
+            {/* Search + Toggle Filters + Export */}
+            <div className="flex items-center gap-3 flex-wrap">
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -60,10 +295,359 @@ export function TransactionsTable() {
                         className="ps-10"
                     />
                 </div>
-                <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
+                <Button
+                    variant={showFilters ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="gap-2"
+                >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    {isAr ? 'فلاتر' : 'Filters'}
+                    {activeFilterCount > 0 && (
+                        <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center text-xs rounded-full">
+                            {activeFilterCount}
+                        </Badge>
+                    )}
                 </Button>
+                {activeFilterCount > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="gap-1 text-muted-foreground">
+                        <X className="h-3.5 w-3.5" />
+                        {isAr ? 'مسح الكل' : 'Clear all'}
+                    </Button>
+                )}
+                
+                {/* Export Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-2"
+                            disabled={filteredTransactions.length === 0 || isExporting}
+                        >
+                            {isExporting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Download className="h-4 w-4" />
+                            )}
+                            {isAr ? 'تصدير' : 'Export'}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={handleExportCSV} className="gap-2">
+                            <FileSpreadsheet className="h-4 w-4" />
+                            {isAr ? 'تصدير CSV' : 'Export CSV'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleExportPDF} className="gap-2">
+                            <FileText className="h-4 w-4" />
+                            {isAr ? 'تصدير PDF' : 'Export PDF'}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
+
+            {/* Filter Panel */}
+            {showFilters && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 rounded-lg border bg-card">
+                    {/* Type Filter */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">
+                            {isAr ? 'النوع' : 'Type'}
+                        </label>
+                        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TransactionType | 'all')}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{isAr ? 'الكل' : 'All'}</SelectItem>
+                                <SelectItem value="income">
+                                    <span className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-green-500" />
+                                        {isAr ? 'إيراد' : 'Income'}
+                                    </span>
+                                </SelectItem>
+                                <SelectItem value="expense">
+                                    <span className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                                        {isAr ? 'مصروف' : 'Expense'}
+                                    </span>
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Category Filter */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">
+                            {isAr ? 'الفئة' : 'Category'}
+                        </label>
+                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{isAr ? 'الكل' : 'All'}</SelectItem>
+                                {CATEGORIES.map((cat) => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Date From */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">
+                            {isAr ? 'من تاريخ' : 'From Date'}
+                        </label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={`w-full justify-start text-start font-normal gap-2 ${filterErrors.dateRange ? 'border-destructive' : ''}`}
+                                >
+                                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                    {dateFrom
+                                        ? format(dateFrom, 'PP', { locale: isAr ? ar : enUS })
+                                        : <span className="text-muted-foreground">{isAr ? 'اختر تاريخ' : 'Pick date'}</span>
+                                    }
+                                    {dateFrom && (
+                                        <X
+                                            className="h-3.5 w-3.5 ms-auto text-muted-foreground hover:text-foreground"
+                                            onClick={(e) => { e.stopPropagation(); setDateFrom(undefined) }}
+                                        />
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={dateFrom}
+                                    onSelect={handleDateFromChange}
+                                    disabled={dateTo ? { after: dateTo } : undefined}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        {filterErrors.dateRange && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                {filterErrors.dateRange}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Date To */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">
+                            {isAr ? 'إلى تاريخ' : 'To Date'}
+                        </label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={`w-full justify-start text-start font-normal gap-2 ${filterErrors.dateRange ? 'border-destructive' : ''}`}
+                                >
+                                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                    {dateTo
+                                        ? format(dateTo, 'PP', { locale: isAr ? ar : enUS })
+                                        : <span className="text-muted-foreground">{isAr ? 'اختر تاريخ' : 'Pick date'}</span>
+                                    }
+                                    {dateTo && (
+                                        <X
+                                            className="h-3.5 w-3.5 ms-auto text-muted-foreground hover:text-foreground"
+                                            onClick={(e) => { e.stopPropagation(); setDateTo(undefined) }}
+                                        />
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={dateTo}
+                                    onSelect={handleDateToChange}
+                                    disabled={dateFrom ? { before: dateFrom } : undefined}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    {/* Min Amount */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">
+                            {isAr ? 'الحد الأدنى' : 'Min Amount'}
+                        </label>
+                        <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="0"
+                            value={minAmount}
+                            onChange={(e) => handleMinAmountChange(e.target.value)}
+                            className={filterErrors.minAmount || filterErrors.amountRange ? 'border-destructive' : ''}
+                        />
+                        {filterErrors.minAmount && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                {filterErrors.minAmount}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Max Amount */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">
+                            {isAr ? 'الحد الأقصى' : 'Max Amount'}
+                        </label>
+                        <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="∞"
+                            value={maxAmount}
+                            onChange={(e) => handleMaxAmountChange(e.target.value)}
+                            className={filterErrors.maxAmount || filterErrors.amountRange ? 'border-destructive' : ''}
+                        />
+                        {filterErrors.maxAmount && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                {filterErrors.maxAmount}
+                            </p>
+                        )}
+                        {filterErrors.amountRange && !filterErrors.minAmount && !filterErrors.maxAmount && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                {filterErrors.amountRange}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Sort */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">
+                            {isAr ? 'ترتيب حسب' : 'Sort By'}
+                        </label>
+                        <Select value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="created_at">{isAr ? 'التاريخ' : 'Date'}</SelectItem>
+                                <SelectItem value="amount">{isAr ? 'المبلغ' : 'Amount'}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Sort Direction */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">
+                            {isAr ? 'الاتجاه' : 'Direction'}
+                        </label>
+                        <Button
+                            variant="outline"
+                            className="w-full gap-2"
+                            onClick={() => setSortDir(prev => prev === 'asc' ? 'desc' : 'asc')}
+                        >
+                            <ArrowDownUp className="h-4 w-4" />
+                            {sortDir === 'desc'
+                                ? (isAr ? 'الأحدث أولاً' : 'Newest first')
+                                : (isAr ? 'الأقدم أولاً' : 'Oldest first')
+                            }
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* Active Filters Badges */}
+            {activeFilterCount > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {typeFilter !== 'all' && (
+                        <Badge variant="secondary" className="gap-1 pe-1">
+                            {typeFilter === 'income' ? (isAr ? 'إيراد' : 'Income') : (isAr ? 'مصروف' : 'Expense')}
+                            <button onClick={() => setTypeFilter('all')} className="ms-1 rounded-full hover:bg-muted p-0.5">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    )}
+                    {categoryFilter !== 'all' && (
+                        <Badge variant="secondary" className="gap-1 pe-1">
+                            {categoryFilter}
+                            <button onClick={() => setCategoryFilter('all')} className="ms-1 rounded-full hover:bg-muted p-0.5">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    )}
+                    {dateFrom && (
+                        <Badge variant="secondary" className="gap-1 pe-1">
+                            {isAr ? 'من: ' : 'From: '}{format(dateFrom, 'PP', { locale: isAr ? ar : enUS })}
+                            <button onClick={() => setDateFrom(undefined)} className="ms-1 rounded-full hover:bg-muted p-0.5">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    )}
+                    {dateTo && (
+                        <Badge variant="secondary" className="gap-1 pe-1">
+                            {isAr ? 'إلى: ' : 'To: '}{format(dateTo, 'PP', { locale: isAr ? ar : enUS })}
+                            <button onClick={() => setDateTo(undefined)} className="ms-1 rounded-full hover:bg-muted p-0.5">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    )}
+                    {minAmount && (
+                        <Badge variant="secondary" className="gap-1 pe-1">
+                            {isAr ? 'أدنى: $' : 'Min: $'}{minAmount}
+                            <button onClick={() => setMinAmount('')} className="ms-1 rounded-full hover:bg-muted p-0.5">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    )}
+                    {maxAmount && (
+                        <Badge variant="secondary" className="gap-1 pe-1">
+                            {isAr ? 'أقصى: $' : 'Max: $'}{maxAmount}
+                            <button onClick={() => setMaxAmount('')} className="ms-1 rounded-full hover:bg-muted p-0.5">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    )}
+                </div>
+            )}
+
+            {/* Results Count */}
+            <div className="text-sm text-muted-foreground">
+                {isAr
+                    ? `${filteredTransactions.length} معاملة`
+                    : `${filteredTransactions.length} transaction${filteredTransactions.length !== 1 ? 's' : ''}`
+                }
+            </div>
+
+            {/* Filtered Data Statistics */}
+            {filteredTransactions.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-lg border bg-card">
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">
+                            {isAr ? 'إجمالي الإيرادات' : 'Total Income'}
+                        </p>
+                        <p className="text-xl font-bold text-green-600">
+                            ${stats.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">
+                            {isAr ? 'إجمالي المصروفات' : 'Total Expenses'}
+                        </p>
+                        <p className="text-xl font-bold text-red-600">
+                            ${stats.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">
+                            {isAr ? 'الرصيد الصافي' : 'Net Balance'}
+                        </p>
+                        <p className={`text-xl font-bold ${stats.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {stats.balance >= 0 ? '+' : ''}${stats.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* Table */}
             <div className="rounded-md border bg-card">
@@ -78,14 +662,14 @@ export function TransactionsTable() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredTransactions?.length === 0 ? (
+                        {paginatedTransactions?.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
                                     {isAr ? 'لا توجد معاملات' : 'No transactions found'}
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredTransactions?.map((tx) => (
+                            paginatedTransactions?.map((tx) => (
                                 <TableRow key={tx.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
@@ -149,6 +733,73 @@ export function TransactionsTable() {
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Pagination Controls */}
+            {filteredTransactions.length > 0 && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between px-2">
+                    <div className="text-sm text-muted-foreground">
+                        {isAr ? (
+                            <>
+                                عرض {pagination.startIndex + 1} - {pagination.endIndex} من أصل {filteredTransactions.length}
+                            </>
+                        ) : (
+                            <>
+                                Showing {pagination.startIndex + 1} - {pagination.endIndex} of {filteredTransactions.length}
+                            </>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={pagination.prevPage}
+                            disabled={!pagination.canGoPrev}
+                            className="gap-1"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                            {isAr ? 'السابق' : 'Previous'}
+                        </Button>
+                        
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                let pageNum: number
+                                if (pagination.totalPages <= 5) {
+                                    pageNum = i + 1
+                                } else if (pagination.currentPage <= 3) {
+                                    pageNum = i + 1
+                                } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                                    pageNum = pagination.totalPages - 4 + i
+                                } else {
+                                    pageNum = pagination.currentPage - 2 + i
+                                }
+                                
+                                return (
+                                    <Button
+                                        key={pageNum}
+                                        variant={pagination.currentPage === pageNum ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => pagination.goToPage(pageNum)}
+                                        className="w-8 h-8 p-0"
+                                    >
+                                        {pageNum}
+                                    </Button>
+                                )
+                            })}
+                        </div>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={pagination.nextPage}
+                            disabled={!pagination.canGoNext}
+                            className="gap-1"
+                        >
+                            {isAr ? 'التالي' : 'Next'}
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

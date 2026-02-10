@@ -24,6 +24,8 @@ export function useTreasury() {
             if (error) throw error
             return data as unknown as Treasury
         },
+        staleTime: 2 * 60 * 1000, // 2 minutes
+        gcTime: 10 * 60 * 1000, // 10 minutes
     })
 }
 
@@ -32,8 +34,11 @@ export function useTreasury() {
  */
 export function useTransactions(filters?: {
     type?: TransactionType
+    category?: string
     startDate?: string
     endDate?: string
+    minAmount?: number
+    maxAmount?: number
     limit?: number
 }) {
     const supabase = createClient()
@@ -49,11 +54,20 @@ export function useTransactions(filters?: {
             if (filters?.type) {
                 query = query.eq('type', filters.type)
             }
+            if (filters?.category) {
+                query = query.eq('category', filters.category)
+            }
             if (filters?.startDate) {
                 query = query.gte('created_at', filters.startDate)
             }
             if (filters?.endDate) {
                 query = query.lte('created_at', filters.endDate)
+            }
+            if (filters?.minAmount !== undefined) {
+                query = query.gte('amount', filters.minAmount)
+            }
+            if (filters?.maxAmount !== undefined) {
+                query = query.lte('amount', filters.maxAmount)
             }
             if (filters?.limit) {
                 query = query.limit(filters.limit)
@@ -63,6 +77,8 @@ export function useTransactions(filters?: {
             if (error) throw error
             return data as unknown as Transaction[]
         },
+        staleTime: 30 * 1000, // 30 seconds
+        gcTime: 5 * 60 * 1000, // 5 minutes
     })
 }
 
@@ -119,6 +135,8 @@ export function useTransactionSummary(period?: 'day' | 'week' | 'month' | 'year'
 
             return summary
         },
+        staleTime: 60 * 1000, // 1 minute
+        gcTime: 5 * 60 * 1000, // 5 minutes
     })
 }
 

@@ -58,13 +58,31 @@ export function LoginForm() {
             }
 
             toast.success(isAr ? 'تم تسجيل الدخول بنجاح' : 'Logged in successfully')
-            router.refresh()
 
-            // Fetch user to check role
+            // Fetch user identity
             const { data: { user } } = await supabase.auth.getUser()
-            const role = user?.user_metadata?.role
 
-            switch (role) {
+            if (!user) {
+                router.push('/login')
+                return
+            }
+
+            // Check DB for the most up-to-date role
+            let role = user.user_metadata?.role
+
+            const { data: profile } = await supabase
+                .from('users')
+                .select('role')
+                .eq('id', user.id)
+                .single()
+
+            if (profile) {
+                role = (profile as any).role
+            }
+
+            const normalizedRole = role ? String(role).toLowerCase().trim() : ''
+
+            switch (normalizedRole) {
                 case 'admin':
                     router.push('/admin')
                     break;
@@ -81,7 +99,7 @@ export function LoginForm() {
                     router.push('/accountant')
                     break;
                 default:
-                    router.push('/client') // Fallback
+                    router.push('/client')
             }
 
         } catch (error) {

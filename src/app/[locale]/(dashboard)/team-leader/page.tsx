@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useLocale } from 'next-intl'
+import { createClient } from '@/lib/supabase/client'
 import {
     KanbanBoard,
     TaskForm,
@@ -9,13 +10,28 @@ import {
     type TaskWithRelations
 } from '@/components/tasks'
 import type { TaskStatus } from '@/types/database'
-
-// Temporary mock user - Replace with actual auth
-const CURRENT_USER_ID = '00000000-0000-0000-0000-000000000001'
+import { Loader2 } from 'lucide-react'
+import { useTasksRealtime } from '@/hooks/use-realtime'
 
 export default function TeamLeaderDashboard() {
     const locale = useLocale()
     const isAr = locale === 'ar'
+    const [userId, setUserId] = useState<string | null>(null)
+
+    // Fetch current user
+    useEffect(() => {
+        const fetchUser = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                setUserId(user.id)
+            }
+        }
+        fetchUser()
+    }, [])
+
+    // Enable realtime updates for tasks, comments, and attachments
+    useTasksRealtime(undefined)
 
     // State for modals
     const [isFormOpen, setIsFormOpen] = useState(false)
@@ -46,6 +62,14 @@ export default function TeamLeaderDashboard() {
         setSelectedTask(null)
     }, [])
 
+    if (!userId) {
+        return (
+            <div className="flex items-center justify-center h-[50vh]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        )
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -63,6 +87,7 @@ export default function TeamLeaderDashboard() {
 
             {/* Kanban Board */}
             <KanbanBoard
+                projectId={undefined} // Pass undefined for all projects
                 onTaskClick={handleTaskClick}
                 onCreateTask={handleCreateTask}
             />
@@ -73,7 +98,7 @@ export default function TeamLeaderDashboard() {
                 onOpenChange={setIsFormOpen}
                 task={selectedTask}
                 defaultStatus={defaultStatus}
-                currentUserId={CURRENT_USER_ID}
+                currentUserId={userId}
                 onSuccess={handleFormSuccess}
             />
 
@@ -82,7 +107,7 @@ export default function TeamLeaderDashboard() {
                 open={isDetailsOpen}
                 onOpenChange={setIsDetailsOpen}
                 taskId={selectedTask?.id ?? null}
-                currentUserId={CURRENT_USER_ID}
+                currentUserId={userId}
                 onEdit={handleEditTask}
             />
         </div>

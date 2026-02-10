@@ -2,7 +2,7 @@
 // Task Management Types - Extended & Enriched
 // ============================================
 
-import type { Task, TaskStatus, TaskPriority, User, Project, Comment, Attachment } from './database'
+import type { Task, TaskStatus, TaskPriority, User, Project, Comment, Attachment, Department, TaskType, WorkflowStage } from './database'
 
 // ============================================
 // Extended Task Types with Relations
@@ -14,6 +14,7 @@ import type { Task, TaskStatus, TaskPriority, User, Project, Comment, Attachment
 export interface TaskWithRelations extends Task {
     assigned_user?: Pick<User, 'id' | 'name' | 'email' | 'avatar_url'> | null
     creator?: Pick<User, 'id' | 'name' | 'email' | 'avatar_url'> | null
+    editor?: Pick<User, 'id' | 'name' | 'email' | 'avatar_url'> | null
     project?: Pick<Project, 'id' | 'name' | 'status'> | null
     comments_count?: number
     attachments_count?: number
@@ -143,10 +144,18 @@ export interface CreateTaskInput {
     description?: string
     status?: TaskStatus
     priority?: TaskPriority
+    department?: Department
+    task_type?: TaskType
+    workflow_stage?: WorkflowStage
     project_id?: string
     assigned_to?: string
+    editor_id?: string
     created_by: string
     deadline?: string
+    company_name?: string
+    location?: string
+    scheduled_date?: string
+    scheduled_time?: string
 }
 
 export interface UpdateTaskInput {
@@ -155,10 +164,18 @@ export interface UpdateTaskInput {
     description?: string
     status?: TaskStatus
     priority?: TaskPriority
+    department?: Department
+    task_type?: TaskType
+    workflow_stage?: WorkflowStage
     project_id?: string
     assigned_to?: string
+    editor_id?: string
     deadline?: string
     client_feedback?: string
+    company_name?: string
+    location?: string
+    scheduled_date?: string
+    scheduled_time?: string
 }
 
 export interface CreateCommentInput {
@@ -186,6 +203,8 @@ export interface TaskFilters {
     priority?: TaskPriority | 'all'
     assigned_to?: string | 'all'
     project_id?: string | 'all'
+    department?: Department | 'all'
+    task_type?: TaskType | 'all'
     search?: string
     dateFrom?: string
     dateTo?: string
@@ -232,3 +251,119 @@ export interface KanbanDragResult {
     sourceIndex: number
     destinationIndex: number
 }
+
+// ============================================
+// Photography Workflow Configuration
+// ============================================
+
+export interface WorkflowStageConfig {
+    id: WorkflowStage
+    label: string
+    labelAr: string
+    color: string
+    bgColor: string
+    icon: string
+    assignedRole: string
+}
+
+/**
+ * Video production workflow stages
+ */
+export const VIDEO_WORKFLOW_STAGES: WorkflowStageConfig[] = [
+    { id: 'filming', label: 'Filming', labelAr: 'تصوير', color: 'text-blue-500', bgColor: 'bg-blue-500/10', icon: 'Video', assignedRole: 'videographer' },
+    { id: 'filming_done', label: 'Filming Done', labelAr: 'التصوير جاهز', color: 'text-cyan-500', bgColor: 'bg-cyan-500/10', icon: 'CheckCircle', assignedRole: 'team_leader' },
+    { id: 'editing', label: 'Editing', labelAr: 'مونتاج', color: 'text-purple-500', bgColor: 'bg-purple-500/10', icon: 'Film', assignedRole: 'editor' },
+    { id: 'editing_done', label: 'Editing Done', labelAr: 'المونتاج جاهز', color: 'text-indigo-500', bgColor: 'bg-indigo-500/10', icon: 'CheckCircle', assignedRole: 'team_leader' },
+    { id: 'final_review', label: 'Final Review', labelAr: 'مراجعة نهائية', color: 'text-amber-500', bgColor: 'bg-amber-500/10', icon: 'Eye', assignedRole: 'team_leader' },
+    { id: 'delivered', label: 'Delivered', labelAr: 'تم التسليم', color: 'text-green-500', bgColor: 'bg-green-500/10', icon: 'Send', assignedRole: 'client' },
+]
+
+/**
+ * Photo production workflow stages
+ */
+export const PHOTO_WORKFLOW_STAGES: WorkflowStageConfig[] = [
+    { id: 'shooting', label: 'Shooting', labelAr: 'تصوير', color: 'text-blue-500', bgColor: 'bg-blue-500/10', icon: 'Camera', assignedRole: 'photographer' },
+    { id: 'shooting_done', label: 'Shooting Done', labelAr: 'التصوير جاهز', color: 'text-cyan-500', bgColor: 'bg-cyan-500/10', icon: 'CheckCircle', assignedRole: 'team_leader' },
+    { id: 'final_review', label: 'Final Review', labelAr: 'مراجعة نهائية', color: 'text-amber-500', bgColor: 'bg-amber-500/10', icon: 'Eye', assignedRole: 'team_leader' },
+    { id: 'delivered', label: 'Delivered', labelAr: 'تم التسليم', color: 'text-green-500', bgColor: 'bg-green-500/10', icon: 'Send', assignedRole: 'client' },
+]
+
+/**
+ * Valid workflow stage transitions per task type
+ */
+export const WORKFLOW_TRANSITIONS: Record<string, Record<WorkflowStage, WorkflowStage[]>> = {
+    video: {
+        filming: ['filming_done'],
+        filming_done: ['editing'],
+        editing: ['editing_done'],
+        editing_done: ['final_review'],
+        final_review: ['delivered', 'editing'],  // Can send back to editing
+        shooting: [],
+        shooting_done: [],
+        delivered: [],
+        none: [],
+    },
+    photo: {
+        shooting: ['shooting_done'],
+        shooting_done: ['final_review'],
+        final_review: ['delivered', 'shooting'],  // Can send back to shooting
+        filming: [],
+        filming_done: [],
+        editing: [],
+        editing_done: [],
+        delivered: [],
+        none: [],
+    },
+}
+
+/**
+ * Get workflow stages by task type
+ */
+export function getWorkflowStages(taskType: TaskType): WorkflowStageConfig[] {
+    switch (taskType) {
+        case 'video': return VIDEO_WORKFLOW_STAGES
+        case 'photo': return PHOTO_WORKFLOW_STAGES
+        default: return []
+    }
+}
+
+/**
+ * Check if a workflow transition is valid
+ */
+export function isValidWorkflowTransition(taskType: TaskType, from: WorkflowStage, to: WorkflowStage): boolean {
+    const transitions = WORKFLOW_TRANSITIONS[taskType]
+    if (!transitions) return false
+    return transitions[from]?.includes(to) ?? false
+}
+
+/**
+ * Get the workflow stage config
+ */
+export function getWorkflowStageConfig(stage: WorkflowStage, taskType: TaskType): WorkflowStageConfig | undefined {
+    const stages = getWorkflowStages(taskType)
+    return stages.find(s => s.id === stage)
+}
+
+// ============================================
+// Department Helpers
+// ============================================
+
+/** Roles that belong to the photography department */
+export const PHOTOGRAPHY_ROLES = ['videographer', 'editor', 'photographer'] as const
+
+/** Roles that belong to the content department */
+export const CONTENT_ROLES = ['creator'] as const
+
+/** Shared roles (not department-specific) */
+export const SHARED_ROLES = ['admin', 'accountant', 'client'] as const
+
+/** Check if a role needs a department */
+export function roleDepartment(role: string): Department | null {
+    if (PHOTOGRAPHY_ROLES.includes(role as any)) return 'photography'
+    if (CONTENT_ROLES.includes(role as any)) return 'content'
+    if (role === 'team_leader') return null  // TL needs explicit department
+    return null
+}
+
+// Re-export Department for convenience
+export type { Department, TaskType, WorkflowStage } from './database'

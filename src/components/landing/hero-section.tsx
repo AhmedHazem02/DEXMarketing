@@ -19,26 +19,28 @@ export function HeroSection() {
 
     return (
         <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-            {/* Atmospheric Background - Matching Reference Image */}
-            <div className="absolute inset-0 bg-[#020617]">
-                {/* Base Gradient: Deep Space */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-[#000000] via-[#0f172a] to-[#1e293b] opacity-90" />
+            {/* Atmospheric Background - Teal Theme */}
+            <div className="absolute inset-0 bg-[#003E44]">
+                {/* Base Gradient: Deep Teal to Darker Tone */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#003E44] to-[#002A2E] opacity-100" />
 
-                {/* Golden Sunrise Glow (Bottom Left) - Reduced Opacity */}
+                {/* Golden Sunrise Glow (Bottom Left) - Subtle */}
                 <div
-                    className="absolute -bottom-1/2 -left-1/4 w-[150%] h-[150%] rounded-full opacity-40 pointer-events-none"
+                    className="absolute -bottom-1/2 -left-1/4 w-[150%] h-[150%] rounded-full opacity-20 pointer-events-none"
                     style={{
-                        background: 'radial-gradient(circle at 30% 80%, rgba(255, 180, 0, 0.3) 0%, rgba(255, 100, 0, 0.1) 20%, transparent 60%)',
-                        filter: 'blur(100px)',
+                        background: 'radial-gradient(circle at 30% 80%, rgba(255, 200, 0, 0.15) 0%, transparent 60%)',
+                        filter: 'blur(80px)',
+                        transform: 'translateZ(0)',
                     }}
                 />
 
-                {/* Cyan/Teal Atmosphere (Top Right) - Reduced Opacity */}
+                {/* Lighter Teal/Cyan Haze (Top Right) */}
                 <div
                     className="absolute -top-1/2 -right-1/4 w-[150%] h-[150%] rounded-full opacity-30 pointer-events-none"
                     style={{
-                        background: 'radial-gradient(circle at 70% 20%, rgba(0, 212, 255, 0.2) 0%, rgba(0, 100, 200, 0.1) 30%, transparent 70%)',
-                        filter: 'blur(100px)',
+                        background: 'radial-gradient(circle at 70% 20%, rgba(0, 200, 200, 0.2) 0%, transparent 70%)',
+                        filter: 'blur(80px)',
+                        transform: 'translateZ(0)',
                     }}
                 />
             </div>
@@ -67,42 +69,33 @@ export function HeroSection() {
                             transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
                             className="relative"
                         >
-                            {/* LAYER 1: Rotating Light Rays (Sunburst) - Reduced Opacity */}
+                            {/* LAYER 1: Rotating Light Rays (Sunburst) - Simplified */}
                             <motion.div
-                                className="absolute -inset-48 opacity-30 pointer-events-none"
+                                className="absolute -inset-48 opacity-20 pointer-events-none"
                                 animate={{ rotate: 360 }}
-                                transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+                                transition={{ duration: 120, repeat: Infinity, ease: 'linear' }} // Slower rotation
                                 style={{
                                     background: `conic-gradient(
                                         from 0deg at 50% 50%,
                                         transparent 0deg,
-                                        rgba(255, 170, 0, 0.3) 15deg,  /* Deep Saturated Gold */
-                                        transparent 30deg,
-                                        transparent 50deg,
-                                        rgba(255, 120, 0, 0.2) 70deg,  /* Deep Orange */
-                                        transparent 90deg,
-                                        transparent 110deg,
-                                        rgba(255, 190, 0, 0.3) 130deg, /* Rich Amber */
-                                        transparent 150deg,
-                                        transparent 170deg,
-                                        rgba(255, 170, 0, 0.3) 190deg,
-                                        transparent 210deg,
-                                        transparent 230deg,
-                                        rgba(255, 120, 0, 0.2) 250deg,
-                                        transparent 270deg,
-                                        transparent 290deg,
-                                        rgba(255, 190, 0, 0.3) 310deg,
-                                        transparent 330deg,
-                                        transparent 350deg,
-                                        rgba(255, 170, 0, 0.2) 360deg
+                                        rgba(255, 170, 0, 0.2) 20deg,
+                                        transparent 40deg,
+                                        rgba(255, 120, 0, 0.1) 80deg,
+                                        transparent 120deg,
+                                        rgba(255, 190, 0, 0.2) 160deg,
+                                        transparent 200deg,
+                                        rgba(255, 120, 0, 0.1) 260deg,
+                                        transparent 300deg,
+                                        rgba(255, 170, 0, 0.1) 340deg,
+                                        transparent 360deg
                                     )`,
-                                    filter: 'blur(15px)',
+                                    filter: 'blur(10px)', // Reduced blur
                                 }}
                             />
 
                             {/* LAYER 1.5: Static Core Glow to Blend Rays - Reduced Opacity */}
                             <div
-                                className="absolute -inset-24 blur-[80px] opacity-40 pointer-events-none"
+                                className="absolute -inset-24 blur-[50px] opacity-30 pointer-events-none"
                                 style={{
                                     background: 'radial-gradient(circle at 50% 50%, rgba(255,215,0,0.5) 0%, rgba(255,160,0,0.2) 50%, transparent 80%)',
                                 }}
@@ -123,7 +116,7 @@ export function HeroSection() {
 
                             {/* LAYER 3: Ambient Floor Light (Below astronaut visually) */}
                             <div
-                                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-32 blur-3xl opacity-50 z-0"
+                                className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-32 blur-2xl opacity-40 z-0"
                                 style={{
                                     background: 'radial-gradient(ellipse at 50% 100%, rgba(255,215,0,0.5) 0%, rgba(0,212,255,0.3) 40%, transparent 70%)',
                                 }}
@@ -248,7 +241,7 @@ export function HeroSection() {
                             className={`flex flex-col sm:flex-row items-center gap-4 ${isAr ? 'lg:justify-start' : 'lg:justify-start'} justify-center lg:justify-start mb-12`}
                         >
                             <Link href="/register">
-                                <Button size="lg" className="group relative text-lg px-8 py-6 bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 hover:from-orange-500 hover:via-yellow-500 hover:to-yellow-400 transition-all duration-500 shadow-2xl shadow-yellow-500/30 rounded-full overflow-hidden text-background font-bold">
+                                <Button size="lg" className="group relative text-lg px-8 py-6 bg-primary hover:bg-primary/90 transition-all duration-500 shadow-2xl shadow-primary/30 rounded-full overflow-hidden text-background font-bold">
                                     <span className="relative z-10 flex items-center">
                                         <Rocket className="me-2 h-5 w-5 group-hover:-translate-y-1 group-hover:rotate-12 transition-transform" />
                                         {isAr ? 'ابدأ رحلتك' : 'Start Your Journey'}
