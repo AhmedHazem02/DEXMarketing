@@ -2,6 +2,7 @@
 // ============================================
 
 export { KanbanBoard } from './kanban-board'
+export { TasksTable } from './tasks-table'
 export { TaskForm } from './task-form'
 export { TaskDetails } from './task-details'
 export { FileUploadZone } from './file-upload-zone'

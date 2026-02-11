@@ -128,18 +128,18 @@ export function TaskReviewCard({ task }: TaskReviewCardProps) {
                         </div>
                     )}
                     
-                    {(task.attachments_count > 0 || task.comments_count > 0) && (
+                    {((task.attachments_count ?? 0) > 0 || (task.comments_count ?? 0) > 0) && (
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            {task.attachments_count > 0 && (
+                            {(task.attachments_count ?? 0) > 0 && (
                                 <div className="flex items-center gap-1">
                                     <Paperclip className="h-4 w-4" />
-                                    <span>{task.attachments_count}</span>
+                                    <span>{task.attachments_count ?? 0}</span>
                                 </div>
                             )}
-                            {task.comments_count > 0 && (
+                            {(task.comments_count ?? 0) > 0 && (
                                 <div className="flex items-center gap-1">
                                     <MessageSquare className="h-4 w-4" />
-                                    <span>{task.comments_count}</span>
+                                    <span>{task.comments_count ?? 0}</span>
                                 </div>
                             )}
                         </div>

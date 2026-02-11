@@ -345,6 +345,7 @@ export function KanbanBoard({ projectId, onTaskClick, onCreateTask }: KanbanBoar
             in_progress: [],
             review: [],
             revision: [],
+            client_review: [],
             approved: [],
             rejected: [],
         }

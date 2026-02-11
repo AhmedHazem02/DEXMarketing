@@ -43,7 +43,7 @@ export function HeroOverlay() {
                             </span>
                         </div>
                     </motion.div>
-
+ 
                     {/* Main Title - Optimized for LCP */}
                     <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1]">
