@@ -2,7 +2,7 @@
 // Task Management Types - Extended & Enriched
 // ============================================
 
-import type { Task, TaskStatus, TaskPriority, User, Project, Comment, Attachment, Department, TaskType, WorkflowStage } from './database'
+import type { Task, TaskStatus, TaskPriority, User, Project, Comment, Attachment, Department, TaskType, WorkflowStage, RequestType, RequestStatus } from './database'
 
 // ============================================
 // Extended Task Types with Relations
@@ -16,6 +16,7 @@ export interface TaskWithRelations extends Task {
     creator?: Pick<User, 'id' | 'name' | 'email' | 'avatar_url'> | null
     editor?: Pick<User, 'id' | 'name' | 'email' | 'avatar_url'> | null
     project?: Pick<Project, 'id' | 'name' | 'status'> | null
+    client?: Pick<import('./database').Client, 'id' | 'name' | 'company'> | null
     comments_count?: number
     attachments_count?: number
 }
@@ -78,6 +79,14 @@ export const KANBAN_COLUMNS: KanbanColumn[] = [
         color: 'text-purple-500',
         bgColor: 'bg-purple-500/10 border-purple-500/30',
         icon: 'Eye'
+    },
+    {
+        id: 'client_review',
+        title: 'Client Review',
+        titleAr: 'مراجعة العميل',
+        color: 'text-indigo-500',
+        bgColor: 'bg-indigo-500/10 border-indigo-500/30',
+        icon: 'UserCheck'
     },
     {
         id: 'revision',
@@ -148,6 +157,7 @@ export interface CreateTaskInput {
     task_type?: TaskType
     workflow_stage?: WorkflowStage
     project_id?: string
+    client_id?: string
     assigned_to?: string
     editor_id?: string
     created_by: string
@@ -168,6 +178,7 @@ export interface UpdateTaskInput {
     task_type?: TaskType
     workflow_stage?: WorkflowStage
     project_id?: string
+    client_id?: string
     assigned_to?: string
     editor_id?: string
     deadline?: string
@@ -192,6 +203,79 @@ export interface CreateAttachmentInput {
     file_size?: number
     uploaded_by: string
     is_final?: boolean
+}
+
+// ============================================
+// Client Request Types
+// ============================================
+
+/**
+ * Input for creating client request - uses Pick to avoid field duplication
+ */
+export interface CreateClientRequestInput extends Pick<CreateTaskInput, 'title' | 'description' | 'deadline'> {
+    department: Department
+    task_type: TaskType
+    request_type: RequestType
+    project_id?: string
+    original_task_id?: string
+    created_by: string
+}
+
+/**
+ * Filters for client request queries
+ */
+export interface ClientRequestFilters {
+    request_type?: RequestType | 'all'
+    request_status?: RequestStatus | 'all'
+    department?: Department | 'all'
+}
+
+/**
+ * Task with request status + client info for TL review
+ */
+export interface ClientRequestWithDetails extends TaskWithRelations {
+    request_type: RequestType
+    request_status: RequestStatus
+    rejection_reason: string | null
+    original_task_id: string | null
+    original_task?: Pick<Task, 'id' | 'title' | 'status'> | null
+    attachments?: Attachment[]
+    client_info?: Pick<User, 'id' | 'name' | 'email' | 'avatar_url'> | null
+}
+
+/**
+ * Request status configuration for UI
+ */
+export interface RequestStatusConfig {
+    id: RequestStatus
+    label: string
+    labelAr: string
+    color: string
+    bgColor: string
+    icon: string
+}
+
+export const REQUEST_STATUS_CONFIG: RequestStatusConfig[] = [
+    { id: 'pending_approval', label: 'Pending', labelAr: 'قيد الانتظار', color: 'text-yellow-500', bgColor: 'bg-yellow-500/10 border-yellow-500/30', icon: 'Clock' },
+    { id: 'approved', label: 'Approved', labelAr: 'تمت الموافقة', color: 'text-green-500', bgColor: 'bg-green-500/10 border-green-500/30', icon: 'CheckCircle' },
+    { id: 'rejected', label: 'Rejected', labelAr: 'مرفوض', color: 'text-red-500', bgColor: 'bg-red-500/10 border-red-500/30', icon: 'XCircle' },
+]
+
+export function getRequestStatusConfig(status: RequestStatus): RequestStatusConfig {
+    return REQUEST_STATUS_CONFIG.find(s => s.id === status) ?? REQUEST_STATUS_CONFIG[0]
+}
+
+/** Task types available per department for client request form */
+export const DEPARTMENT_TASK_TYPES: Record<Department, { id: TaskType; label: string; labelAr: string }[]> = {
+    photography: [
+        { id: 'video', label: 'Video', labelAr: 'فيديو' },
+        { id: 'photo', label: 'Photography', labelAr: 'تصوير' },
+        { id: 'editing', label: 'Editing', labelAr: 'مونتاج' },
+    ],
+    content: [
+        { id: 'content', label: 'Content', labelAr: 'محتوى' },
+        { id: 'general', label: 'General', labelAr: 'عام' },
+    ],
 }
 
 // ============================================
@@ -225,9 +309,10 @@ export interface TaskSortOptions {
 export const STATUS_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
     new: ['in_progress'],
     in_progress: ['review'],
-    review: ['approved', 'in_progress'], // Leader can approve or request changes
+    review: ['approved', 'revision', 'in_progress', 'client_review'], // Leader can approve, send to client, return for revision, or request changes
+    client_review: ['approved', 'revision'], // Client can approve or request modifications
     revision: ['in_progress'],
-    approved: [], // Final state internally, can go to client
+    approved: [], // Final state
     rejected: ['in_progress'], // Can be reassigned
 }
 
@@ -366,4 +451,4 @@ export function roleDepartment(role: string): Department | null {
 }
 
 // Re-export Department for convenience
-export type { Department, TaskType, WorkflowStage } from './database'
+export type { Department, TaskType, WorkflowStage, RequestType, RequestStatus } from './database'

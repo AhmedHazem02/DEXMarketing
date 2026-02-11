@@ -11,6 +11,7 @@ import type {
     UpdateTaskInput,
     TaskFilters,
     TasksByStatus,
+    ClientRequestWithDetails,
 } from '@/types/task'
 import { KANBAN_COLUMNS } from '@/types/task'
 
@@ -31,6 +32,7 @@ export const taskKeys = {
     revisions: () => [...taskKeys.all, 'revisions'] as const,
     departmentTasks: (dept: string) => [...taskKeys.all, 'department', dept] as const,
     editorTasks: (userId: string) => [...taskKeys.all, 'editor', userId] as const,
+    pendingRequests: (userId: string) => [...taskKeys.all, 'pending-requests', userId] as const,
 }
 
 // ============================================
@@ -52,7 +54,8 @@ export function useTasks(filters: TaskFilters = {}) {
                     *,
                     assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
                     creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
-                    project:projects(id, name, status)
+                    project:projects(id, name, status),
+                    client:clients(id, name, company)
                 `)
                 .order('created_at', { ascending: false })
 
@@ -113,7 +116,8 @@ export function useTasksKanban(projectId?: string, department?: Department) {
                     *,
                     assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
                     creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
-                    project:projects(id, name, status)
+                    project:projects(id, name, status),
+                    client:clients(id, name, company)
                 `)
                 .order('updated_at', { ascending: false })
 
@@ -133,6 +137,7 @@ export function useTasksKanban(projectId?: string, department?: Department) {
                 new: [],
                 in_progress: [],
                 review: [],
+                client_review: [],
                 revision: [],
                 approved: [],
                 rejected: [],
@@ -214,6 +219,40 @@ export function useRevisionsTasks() {
 }
 
 // ============================================
+// Tasks - Client Review (For Clients)
+// ============================================
+
+/**
+ * Fetch tasks awaiting client review for a specific client
+ */
+export function useTasksForClientReview(clientId: string) {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: [...taskKeys.all, 'client-review', clientId],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('tasks')
+                .select(`
+                    *,
+                    assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
+                    creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
+                    project:projects(id, name, status),
+                    attachments(id, file_url, file_name, file_type, created_at)
+                `)
+                .eq('client_id', clientId)
+                .eq('status', 'client_review')
+                .order('updated_at', { ascending: false })
+
+            if (error) throw error
+            return data as unknown as TaskWithRelations[]
+        },
+        enabled: !!clientId,
+        staleTime: 20 * 1000, // 20 seconds for near real-time updates
+    })
+}
+
+// ============================================
 // Task - Single with Full Details
 // ============================================
 
@@ -233,7 +272,8 @@ export function useTaskDetails(taskId: string) {
                     *,
                     assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
                     creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
-                    project:projects(id, name, status)
+                    project:projects(id, name, status),
+                    client:clients(id, name, company)
                 `)
                 .eq('id', taskId)
                 .single()
@@ -290,6 +330,7 @@ export function useCreateTask() {
                 task_type: input.task_type ?? 'general',
                 workflow_stage: input.workflow_stage ?? 'none',
                 project_id: input.project_id ?? null,
+                client_id: input.client_id ?? null,
                 assigned_to: input.assigned_to ?? null,
                 editor_id: input.editor_id ?? null,
                 created_by: input.created_by,
@@ -357,13 +398,28 @@ export function useUpdateTaskStatus() {
 
     return useMutation({
         mutationFn: async ({ id, status }: { id: string; status: TaskStatus }) => {
+            // Auto-route to client_review if approving a task with client_id
+            let finalStatus = status
+            if (status === 'approved') {
+                // Check if task has client_id
+                const { data: task } = await supabase
+                    .from('tasks')
+                    .select('client_id')
+                    .eq('id', id)
+                    .single()
+                
+                if (task?.client_id) {
+                    finalStatus = 'client_review'
+                }
+            }
+
             const { error } = await supabase
                 .from('tasks')
-                .update({ status, updated_at: new Date().toISOString() } as never)
+                .update({ status: finalStatus, updated_at: new Date().toISOString() } as never)
                 .eq('id', id)
 
             if (error) throw error
-            return { id, status }
+            return { id, status: finalStatus }
         },
         // Optimistic update for smooth drag experience
         onMutate: async ({ id, status }) => {
@@ -422,6 +478,33 @@ export function useAssignTask() {
             const { error } = await supabase
                 .from('tasks')
                 .update({ assigned_to: userId, updated_at: new Date().toISOString() } as never)
+                .eq('id', taskId)
+
+            if (error) throw error
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: taskKeys.all })
+            queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) })
+        },
+    })
+}
+
+/**
+ * Return task for revision with reason
+ */
+export function useReturnTask() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({ taskId, reason }: { taskId: string; reason: string }) => {
+            const { error } = await supabase
+                .from('tasks')
+                .update({
+                    status: 'revision',
+                    client_feedback: reason,
+                    updated_at: new Date().toISOString(),
+                } as never)
                 .eq('id', taskId)
 
             if (error) throw error
@@ -1036,6 +1119,99 @@ export function useDeliverToClient() {
 
             if (error) throw error
             return data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskKeys.all })
+        },
+    })
+}
+
+// ============================================
+// Team Leader - Client Request Review
+// ============================================
+
+/**
+ * Fetch pending client requests for a team leader's department
+ */
+export function usePendingRequests(teamLeaderId: string) {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: taskKeys.pendingRequests(teamLeaderId),
+        queryFn: async () => {
+            // Get TL's department
+            const { data: tlUser } = await supabase
+                .from('users')
+                .select('department')
+                .eq('id', teamLeaderId)
+                .single()
+
+            if (!tlUser?.department) return []
+
+            const { data, error } = await supabase
+                .from('tasks')
+                .select(`
+                    *,
+                    creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
+                    project:projects(id, name, status),
+                    attachments(id, file_url, file_name, file_type, file_size)
+                `)
+                .not('request_type', 'is', null)
+                .eq('department', tlUser.department)
+                .order('created_at', { ascending: false })
+
+            if (error) throw error
+            return data as unknown as ClientRequestWithDetails[]
+        },
+        enabled: !!teamLeaderId,
+        staleTime: 30_000,
+    })
+}
+
+/**
+ * Approve a client request (by team leader)
+ */
+export function useApproveClientRequest() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (requestId: string) => {
+            const { error } = await supabase
+                .from('tasks')
+                .update({
+                    request_status: 'approved',
+                    updated_at: new Date().toISOString(),
+                } as never)
+                .eq('id', requestId)
+
+            if (error) throw error
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskKeys.all })
+        },
+    })
+}
+
+/**
+ * Reject a client request with optional reason
+ */
+export function useRejectClientRequest() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({ requestId, reason }: { requestId: string; reason?: string }) => {
+            const { error } = await supabase
+                .from('tasks')
+                .update({
+                    request_status: 'rejected',
+                    rejection_reason: reason ?? null,
+                    updated_at: new Date().toISOString(),
+                } as never)
+                .eq('id', requestId)
+
+            if (error) throw error
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: taskKeys.all })

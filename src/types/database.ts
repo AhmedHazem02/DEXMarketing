@@ -14,13 +14,15 @@ export type Json =
 export type UserRole = 'admin' | 'accountant' | 'team_leader' | 'creator' | 'client' | 'videographer' | 'editor' | 'photographer'
 export type Department = 'photography' | 'content'
 export type ProjectStatus = 'active' | 'completed' | 'on_hold' | 'cancelled'
-export type TaskStatus = 'new' | 'in_progress' | 'review' | 'revision' | 'approved' | 'rejected'
+export type TaskStatus = 'new' | 'in_progress' | 'review' | 'client_review' | 'revision' | 'approved' | 'rejected'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskType = 'video' | 'photo' | 'editing' | 'content' | 'general'
 export type WorkflowStage = 'filming' | 'filming_done' | 'editing' | 'editing_done' | 'final_review' | 'shooting' | 'shooting_done' | 'delivered' | 'none'
 export type ScheduleStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 export type MessageType = 'text' | 'image' | 'file'
 export type TransactionType = 'income' | 'expense'
+export type RequestType = 'new_task' | 'modification'
+export type RequestStatus = 'pending_approval' | 'approved' | 'rejected'
 
 // ============================================
 // Table Types
@@ -82,6 +84,11 @@ export interface Task {
     location: string | null
     scheduled_date: string | null
     scheduled_time: string | null
+    request_type: RequestType | null
+    request_status: RequestStatus | null
+    rejection_reason: string | null
+    original_task_id: string | null
+    client_id: string | null
     created_at: string
     updated_at: string
 }
@@ -362,6 +369,8 @@ export interface Database {
             schedule_status: ScheduleStatus
             message_type: MessageType
             transaction_type: TransactionType
+            request_type: RequestType
+            request_status: RequestStatus
         }
     }
 }

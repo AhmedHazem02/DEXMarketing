@@ -24,7 +24,7 @@ import {
     MapPin,
     Building2,
     Users,
-    AlertTriangle,
+    Briefcase,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -198,6 +198,7 @@ export function ReadOnlyScheduleView({ userId, clientId, title }: ReadOnlySchedu
                                         <div className="space-y-0.5">
                                             {daySchedules.slice(0, 2).map((schedule) => {
                                                 const overdue = isScheduleOverdue(schedule)
+                                                const deptEmoji = schedule.department === 'photography' ? '📸' : schedule.department === 'content' ? '✍️' : ''
                                                 return (
                                                     <div
                                                         key={schedule.id}
@@ -210,7 +211,7 @@ export function ReadOnlyScheduleView({ userId, clientId, title }: ReadOnlySchedu
                                                                     : getScheduleStatusConfig(schedule.status).bgColor
                                                         )}
                                                     >
-                                                        {schedule.start_time?.slice(0, 5)} {schedule.company_name || schedule.title}
+                                                        {deptEmoji} {schedule.start_time?.slice(0, 5)} {schedule.company_name || schedule.title}
                                                     </div>
                                                 )
                                             })}
@@ -269,7 +270,25 @@ export function ReadOnlyScheduleView({ userId, clientId, title }: ReadOnlySchedu
                                             />
                                             <div className="flex-1 min-w-0 space-y-2">
                                                 <div className="flex items-start justify-between gap-2">
-                                                    <h4 className="font-medium text-sm">{schedule.title}</h4>
+                                                    <div className="flex-1">
+                                                        <h4 className="font-medium text-sm mb-1.5">{schedule.title}</h4>
+                                                        {schedule.department && (
+                                                            <Badge variant="secondary" className="text-xs gap-1.5">
+                                                                <Briefcase className="h-3 w-3" />
+                                                                {isAr
+                                                                    ? schedule.department === 'photography'
+                                                                        ? 'التصوير'
+                                                                        : schedule.department === 'content'
+                                                                            ? 'المحتوى'
+                                                                            : schedule.department
+                                                                    : schedule.department === 'photography'
+                                                                        ? 'Photography'
+                                                                        : schedule.department === 'content'
+                                                                            ? 'Content'
+                                                                            : schedule.department}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                     <Badge
                                                         variant="outline"
                                                         className={cn(
@@ -357,9 +376,9 @@ export function ReadOnlyScheduleView({ userId, clientId, title }: ReadOnlySchedu
             {!isLoading && schedules?.length === 0 && (
                 <Card>
                     <CardContent className="py-12">
-                        <div className="text-center text-muted-foreground">
-                            <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                            <p>
+                        <div className="text-center">
+                            <CalendarIcon className="h-12 w-12 mx-auto mb-3 opacity-50 text-muted-foreground" />
+                            <p className="text-muted-foreground">
                                 {isAr
                                     ? 'لا توجد مواعيد مجدولة هذا الشهر'
                                     : 'No scheduled appointments this month'}

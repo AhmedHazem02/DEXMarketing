@@ -145,6 +145,18 @@ function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
                 </p>
             )}
 
+            {/* Client Feedback - shown when status is revision and feedback exists */}
+            {task.status === 'revision' && task.client_feedback && (
+                <div className="mb-3 p-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1">
+                        {isAr ? 'تعديلات العميل:' : 'Client Modifications:'}
+                    </p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                        {task.client_feedback}
+                    </p>
+                </div>
+            )}
+
             {/* Footer: Deadline & Assignee */}
             <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
                 {/* Deadline */}
@@ -179,14 +191,19 @@ function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
                 )}
             </div>
 
-            {/* Project Badge */}
-            {task.project && (
-                <div className="absolute bottom-4 start-4 max-w-[60%]">
-                    <Badge variant="outline" className="text-[10px] truncate">
+            {/* Project & Client Badges */}
+            <div className="absolute bottom-4 start-4 max-w-[70%] flex flex-col gap-1">
+                {task.project && (
+                    <Badge variant="outline" className="text-[10px] truncate w-fit">
                         {task.project.name}
                     </Badge>
-                </div>
-            )}
+                )}
+                {task.client && (
+                    <Badge variant="outline" className="text-[10px] truncate w-fit bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                        {task.client.company || task.client.name}
+                    </Badge>
+                )}
+            </div>
         </motion.div>
     )
 }

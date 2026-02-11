@@ -8,8 +8,9 @@ import {
     Calendar, Clock, User, MessageSquare, Paperclip, Send,
     Trash2, Download, ExternalLink, MoreHorizontal, Loader2,
     FileText, Image, Video, FileArchive, Check, X, Edit2,
-    AlertTriangle, Star
+    AlertTriangle, Star, CheckCircle, RotateCcw
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -53,8 +54,11 @@ import {
     useDeleteTask,
     useDeleteAttachment,
     useMarkAttachmentFinal,
+    useUpdateTask,
+    useReturnTask,
 } from '@/hooks/use-tasks'
 import { FileUploadZone } from './file-upload-zone'
+import { ReturnTaskDialog } from './return-task-dialog'
 import { getPriorityConfig, getColumnConfig } from '@/types/task'
 import type { TaskWithRelations, CommentWithUser } from '@/types/task'
 import type { Attachment } from '@/types/database'
@@ -69,6 +73,8 @@ interface TaskDetailsProps {
     taskId: string | null
     currentUserId: string
     onEdit?: (task: TaskWithRelations) => void
+    canSubmit?: boolean
+    canReturn?: boolean
 }
 
 // ============================================
@@ -263,6 +269,8 @@ export function TaskDetails({
     taskId,
     currentUserId,
     onEdit,
+    canSubmit = false,
+    canReturn = false,
 }: TaskDetailsProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
@@ -270,6 +278,8 @@ export function TaskDetails({
     const [newComment, setNewComment] = useState('')
     const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
     const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null)
+    const [returnDialogOpen, setReturnDialogOpen] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Ref for auto-scroll to latest comment
     const commentsEndRef = useRef<HTMLDivElement>(null)
@@ -281,6 +291,8 @@ export function TaskDetails({
     const deleteTask = useDeleteTask()
     const deleteAttachment = useDeleteAttachment()
     const markFinal = useMarkAttachmentFinal()
+    const updateTask = useUpdateTask()
+    const returnTask = useReturnTask()
 
     // Auto-scroll to bottom when comments change
     useEffect(() => {
@@ -343,6 +355,35 @@ export function TaskDetails({
         if (!task) return
         await deleteTask.mutateAsync(task.id)
         onOpenChange(false)
+    }
+
+    const handleSubmitTask = async () => {
+        if (!task) return
+        setIsSubmitting(true)
+        try {
+            await updateTask.mutateAsync({
+                id: task.id,
+                status: 'review',
+            })
+            toast.success(isAr ? 'تم تسليم المهمة بنجاح' : 'Task submitted successfully')
+        } catch (error) {
+            toast.error(isAr ? 'حدث خطأ أثناء تسليم المهمة' : 'Failed to submit task')
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleApproveTask = async () => {
+        if (!task) return
+        try {
+            await updateTask.mutateAsync({
+                id: task.id,
+                status: 'approved',
+            })
+            toast.success(isAr ? 'تم قبول المهمة بنجاح' : 'Task approved successfully')
+        } catch (error) {
+            toast.error(isAr ? 'حدث خطأ أثناء قبول المهمة' : 'Failed to approve task')
+        }
     }
 
     // Deadline status
@@ -465,6 +506,37 @@ export function TaskDetails({
                                 )}
                             </div>
 
+                            {/* Client */}
+                            {task.client && (
+                                <div className="flex items-center gap-3 text-sm">
+                                    <User className="h-4 w-4 text-indigo-500" />
+                                    <span className="text-muted-foreground">
+                                        {isAr ? 'العميل:' : 'Client:'}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-6 w-6 rounded-full bg-indigo-500/10 flex items-center justify-center text-xs font-medium text-indigo-500">
+                                            {(task.client.company || task.client.name).charAt(0).toUpperCase()}
+                                        </div>
+                                        <span className="font-medium">{task.client.company || task.client.name}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Client Feedback */}
+                            {task.status === 'revision' && task.client_feedback && (
+                                <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <MessageSquare className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                        <span className="text-sm font-medium text-orange-700 dark:text-orange-400">
+                                            {isAr ? 'ملاحظات العميل:' : 'Client Feedback:'}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                        {task.client_feedback}
+                                    </p>
+                                </div>
+                            )}
+
                             {/* Deadline */}
                             {deadline && (
                                 <div className={cn(
@@ -499,6 +571,60 @@ export function TaskDetails({
                                 </span>
                             </div>
                         </div>
+
+                        {/* Action Buttons */}
+                        {(canSubmit || canReturn) && (
+                            <div className="px-6 pb-4">
+                                <div className="flex items-center gap-2">
+                                    {canSubmit && ['in_progress', 'revision'].includes(task.status) && (
+                                        <Button
+                                            onClick={handleSubmitTask}
+                                            disabled={isSubmitting}
+                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                        >
+                                            {isSubmitting ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                                    {isAr ? 'جاري التسليم...' : 'Submitting...'}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle className="h-4 w-4 me-2" />
+                                                    {isAr ? 'تسليم للمراجعة' : 'Submit for Review'}
+                                                </>
+                                            )}
+                                        </Button>
+                                    )}
+                                    {canReturn && task.status === 'review' && (
+                                        <>
+                                            <Button
+                                                onClick={handleApproveTask}
+                                                disabled={updateTask.isPending}
+                                                className="flex-1 bg-green-600 hover:bg-green-700"
+                                            >
+                                                {updateTask.isPending ? (
+                                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle className="h-4 w-4 me-2" />
+                                                        {isAr ? 'قبول' : 'Approve'}
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button
+                                                onClick={() => setReturnDialogOpen(true)}
+                                                disabled={updateTask.isPending}
+                                                variant="outline"
+                                                className="flex-1 border-orange-600 text-orange-600 hover:bg-orange-50"
+                                            >
+                                                <RotateCcw className="h-4 w-4 me-2" />
+                                                {isAr ? 'إرجاع للتعديل' : 'Return for Revision'}
+                                            </Button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         <Separator />
 
@@ -642,6 +768,14 @@ export function TaskDetails({
                     </div>
                 )}
             </SheetContent>
+
+            {/* Return Task Dialog */}
+            <ReturnTaskDialog
+                open={returnDialogOpen}
+                onOpenChange={setReturnDialogOpen}
+                taskId={task?.id ?? null}
+                taskTitle={task?.title}
+            />
         </Sheet>
     )
 }

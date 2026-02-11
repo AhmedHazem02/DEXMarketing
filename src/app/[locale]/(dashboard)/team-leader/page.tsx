@@ -9,9 +9,11 @@ import {
     TaskDetails,
     type TaskWithRelations
 } from '@/components/tasks'
+import { PendingRequests } from '@/components/tasks/pending-requests'
 import type { TaskStatus } from '@/types/database'
 import { Loader2 } from 'lucide-react'
 import { useTasksRealtime } from '@/hooks/use-realtime'
+import { Separator } from '@/components/ui/separator'
 
 export default function TeamLeaderDashboard() {
     const locale = useLocale()
@@ -85,6 +87,11 @@ export default function TeamLeaderDashboard() {
                 </p>
             </div>
 
+            {/* Client Requests Section */}
+            <PendingRequests teamLeaderId={userId} />
+
+            <Separator />
+
             {/* Kanban Board */}
             <KanbanBoard
                 projectId={undefined} // Pass undefined for all projects
@@ -109,6 +116,7 @@ export default function TeamLeaderDashboard() {
                 taskId={selectedTask?.id ?? null}
                 currentUserId={userId}
                 onEdit={handleEditTask}
+                canReturn={true}
             />
         </div>
     )

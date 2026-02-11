@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useAddAttachment } from '@/hooks/use-tasks'
+import { CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_UPLOAD_URL } from '@/lib/cloudinary'
 
 // ============================================
 // Types
@@ -27,22 +28,15 @@ interface UploadedFile {
 }
 
 interface FileUploadZoneProps {
-    taskId: string
+    taskId?: string
     userId: string
-    onUploadComplete?: (attachment: { file_url: string; file_name: string }) => void
+    folder?: string
+    onUploadComplete?: (attachment: { file_url: string; file_name: string; file_type: string; file_size: number }) => void
     maxFileSize?: number // MB
     acceptedTypes?: string[]
     multiple?: boolean
     className?: string
 }
-
-// ============================================
-// Cloudinary Config
-// ============================================
-
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'demo'
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'dex_preset'
-const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
 
 // ============================================
 // Helper Functions
@@ -156,6 +150,7 @@ function FileItem({ file, onRemove }: FileItemProps) {
 export function FileUploadZone({
     taskId,
     userId,
+    folder,
     onUploadComplete,
     maxFileSize = 10, // 10 MB default
     acceptedTypes = ['image/*', 'video/*', 'application/pdf', '.doc', '.docx', '.psd', '.ai', '.zip'],
@@ -187,8 +182,10 @@ export function FileUploadZone({
         const formData = new FormData()
         formData.append('file', uploadFile.file)
         formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
-        formData.append('folder', `dex-erp/tasks/${taskId}`)
-        formData.append('context', `task_id=${taskId}|uploaded_by=${userId}|uploaded_at=${Date.now()}`)
+        formData.append('folder', folder || (taskId ? `dex-erp/tasks/${taskId}` : 'dex-erp/client-requests'))
+        if (taskId) {
+            formData.append('context', `task_id=${taskId}|uploaded_by=${userId}|uploaded_at=${Date.now()}`)
+        }
 
         try {
             // Update status to uploading
@@ -208,16 +205,18 @@ export function FileUploadZone({
             const data = await response.json()
             const fileUrl = data.secure_url
 
-            // Save to database
-            await addAttachment.mutateAsync({
-                task_id: taskId,
-                file_url: fileUrl,
-                file_name: uploadFile.file.name,
-                file_type: uploadFile.file.type,
-                file_size: uploadFile.file.size,
-                uploaded_by: userId,
-                is_final: false,
-            })
+            // Only save to database if taskId is provided
+            if (taskId) {
+                await addAttachment.mutateAsync({
+                    task_id: taskId,
+                    file_url: fileUrl,
+                    file_name: uploadFile.file.name,
+                    file_type: uploadFile.file.type,
+                    file_size: uploadFile.file.size,
+                    uploaded_by: userId,
+                    is_final: false,
+                })
+            }
 
             // Update status to success
             setFiles(prev => prev.map(f =>
@@ -226,7 +225,12 @@ export function FileUploadZone({
                     : f
             ))
 
-            onUploadComplete?.({ file_url: fileUrl, file_name: uploadFile.file.name })
+            onUploadComplete?.({
+                file_url: fileUrl,
+                file_name: uploadFile.file.name,
+                file_type: uploadFile.file.type,
+                file_size: uploadFile.file.size,
+            })
 
             // Remove from list after delay
             setTimeout(() => {

@@ -1,14 +1,12 @@
 'use client'
 
 import { useLocale } from 'next-intl'
-import { MessageSquare } from 'lucide-react'
-import { ChatLayout } from '@/components/chat'
-import { useCurrentUser } from '@/hooks/use-users'
+import { MessageSquare, Lock } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function TeamLeaderChatPage() {
     const locale = useLocale()
     const isAr = locale === 'ar'
-    const { data: user, isLoading } = useCurrentUser()
 
     return (
         <div className="p-6 space-y-6">
@@ -19,13 +17,25 @@ export default function TeamLeaderChatPage() {
                 </h1>
             </div>
 
-            {isLoading || !user ? (
-                <div className="h-[calc(100vh-10rem)] rounded-lg border flex items-center justify-center">
-                    <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
-                </div>
-            ) : (
-                <ChatLayout userId={user.id} userName={user.name || ''} />
-            )}
+            <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5">
+                <CardContent className="pt-6">
+                    <div className="flex flex-col items-center justify-center text-center space-y-4 py-12">
+                        <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+                            <Lock className="h-10 w-10 text-primary" />
+                        </div>
+                        <div className="space-y-2">
+                            <h2 className="text-3xl font-bold">
+                                {isAr ? 'سيتم تفعيل هذه الميزة قريباً' : 'Coming Soon'}
+                            </h2>
+                            <p className="text-muted-foreground max-w-md text-lg">
+                                {isAr 
+                                    ? 'نعمل حالياً على تطوير نظام المراسلات. سيتم إطلاقه قريباً!' 
+                                    : 'We are currently developing the messaging system. It will be launched soon!'}
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     )
 }

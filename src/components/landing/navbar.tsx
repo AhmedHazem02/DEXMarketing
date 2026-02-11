@@ -76,20 +76,19 @@ export function Navbar({ initialUser, initialRole }: NavbarProps) {
 
         setUser(currentUser)
 
-        // Use metadata if available to avoid DB call
-        let role = currentUser.user_metadata?.role
+        // Always fetch from DB first - it's the source of truth
+        let role = null
+        const { data } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', currentUser.id)
+            .single()
 
-        if (!role) {
-            // Only fetch from DB if not in metadata
-            const { data } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', currentUser.id)
-                .single()
-
-            if (data) {
-                role = (data as any).role
-            }
+        if (data) {
+            role = (data as any).role
+        } else {
+            // Fallback to metadata only if DB lookup fails
+            role = currentUser.user_metadata?.role
         }
 
         if (role) {

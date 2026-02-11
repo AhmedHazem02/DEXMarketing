@@ -46,6 +46,7 @@ import {
 
 import { useCreateTask, useUpdateTask } from '@/hooks/use-tasks'
 import { useUsers, useCurrentUser } from '@/hooks/use-users'
+import { useClients } from '@/hooks/use-clients'
 import { PRIORITY_CONFIG, KANBAN_COLUMNS, PHOTOGRAPHY_ROLES, CONTENT_ROLES } from '@/types/task'
 import type { TaskStatus, TaskPriority } from '@/types/database'
 import type { TaskWithRelations, CreateTaskInput, UpdateTaskInput } from '@/types/task'
@@ -58,8 +59,9 @@ const taskFormSchema = z.object({
     title: z.string().min(3, { message: 'العنوان يجب أن يكون 3 أحرف على الأقل' }).max(200),
     description: z.string().optional(),
     priority: z.enum(['low', 'medium', 'high', 'urgent']),
-    status: z.enum(['new', 'in_progress', 'review', 'revision', 'approved', 'rejected']),
+    status: z.enum(['new', 'in_progress', 'review', 'client_review', 'revision', 'approved', 'rejected']),
     assigned_to: z.string().optional(),
+    client_id: z.string().optional(),
     project_id: z.string().optional(),
     deadline: z.date().optional(),
 })
@@ -99,6 +101,7 @@ export function TaskForm({
     const createTask = useCreateTask()
     const updateTask = useUpdateTask()
     const { data: users, isLoading: usersLoading } = useUsers()
+    const { data: clients, isLoading: clientsLoading } = useClients()
     const { data: currentUser } = useCurrentUser()
 
     // Filter assignable users based on the current user's department
@@ -125,6 +128,7 @@ export function TaskForm({
             priority: 'medium',
             status: defaultStatus,
             assigned_to: undefined,
+            client_id: undefined,
             project_id: undefined,
             deadline: undefined,
         },
@@ -139,6 +143,7 @@ export function TaskForm({
                 priority: task.priority,
                 status: task.status,
                 assigned_to: task.assigned_to ?? undefined,
+                client_id: task.client_id ?? undefined,
                 project_id: task.project_id ?? undefined,
                 deadline: task.deadline ? new Date(task.deadline) : undefined,
             })
@@ -149,6 +154,7 @@ export function TaskForm({
                 priority: 'medium',
                 status: defaultStatus,
                 assigned_to: undefined,
+                client_id: undefined,
                 project_id: undefined,
                 deadline: undefined,
             })
@@ -166,6 +172,7 @@ export function TaskForm({
                     priority: values.priority,
                     status: values.status,
                     assigned_to: values.assigned_to || undefined,
+                    client_id: values.client_id || undefined,
                     project_id: values.project_id || undefined,
                     deadline: values.deadline?.toISOString(),
                 }
@@ -177,6 +184,7 @@ export function TaskForm({
                     priority: values.priority,
                     status: values.status,
                     assigned_to: values.assigned_to || undefined,
+                    client_id: values.client_id || undefined,
                     project_id: values.project_id || undefined,
                     deadline: values.deadline?.toISOString(),
                     created_by: currentUserId,
@@ -342,6 +350,44 @@ export function TaskForm({
                                                             {(user.name ?? 'U').charAt(0)}
                                                         </span>
                                                         {user.name ?? user.email}
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Client */}
+                        <FormField
+                            control={form.control}
+                            name="client_id"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{isAr ? 'العميل' : 'Client'}</FormLabel>
+                                    <Select
+                                        onValueChange={(val) => field.onChange(val === 'none' ? undefined : val)}
+                                        value={field.value || 'none'}
+                                        disabled={clientsLoading}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={isAr ? 'اختر العميل...' : 'Select client...'} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="none">
+                                                {isAr ? 'بدون عميل' : 'No Client'}
+                                            </SelectItem>
+                                            {clients?.map((client) => (
+                                                <SelectItem key={client.id} value={client.id}>
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="w-6 h-6 rounded-full bg-indigo-500/10 flex items-center justify-center text-xs text-indigo-500">
+                                                            {(client.company || client.name).charAt(0)}
+                                                        </span>
+                                                        {client.company || client.name}
                                                     </span>
                                                 </SelectItem>
                                             ))}

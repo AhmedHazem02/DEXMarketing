@@ -7,6 +7,7 @@ export {
     useTasksKanban,
     useMyTasks,
     useRevisionsTasks,
+    useTasksForClientReview,
     // Single task
     useTaskDetails,
     // Task mutations
@@ -14,6 +15,7 @@ export {
     useUpdateTask,
     useUpdateTaskStatus,
     useAssignTask,
+    useReturnTask,
     useDeleteTask,
     // Comments
     useTaskComments,
@@ -35,6 +37,10 @@ export {
     useCreatePhotographyTask,
     useMarkTaskComplete,
     useDeliverToClient,
+    // Client request review (TL)
+    usePendingRequests,
+    useApproveClientRequest,
+    useRejectClientRequest,
 } from './use-tasks'
 export {
     useTreasury,
@@ -72,6 +78,10 @@ export {
     useClientProjectDetails,
     useApproveTask,
     useRejectTask,
+    useClientRequests,
+    useClientRequestDetail,
+    useCreateClientRequest,
+    useClientRequestCounts,
 } from './use-client-portal'
 // Client hooks
 export {

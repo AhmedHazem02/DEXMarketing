@@ -10,6 +10,7 @@ import {
     ClipboardList, Clock, Calendar, CheckCircle, AlertTriangle,
     ChevronRight, Filter, RefreshCw, Search, Upload, Eye, Loader2
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -25,6 +26,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 import { TaskDetails, FileUploadZone, getColumnConfig, getPriorityConfig } from '@/components/tasks'
 import { useMyTasks, useUpdateTask } from '@/hooks/use-tasks'
@@ -57,6 +68,8 @@ function CreatorTaskCard({ task, onView, onSubmit, isSubmitting, currentUserId }
     const isToday = deadline && deadline.toDateString() === new Date().toDateString()
 
     const canSubmit = ['in_progress', 'revision'].includes(task.status)
+    const canStart = task.status === 'new'
+    const isInReview = task.status === 'review'
     const isCompleted = task.status === 'approved'
 
     return (
@@ -148,6 +161,22 @@ function CreatorTaskCard({ task, onView, onSubmit, isSubmitting, currentUserId }
                     {isAr ? 'عرض' : 'View'}
                 </Button>
 
+                {canStart && (
+                    <Button
+                        size="sm"
+                        onClick={onSubmit}
+                        disabled={isSubmitting}
+                        className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        {isSubmitting ? (
+                            <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                        ) : (
+                            <Clock className="h-4 w-4 me-2" />
+                        )}
+                        {isAr ? 'ابدأ العمل' : 'Start Work'}
+                    </Button>
+                )}
+
                 {canSubmit && (
                     <>
                         <Button
@@ -164,10 +193,22 @@ function CreatorTaskCard({ task, onView, onSubmit, isSubmitting, currentUserId }
                             disabled={isSubmitting}
                             className="bg-green-600 hover:bg-green-700"
                         >
-                            <CheckCircle className="h-4 w-4 me-2" />
+                            {isSubmitting ? (
+                                <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                            ) : (
+                                <CheckCircle className="h-4 w-4 me-2" />
+                            )}
                             {isAr ? 'تسليم' : 'Submit'}
                         </Button>
                     </>
+                )}
+
+                {isInReview && (
+                    <div className="flex-1 text-center">
+                        <Badge className="bg-blue-100 text-blue-700 border-blue-300">
+                            {isAr ? '⏳ تحت المراجعة' : '⏳ Under Review'}
+                        </Badge>
+                    </div>
                 )}
             </div>
         </motion.div>
@@ -200,6 +241,7 @@ export default function CreatorDashboard() {
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
     const [submittingId, setSubmittingId] = useState<string | null>(null)
+    const [taskToSubmit, setTaskToSubmit] = useState<string | null>(null)
 
     // Data - only fetch if userId is available
     const { data: tasks, isLoading, refetch, isRefetching } = useMyTasks(userId ?? '')
@@ -237,14 +279,37 @@ export default function CreatorDashboard() {
 
     // Handlers
     const handleSubmitTask = async (taskId: string) => {
+        const task = tasks?.find(t => t.id === taskId)
+        if (!task) return
+
         setSubmittingId(taskId)
         try {
-            await updateTask.mutateAsync({
-                id: taskId,
-                status: 'review',
-            })
+            // If task is new, start working on it (move to in_progress)
+            if (task.status === 'new') {
+                await updateTask.mutateAsync({
+                    id: taskId,
+                    status: 'in_progress',
+                })
+                toast.success(isAr ? 'تم بدء العمل على المهمة' : 'Started working on task')
+            } else {
+                // If task is in_progress or revision, submit for review
+                await updateTask.mutateAsync({
+                    id: taskId,
+                    status: 'review',
+                })
+                toast.success(isAr ? 'تم تسليم المهمة بنجاح' : 'Task submitted successfully')
+            }
+        } catch (error) {
+            toast.error(isAr ? 'حدث خطأ أثناء تسليم المهمة' : 'Failed to submit task')
         } finally {
             setSubmittingId(null)
+            setTaskToSubmit(null)
+        }
+    }
+
+    const confirmSubmit = () => {
+        if (taskToSubmit) {
+            handleSubmitTask(taskToSubmit)
         }
     }
 
@@ -378,7 +443,15 @@ export default function CreatorDashboard() {
                                             setSelectedTask(task)
                                             setIsDetailsOpen(true)
                                         }}
-                                        onSubmit={() => handleSubmitTask(task.id)}
+                                        onSubmit={() => {
+                                            // If task is new, start work immediately without confirmation
+                                            if (task.status === 'new') {
+                                                handleSubmitTask(task.id)
+                                            } else {
+                                                // If task is in_progress or revision, show confirmation dialog
+                                                setTaskToSubmit(task.id)
+                                            }
+                                        }}
                                         isSubmitting={submittingId === task.id}
                                         currentUserId={userId}
                                     />
@@ -426,7 +499,41 @@ export default function CreatorDashboard() {
                 onOpenChange={setIsDetailsOpen}
                 taskId={selectedTask?.id ?? null}
                 currentUserId={userId}
+                canSubmit={true}
             />
+
+            {/* Submit Confirmation Dialog */}
+            <AlertDialog open={!!taskToSubmit} onOpenChange={(open) => !open && setTaskToSubmit(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {isAr ? 'تأكيد التسليم' : 'Confirm Submission'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {isAr
+                                ? 'هل أنت متأكد من أنك تريد تسليم هذه المهمة للمراجعة؟ سيتم إخطار رئيس الفريق بأن المهمة جاهزة للمراجعة.'
+                                : 'Are you sure you want to submit this task for review? The team leader will be notified that the task is ready for review.'
+                            }
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={!!submittingId}>
+                            {isAr ? 'إلغاء' : 'Cancel'}
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmSubmit}
+                            disabled={!!submittingId}
+                            className="bg-green-600 hover:bg-green-700"
+                        >
+                            {submittingId ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <>{isAr ? 'تسليم' : 'Submit'}</>
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

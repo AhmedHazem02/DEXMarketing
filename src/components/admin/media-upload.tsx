@@ -5,12 +5,7 @@ import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Upload, X, Loader2, Image as ImageIcon, Video as VideoIcon } from 'lucide-react'
-
-// ─── Cloudinary Config ───────────────────────────────────────
-
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'demo'
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'dex_preset'
-const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
+import { CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_UPLOAD_URL } from '@/lib/cloudinary'
 
 // ─── Types ───────────────────────────────────────────────────
 

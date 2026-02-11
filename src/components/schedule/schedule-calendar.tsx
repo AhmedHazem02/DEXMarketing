@@ -13,7 +13,7 @@ import {
     Plus, Clock, MapPin, Building2, Loader2,
     LayoutGrid, List, Trash2, Edit2, CheckCircle2,
     Users, AlertTriangle, X, Search, Filter,
-    CalendarDays, TrendingUp, Timer
+    CalendarDays, TrendingUp, Timer, Bug
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -156,7 +156,7 @@ export function ScheduleCalendar({ teamLeaderId }: ScheduleCalendarProps) {
         return eachDayOfInterval({ start: calStart, end: calEnd })
     }, [currentDate])
 
-    // Group schedules by date
+    // Group schedules by date (for calendar display - uses filter)
     const schedulesByDate = useMemo(() => {
         const map = new Map<string, ScheduleWithRelations[]>()
         filteredSchedules.forEach(s => {
@@ -168,8 +168,21 @@ export function ScheduleCalendar({ teamLeaderId }: ScheduleCalendarProps) {
         return map
     }, [filteredSchedules])
 
+    // Group ALL schedules by date (for selected day panel - no filter)
+    const allSchedulesByDate = useMemo(() => {
+        const map = new Map<string, ScheduleWithRelations[]>()
+        enrichedSchedules.forEach(s => {
+            const key = s.scheduled_date
+            const arr = map.get(key) || []
+            arr.push(s)
+            map.set(key, arr)
+        })
+        return map
+    }, [enrichedSchedules])
+
+    // Selected day schedules (show ALL schedules for selected day, ignore filter)
     const selectedSchedules = selectedDate
-        ? schedulesByDate.get(format(selectedDate, 'yyyy-MM-dd')) || []
+        ? allSchedulesByDate.get(format(selectedDate, 'yyyy-MM-dd')) || []
         : []
 
     // Monthly stats
@@ -432,11 +445,12 @@ export function ScheduleCalendar({ teamLeaderId }: ScheduleCalendarProps) {
                                 {calendarDays.map(day => {
                                     const dateKey = format(day, 'yyyy-MM-dd')
                                     const daySchedules = schedulesByDate.get(dateKey) || []
+                                    const allDaySchedules = allSchedulesByDate.get(dateKey) || []
                                     const isSelected = selectedDate ? isSameDay(day, selectedDate) : false
                                     const isCurrentMonth = isSameMonth(day, currentDate)
                                     const isToday = isTodayFn(day)
-                                    const hasOverdue = daySchedules.some(s => isScheduleOverdue(s))
-                                    const hasCompleted = daySchedules.some(s => s.status === 'completed')
+                                    const hasOverdue = allDaySchedules.some(s => isScheduleOverdue(s))
+                                    const hasCompleted = allDaySchedules.some(s => s.status === 'completed')
 
                                     return (
                                         <button
@@ -466,9 +480,9 @@ export function ScheduleCalendar({ teamLeaderId }: ScheduleCalendarProps) {
                                                 )}>
                                                     {format(day, 'd')}
                                                 </span>
-                                                {daySchedules.length > 0 && (
+                                                {allDaySchedules.length > 0 && (
                                                     <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-md">
-                                                        {daySchedules.length}
+                                                        {allDaySchedules.length}
                                                     </span>
                                                 )}
                                             </div>
@@ -509,11 +523,11 @@ export function ScheduleCalendar({ teamLeaderId }: ScheduleCalendarProps) {
                                             </div>
 
                                             {/* Bottom accent for days with events */}
-                                            {daySchedules.length > 0 && (
+                                            {allDaySchedules.length > 0 && (
                                                 <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-0.5">
                                                     {hasOverdue && <div className="w-1 h-1 rounded-full bg-red-500" />}
                                                     {hasCompleted && <div className="w-1 h-1 rounded-full bg-emerald-500" />}
-                                                    {daySchedules.some(s => s.status === 'in_progress') && <div className="w-1 h-1 rounded-full bg-amber-400" />}
+                                                    {allDaySchedules.some(s => s.status === 'in_progress') && <div className="w-1 h-1 rounded-full bg-amber-400" />}
                                                 </div>
                                             )}
                                         </button>
@@ -525,11 +539,11 @@ export function ScheduleCalendar({ teamLeaderId }: ScheduleCalendarProps) {
 
                     {/* Selected Day Panel */}
                     {selectedDate && (
-                        <Card className="border-primary/20 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5 shadow-lg shadow-primary/10 animate-in fade-in slide-in-from-top-4 duration-300">
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                        <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shadow-inner">
                                             <CalendarIcon className="h-5 w-5 text-primary" />
                                         </div>
                                         <div>
@@ -542,13 +556,13 @@ export function ScheduleCalendar({ teamLeaderId }: ScheduleCalendarProps) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Badge variant="outline" className="border-primary/30 text-primary">
+                                        <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10">
                                             {selectedSchedules.length} {isAr ? 'مواعيد' : 'events'}
                                         </Badge>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-muted-foreground"
+                                            className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                             onClick={() => setSelectedDate(null)}
                                         >
                                             <X className="h-4 w-4" />
@@ -562,7 +576,7 @@ export function ScheduleCalendar({ teamLeaderId }: ScheduleCalendarProps) {
                                         <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
                                             <CalendarIcon className="h-6 w-6 text-muted-foreground/30" />
                                         </div>
-                                        <p className="text-sm text-muted-foreground">
+                                        <p className="text-sm text-muted-foreground font-semibold">
                                             {isAr ? 'لا توجد مواعيد في هذا اليوم' : 'No events scheduled for this day'}
                                         </p>
                                         <Button
@@ -576,19 +590,21 @@ export function ScheduleCalendar({ teamLeaderId }: ScheduleCalendarProps) {
                                         </Button>
                                     </div>
                                 ) : (
-                                    <div className="space-y-3">
-                                        {selectedSchedules.map(s => (
-                                            <ScheduleCard
-                                                key={s.id}
-                                                schedule={s}
-                                                isAr={isAr}
-                                                memberMap={memberMap}
-                                                onEdit={() => openEditForm(s)}
-                                                onDelete={() => openDeleteDialog(s.id)}
-                                                onStatusChange={(status) => handleStatusChange(s.id, status)}
-                                            />
-                                        ))}
-                                    </div>
+                                    <ScrollArea className="max-h-[600px]">
+                                        <div className="space-y-3 pe-1">
+                                            {selectedSchedules.map(s => (
+                                                <ScheduleCard
+                                                    key={s.id}
+                                                    schedule={s}
+                                                    isAr={isAr}
+                                                    memberMap={memberMap}
+                                                    onEdit={() => openEditForm(s)}
+                                                    onDelete={() => openDeleteDialog(s.id)}
+                                                    onStatusChange={(status) => handleStatusChange(s.id, status)}
+                                                />
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
                                 )}
                             </CardContent>
                         </Card>
@@ -1055,7 +1071,7 @@ function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, onSubmit
     const [description, setDescription] = useState(schedule?.description || '')
     const [notes, setNotes] = useState(schedule?.notes || '')
     const [status, setStatus] = useState<ScheduleStatus>(schedule?.status || 'scheduled')
-    const [clientId, setClientId] = useState(schedule?.client_id || '')
+    const [clientId, setClientId] = useState(schedule?.client_id || 'no-client')
     const [department, setDepartment] = useState<Department>(schedule?.department || (currentUser?.department || 'photography'))
     const [assignedMembers, setAssignedMembers] = useState<string[]>(schedule?.assigned_members || [])
 
@@ -1089,7 +1105,7 @@ function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, onSubmit
             description: description || null,
             notes: notes || null,
             status,
-            client_id: clientId || null,
+            client_id: clientId === 'no-client' ? null : clientId,
             department,
             assigned_members: assignedMembers,
             team_leader_id: teamLeaderId,
@@ -1137,27 +1153,129 @@ function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, onSubmit
             {/* Client & Company */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {isAr ? 'العميل' : 'Client'}
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5" />
+                            {isAr ? 'العميل' : 'Client'}
+                        </span>
+                        {clients && clients.length > 0 && (
+                            <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                {clients.length} {isAr ? 'عميل' : 'clients'}
+                            </span>
+                        )}
                     </Label>
                     <Select value={clientId} onValueChange={setClientId}>
                         <SelectTrigger className="rounded-xl">
-                            <SelectValue placeholder={isAr ? 'اختر العميل' : 'Select client'} />
+                            <SelectValue placeholder={isAr ? 'اختر العميل (اختياري)' : 'Select client (optional)'} />
                         </SelectTrigger>
-                        <SelectContent>
-                            {clients?.map(client => (
-                                <SelectItem key={client.id} value={client.id}>
-                                    {client.company || client.name}
-                                </SelectItem>
-                            ))}
+                        <SelectContent className="max-h-[300px]">
+                            {/* No Client Option */}
+                            <SelectItem value="no-client">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center">
+                                        <X className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                    <div>
+                                        <div className="font-medium text-sm">
+                                            {isAr ? 'بدون عميل' : 'No Client'}
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground">
+                                            {isAr ? 'مهمة عامة' : 'General task'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </SelectItem>
+                            
+                            {clients && clients.length > 0 ? (
+                                <>
+                                    <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1 pt-2">
+                                        {isAr ? 'العملاء المتاحين' : 'Available Clients'}
+                                    </div>
+                                    {clients.map(client => {
+                                        const hasUserAccount = !!client.user_id
+                                        return (
+                                            <SelectItem key={client.id} value={client.id}>
+                                                <div className="flex items-center gap-2.5 py-1">
+                                                    <Avatar className="h-8 w-8 border border-border/50">
+                                                        <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-primary/20 to-primary/5">
+                                                            {(client.company || client.name)?.charAt(0)?.toUpperCase() || '?'}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="font-medium text-sm truncate">
+                                                                {client.company || client.name}
+                                                            </span>
+                                                            {hasUserAccount && (
+                                                                <span className="text-emerald-500" title={isAr ? 'لديه حساب - يمكنه الدخول' : 'Has account - Can login'}>
+                                                                    ✓
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-[10px] text-muted-foreground truncate">
+                                                            {hasUserAccount 
+                                                                ? (client.email || (client.phone ? `📱 ${client.phone}` : (isAr ? 'لديه حساب' : 'Has account')))
+                                                                : (isAr ? '⚠️ بدون حساب - لن يرى الجدولة' : '⚠️ No account - Won\'t see schedule')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </SelectItem>
+                                        )
+                                    })}
+                                </>
+                            ) : (
+                                <div className="px-3 py-6 text-center">
+                                    <div className="w-12 h-12 rounded-xl bg-muted/30 flex items-center justify-center mx-auto mb-2">
+                                        <Users className="h-6 w-6 text-muted-foreground/30" />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mb-1 font-medium">
+                                        {isAr ? 'لا يوجد عملاء' : 'No clients yet'}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground/60">
+                                        {isAr ? 'قم بإضافة عميل جديد أولاً' : 'Add a new client first'}
+                                    </p>
+                                </div>
+                            )}
                         </SelectContent>
                     </Select>
+                    {/* Warning if client has no account */}
+                    {clientId && clientId !== 'no-client' && clients?.find(c => c.id === clientId && !c.user_id) && (
+                        <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                            <div className="flex-1 text-[11px] text-amber-600 dark:text-amber-400">
+                                <p className="font-semibold mb-0.5">
+                                    {isAr ? '⚠️ تنبيه: هذا العميل ليس لديه حساب' : '⚠️ Warning: This client has no account'}
+                                </p>
+                                <p className="text-amber-600/80 dark:text-amber-400/80">
+                                    {isAr 
+                                        ? 'لن يتمكن من رؤية هذه الجدولة في لوحة التحكم الخاصة به. قم بإنشاء حساب له أولاً.'
+                                        : 'They won\'t be able to see this schedule in their dashboard. Create an account for them first.'}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    {/* Debug tip for admins */}
+                    {clientId && clientId !== 'no-client' && (
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border/30 text-xs text-muted-foreground">
+                            <Bug className="h-3.5 w-3.5 shrink-0" />
+                            <span>
+                                {isAr 
+                                    ? 'للتشخيص: اذهب إلى Admin → 🔍 تشخيص الجدولات'
+                                    : 'Debug: Go to Admin → 🔍 Debug Schedules'}
+                            </span>
+                        </div>
+                    )}
                 </div>
                 <div className="space-y-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         {isAr ? 'اسم الشركة' : 'Company'}
                     </Label>
-                    <Input value={companyName} onChange={e => setCompanyName(e.target.value)} className="rounded-xl" />
+                    <Input 
+                        value={companyName} 
+                        onChange={e => setCompanyName(e.target.value)} 
+                        className="rounded-xl" 
+                        placeholder={isAr ? 'اسم الشركة (اختياري)' : 'Company name (optional)'}
+                    />
                 </div>
             </div>
 
@@ -1267,20 +1385,38 @@ function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, onSubmit
                 )}
             </div>
 
-            {/* Department */}
+            {/* Department - Read Only */}
             <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {isAr ? 'القسم' : 'Department'}
                 </Label>
-                <Select value={department} onValueChange={(v) => setDepartment(v as Department)}>
-                    <SelectTrigger className="rounded-xl">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="photography">{isAr ? 'التصوير' : 'Photography'}</SelectItem>
-                        <SelectItem value="content">{isAr ? 'المحتوى' : 'Content'}</SelectItem>
-                    </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-primary/30 bg-primary/5">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        {department === 'photography' ? (
+                            <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        ) : (
+                            <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        )}
+                    </div>
+                    <div className="flex-1">
+                        <div className="font-semibold text-sm text-foreground">
+                            {department === 'photography' 
+                                ? (isAr ? 'التصوير' : 'Photography')
+                                : (isAr ? 'المحتوى' : 'Content')}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                            {isAr ? 'قسمك الحالي' : 'Your current department'}
+                        </div>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 h-5 rounded-md">
+                        {isAr ? 'تلقائي' : 'Auto'}
+                    </Badge>
+                </div>
             </div>
 
             {/* Description */}

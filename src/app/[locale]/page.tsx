@@ -1,4 +1,5 @@
-import { Navbar, HeroSection, ServicesSection, PortfolioSection, TestimonialsSection, CTASection, Footer } from '@/components/landing'
+import { Navbar, HeroSection, ServicesSection, GalaxyPortfolio, TestimonialsSection, CTASection, Footer } from '@/components/landing'
+import { CustomCursor } from '@/components/ui/custom-cursor'
 import { SiteSettingsProvider } from '@/components/providers/site-settings-provider'
 import { getSiteSettings } from '@/lib/actions/get-site-settings'
 import { locales } from '@/i18n/config'
@@ -39,9 +40,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     <SiteSettingsProvider settings={settings}>
       <main className="min-h-screen bg-background overflow-hidden">
         <Navbar initialUser={user} initialRole={role} />
+        <CustomCursor />
         <HeroSection />
         <ServicesSection />
-        <PortfolioSection />
+        <GalaxyPortfolio />
         <TestimonialsSection />
         <CTASection />
         <Footer initialUser={user} initialRole={role} />
