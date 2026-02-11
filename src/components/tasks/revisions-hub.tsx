@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/tooltip'
 
 import { useRevisionsTasks, useUpdateTask, useAssignTask } from '@/hooks/use-tasks'
-import { useUsers } from '@/hooks/use-users'
+import { useUsers, useCurrentUser } from '@/hooks/use-users'
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import { getPriorityConfig, getColumnConfig } from '@/types/task'
 import type { TaskWithRelations } from '@/types/task'
@@ -300,18 +300,32 @@ export function RevisionsHub({ onTaskClick, onReassign }: RevisionsHubProps) {
     // Data fetching
     const { data: tasks, isLoading, refetch, isRefetching } = useRevisionsTasks()
     const { data: users } = useUsers()
+    const { data: currentUser } = useCurrentUser()
     const assignTask = useAssignTask()
     const updateTask = useUpdateTask()
 
     // Real-time updates
     useTasksRealtime()
 
-    // Get creators only
-    const creators = useMemo(() =>
-        users?.filter(u =>
-            ['creator', 'team_leader'].includes(u.role) && u.is_active
-        ) ?? [],
-        [users])
+    // Get creators only (filtered by department)
+    const creators = useMemo(() => {
+        if (!users) return []
+        
+        return users.filter(u => {
+            if (!u.is_active) return false
+            if (!['creator', 'team_leader'].includes(u.role)) return false
+            
+            // Admin can see all creators
+            if (currentUser?.role === 'admin') return true
+            
+            // Others can only see creators from their department
+            if (currentUser?.department && u.department) {
+                return u.department === currentUser.department
+            }
+            
+            return false
+        })
+    }, [users, currentUser])
 
     // Filter tasks
     const filteredTasks = useMemo(() => {

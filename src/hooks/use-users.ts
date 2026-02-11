@@ -148,7 +148,7 @@ export function useTeamMembers(teamLeaderId: string) {
                 .from('users')
                 .select('department')
                 .eq('id', teamLeaderId)
-                .single()
+                .single() as { data: { department: string | null } | null; error: unknown }
 
             if (tlError) throw tlError
             if (!tl?.department) return []

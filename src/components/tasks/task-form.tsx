@@ -107,16 +107,18 @@ export function TaskForm({
     // Filter assignable users based on the current user's department
     const assignableUsers = users?.filter(u => {
         if (!u.is_active) return false
+        
+        // Admin can assign to anyone
         if (currentUser?.role === 'admin') {
-            return ['creator', ...PHOTOGRAPHY_ROLES].includes(u.role as string)
+            return true
         }
-        if (currentUser?.department === 'photography') {
-            return (PHOTOGRAPHY_ROLES as readonly string[]).includes(u.role)
+        
+        // Team leaders and others can only assign to users in their department
+        if (currentUser?.department && u.department) {
+            return u.department === currentUser.department
         }
-        if (currentUser?.department === 'content') {
-            return (CONTENT_ROLES as readonly string[]).includes(u.role)
-        }
-        return u.role === 'creator'
+        
+        return false
     }) ?? []
 
     // Form setup

@@ -253,7 +253,7 @@ export function useCreateClientRequest() {
                 .eq('department', input.department)
                 .eq('is_active', true)
                 .limit(1)
-                .maybeSingle()
+                .maybeSingle() as { data: { id: string } | null; error: unknown }
 
             // 2. Insert the task request
             const insertData = {

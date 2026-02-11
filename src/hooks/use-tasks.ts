@@ -406,7 +406,7 @@ export function useUpdateTaskStatus() {
                     .from('tasks')
                     .select('client_id')
                     .eq('id', id)
-                    .single()
+                    .single() as { data: { client_id: string | null } | null; error: unknown }
                 
                 if (task?.client_id) {
                     finalStatus = 'client_review'
@@ -1144,7 +1144,7 @@ export function usePendingRequests(teamLeaderId: string) {
                 .from('users')
                 .select('department')
                 .eq('id', teamLeaderId)
-                .single()
+                .single() as { data: { department: string | null } | null; error: unknown }
 
             if (!tlUser?.department) return []
 

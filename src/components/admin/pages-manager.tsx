@@ -39,7 +39,7 @@ import { toast } from 'sonner'
 import { Loader2, FileText, Edit, Eye, EyeOff, Save, Trash2, Plus, FileQuestion, GripVertical, ChevronUp, ChevronDown } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import { MediaUpload } from '@/components/admin/media-upload'
-import type { Page } from '@/types/database'
+import type { Page, Json } from '@/types/database'
 
 // ─── Constants ───────────────────────────────────────────────
 
@@ -164,7 +164,7 @@ function setJsonValue(jsonStr: string, key: string, newVal: string): string {
     return JSON.stringify(obj, null, 2)
 }
 
-function tryParseContent(raw: string): { data: unknown; error: boolean } {
+function tryParseContent(raw: string): { data: Json; error: boolean } {
     const trimmed = raw.trim()
     if (!trimmed || (!trimmed.startsWith('{') && !trimmed.startsWith('['))) {
         return { data: raw, error: false }
@@ -360,8 +360,8 @@ export function PagesManager() {
             return
         }
 
-        let finalContentEn: unknown
-        let finalContentAr: unknown
+        let finalContentEn: Json
+        let finalContentAr: Json
 
         if (ITEMS_PAGES.has(editingPage.slug)) {
             // For items pages: build en/ar content from items
