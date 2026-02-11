@@ -86,12 +86,11 @@ BEGIN
 
         -- Insert notification if client has a user account
         IF client_user_id IS NOT NULL THEN
-            INSERT INTO notifications (user_id, title, message, type, link)
+            INSERT INTO notifications (user_id, title, message, link)
             VALUES (
                 client_user_id,
                 'مهمة جديدة تحتاج مراجعتك',
                 'المهمة "' || NEW.title || '" جاهزة للمراجعة والموافقة',
-                'task',
                 '/client/tasks/' || NEW.id
             );
         END IF;
@@ -117,7 +116,7 @@ BEGIN
     IF OLD.status::text = 'client_review' AND NEW.status::text IN ('approved', 'revision') THEN
         -- Notify the task creator (team leader)
         IF NEW.created_by IS NOT NULL THEN
-            INSERT INTO notifications (user_id, title, message, type, link)
+            INSERT INTO notifications (user_id, title, message, link)
             VALUES (
                 NEW.created_by,
                 CASE 
@@ -128,7 +127,6 @@ BEGIN
                     WHEN NEW.status::text = 'approved' THEN 'العميل وافق على المهمة "' || NEW.title || '"'
                     WHEN NEW.status::text = 'revision' THEN 'العميل طلب تعديلات على المهمة "' || NEW.title || '"'
                 END,
-                'task',
                 '/team-leader/tasks/' || NEW.id
             );
         END IF;
