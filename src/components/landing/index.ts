@@ -1,6 +1,8 @@
 export { Navbar } from './navbar'
 export { HeroSection } from './hero-section'
+export { BrandsMarquee } from './brands-marquee'
 export { ServicesSection } from './services-section'
+export { ProcessSection } from './process-section'
 export { PortfolioSection } from './portfolio-section'
 export { GalaxyPortfolio } from './galaxy-portfolio'
 export { TestimonialsSection } from './testimonials-section'

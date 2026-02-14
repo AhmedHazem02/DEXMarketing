@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocale } from 'next-intl'
-import { Menu, Search } from 'lucide-react'
+import { Menu, Search, User, UserCircle } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,12 +25,20 @@ export function Header({ user, role, department }: { user?: any, role?: string, 
     const locale = useLocale()
     const isAr = locale === 'ar'
     const router = useRouter()
-    const supabase = createClient()
 
     const handleLogout = async () => {
+        const supabase = createClient()
         await supabase.auth.signOut()
         router.refresh()
         router.push('/login')
+    }
+
+    const navigateToAccount = () => {
+        router.push(`/${locale}/account`)
+    }
+
+    const navigateToProfile = () => {
+        router.push(`/${locale}/profile`)
     }
 
     return (
@@ -63,10 +71,16 @@ export function Header({ user, role, department }: { user?: any, role?: string, 
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>{isAr ? 'حسابي' : 'My Account'}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>{isAr ? 'الملف الشخصي' : 'Profile'}</DropdownMenuItem>
-                        <DropdownMenuItem>{isAr ? 'الإعدادات' : 'Settings'}</DropdownMenuItem>
+                        <DropdownMenuItem onClick={navigateToAccount} className="cursor-pointer">
+                            <UserCircle className="mr-2 h-4 w-4" />
+                            {isAr ? 'حسابي' : 'Account'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={navigateToProfile} className="cursor-pointer">
+                            <User className="mr-2 h-4 w-4" />
+                            {isAr ? 'الملف الشخصي' : 'Profile'}
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                        <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
                             {isAr ? 'تسجيل الخروج' : 'Log out'}
                         </DropdownMenuItem>
                     </DropdownMenuContent>

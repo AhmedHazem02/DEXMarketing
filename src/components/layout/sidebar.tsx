@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -16,16 +17,16 @@ import type { Department } from '@/types/database'
 export function Sidebar({ role, department }: { role?: string; department?: Department | null }) {
     const pathname = usePathname()
     const router = useRouter()
-    const supabase = createClient()
 
     const isAr = pathname.startsWith('/ar')
     const routes = getRoutes(role || 'guest', isAr, department)
 
-    const handleLogout = async () => {
+    const handleLogout = useCallback(async () => {
+        const supabase = createClient()
         await supabase.auth.signOut()
         router.refresh()
         router.push('/login')
-    }
+    }, [router])
 
     return (
         <div className="hidden h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">

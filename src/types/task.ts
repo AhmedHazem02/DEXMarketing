@@ -15,7 +15,9 @@ export interface TaskWithRelations extends Task {
     assigned_user?: Pick<User, 'id' | 'name' | 'email' | 'avatar_url'> | null
     creator?: Pick<User, 'id' | 'name' | 'email' | 'avatar_url'> | null
     editor?: Pick<User, 'id' | 'name' | 'email' | 'avatar_url'> | null
-    project?: Pick<Project, 'id' | 'name' | 'status'> | null
+    project?: (Pick<Project, 'id' | 'name' | 'status'> & {
+        client?: Pick<import('./database').Client, 'id' | 'name' | 'company'> | null
+    }) | null
     client?: Pick<import('./database').Client, 'id' | 'name' | 'company'> | null
     comments_count?: number
     attachments_count?: number

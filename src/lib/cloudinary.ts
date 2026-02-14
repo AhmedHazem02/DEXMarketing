@@ -5,3 +5,36 @@
 export const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'demo'
 export const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'dex_preset'
 export const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
+
+/**
+ * Upload a file to Cloudinary
+ * @param file - The file to upload
+ * @param folder - Optional folder name in Cloudinary
+ * @returns The secure URL of the uploaded file
+ */
+export async function uploadToCloudinary(file: File, folder?: string): Promise<string> {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
+    
+    if (folder) {
+        formData.append('folder', folder)
+    }
+
+    try {
+        const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+            method: 'POST',
+            body: formData,
+        })
+
+        if (!response.ok) {
+            throw new Error('Upload failed')
+        }
+
+        const data = await response.json()
+        return data.secure_url
+    } catch (error) {
+        console.error('Cloudinary upload error:', error)
+        throw new Error('فشل رفع الصورة. يرجى المحاولة مرة أخرى.')
+    }
+}

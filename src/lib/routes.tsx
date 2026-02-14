@@ -52,6 +52,7 @@ export const getRoutes = (
         case 'client':
             return [
                 { name: t('Dashboard', 'الرئيسية'), href: '/client', icon: LayoutDashboard },
+                { name: t('Tasks', 'المهام'), href: '/client/tasks', icon: CheckSquare },
                 { name: t('Schedule', 'الجدول'), href: '/client/schedule', icon: Calendar },
                 { name: t('Messages', 'المراسلات'), href: '/client/chat', icon: MessageSquare },
             ]

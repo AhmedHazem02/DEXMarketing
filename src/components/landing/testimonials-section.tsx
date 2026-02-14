@@ -1,72 +1,155 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useLocale } from 'next-intl'
-import { Quote, Star } from 'lucide-react'
+import { Quote, Star, Radio } from 'lucide-react'
+
+const TESTIMONIALS = [
+    {
+        nameAr: 'أحمد محمد',
+        nameEn: 'Ahmed Mohamed',
+        roleAr: 'مدير تسويق — شركة بيلا',
+        roleEn: 'Marketing Director — Bella Co.',
+        textAr: 'فريق DEX حوّل رؤيتنا لواقع مبهر. نتائج الحملة فاقت كل التوقعات بأرقام مضاعفة!',
+        textEn: 'DEX transformed our vision into reality. Campaign results doubled our expectations!',
+    },
+    {
+        nameAr: 'سارة علي',
+        nameEn: 'Sara Ali',
+        roleAr: 'مؤسسة — Bloom Boutique',
+        roleEn: 'Founder — Bloom Boutique',
+        textAr: 'الإبداع في التصميم والأفكار المبتكرة خلّتنا نتميز عن كل المنافسين في السوق.',
+        textEn: 'Their creative designs and bold ideas made us stand out from every competitor in the market.',
+    },
+    {
+        nameAr: 'محمد خالد',
+        nameEn: 'Mohamed Khaled',
+        roleAr: 'CEO — TechVault',
+        roleEn: 'CEO — TechVault',
+        textAr: 'شركاء حقيقيين بمعنى الكلمة. بيفهموا احتياجاتنا قبل ما نتكلم وبيقدموا نتائج استثنائية.',
+        textEn: 'True partners in every sense. They understand our needs before we speak and deliver exceptional results.',
+    },
+    {
+        nameAr: 'نورا حسن',
+        nameEn: 'Noura Hassan',
+        roleAr: 'مديرة ماركتنج — EatFresh',
+        roleEn: 'Marketing Manager — EatFresh',
+        textAr: 'حملة السوشيال ميديا اللي عملوها زوّدت متابعينا ٣ أضعاف في شهرين بس!',
+        textEn: 'Their social media campaign tripled our followers in just two months!',
+    },
+    {
+        nameAr: 'كريم وائل',
+        nameEn: 'Karim Wael',
+        roleAr: 'مؤسس — Urban Fitness',
+        roleEn: 'Founder — Urban Fitness',
+        textAr: 'من الفيديو للجرافيك للحملات، كل حاجة on brand وعلى أعلى مستوى.',
+        textEn: 'From video to graphics to campaigns — everything was on brand and top-notch.',
+    },
+    {
+        nameAr: 'ليلى جمال',
+        nameEn: 'Layla Gamal',
+        roleAr: 'مديرة عمليات — Nova Events',
+        roleEn: 'Operations Manager — Nova Events',
+        textAr: 'أكتر حاجة عجبتني هي سرعة الاستجابة وجودة التنفيذ. فريق محترف جدًا.',
+        textEn: 'What impressed me most was their responsiveness and execution quality. Truly professional.',
+    },
+] as const
+
+const FIVE_STARS = Array.from({ length: 5 })
 
 export function TestimonialsSection() {
     const locale = useLocale()
     const isAr = locale === 'ar'
+    const prefersReducedMotion = useReducedMotion()
 
-    const testimonials = [
-        { nameAr: 'أحمد محمد', nameEn: 'Ahmed Mohamed', roleAr: 'مدير تسويق', roleEn: 'Marketing Director', textAr: 'فريق DEX حوّل رؤيتنا لواقع، نتائج الحملة فاقت توقعاتنا بمراحل!', textEn: 'DEX team turned our vision into reality. Campaign results exceeded expectations!' },
-        { nameAr: 'سارة علي', nameEn: 'Sara Ali', roleAr: 'صاحبة مشروع', roleEn: 'Business Owner', textAr: 'التصميمات الإبداعية والأفكار المبتكرة ساعدتنا نتميز عن المنافسين.', textEn: 'Creative designs and innovative ideas helped us stand out from competitors.' },
-        { nameAr: 'محمد خالد', nameEn: 'Mohamed Khaled', roleAr: 'CEO', roleEn: 'CEO', textAr: 'شركاء حقيقيين مش مجرد وكالة، بيفهموا احتياجاتنا ويقدموا حلول استثنائية.', textEn: 'True partners, not just an agency. They understand our needs and deliver exceptional solutions.' },
-    ]
+    // Duplicate for seamless loop
+    const loopItems = [...TESTIMONIALS, ...TESTIMONIALS]
 
     return (
-        <section id="testimonials" className="py-32 relative overflow-hidden">
-            <div className="container mx-auto px-6">
+        <section id="testimonials" className="relative overflow-hidden py-40">
+            {/* Background */}
+            <div className="pointer-events-none absolute inset-0">
+                <div className="absolute left-1/2 top-0 h-[1px] w-[60%] -translate-x-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="absolute -left-20 top-1/2 h-[500px] w-[500px] rounded-full bg-primary/[0.02] blur-[150px]" />
+            </div>
+
+            <div className="container relative z-10 mx-auto px-6">
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="text-center mb-16"
+                    viewport={{ once: true, margin: '-100px' }}
+                    className="mb-20 text-center"
                 >
-                    <span className="inline-block px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-                        {isAr ? 'آراء العملاء' : 'Testimonials'}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/20 bg-primary/[0.08]"
+                    >
+                        <Radio className="h-7 w-7 text-primary" />
+                    </motion.div>
+                    <span className="mb-4 inline-block text-sm font-bold uppercase tracking-[0.25em] text-primary">
+                        {isAr ? 'إشارات واردة' : 'Incoming Signals'}
                     </span>
-                    <h2 className="text-4xl md:text-6xl font-black">
-                        {isAr ? 'ماذا يقول ' : 'What Our '}
-                        <span className="bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
-                            {isAr ? 'عملاؤنا' : 'Clients Say'}
+                    <h2 className="text-4xl font-black md:text-6xl lg:text-7xl">
+                        {isAr ? 'ماذا يقول ' : 'What Clients '}
+                        <span className="bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">
+                            {isAr ? 'عملاؤنا' : 'Transmit'}
                         </span>
                     </h2>
                 </motion.div>
 
-                {/* Testimonials Grid */}
-                <div className="grid md:grid-cols-3 gap-8">
-                    {testimonials.map((testimonial, i) => (
+                {/* Infinite marquee */}
+                <div className="relative">
+                    {/* Fade edges */}
+                    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-[#003E44] to-transparent md:w-40" />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-[#003E44] to-transparent md:w-40" />
+
+                    <div className="overflow-hidden">
                         <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 40 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: i * 0.1 }}
-                            className="relative p-8 rounded-3xl bg-card border border-border/50"
+                            className="flex gap-6"
+                            animate={prefersReducedMotion ? undefined : { x: isAr ? ['0%', '50%'] : ['0%', '-50%'] }}
+                            transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
                         >
-                            <Quote className="h-10 w-10 text-primary/20 mb-4" />
-                            <p className="text-lg mb-6 leading-relaxed">
-                                {isAr ? testimonial.textAr : testimonial.textEn}
-                            </p>
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center text-white font-bold">
-                                    {(isAr ? testimonial.nameAr : testimonial.nameEn).charAt(0)}
+                            {loopItems.map((testimonial, i) => (
+                                <div
+                                    key={i}
+                                    className="group relative w-[380px] flex-shrink-0 rounded-3xl border border-white/[0.06] bg-white/[0.02] p-8 backdrop-blur-sm transition-colors duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]"
+                                >
+                                    {/* Quote icon */}
+                                    <Quote className="mb-4 h-8 w-8 text-primary/20" />
+
+                                    {/* Text */}
+                                    <p className="mb-8 text-base leading-relaxed text-white/70">
+                                        {isAr ? testimonial.textAr : testimonial.textEn}
+                                    </p>
+
+                                    {/* Footer */}
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-orange-500/80 text-sm font-bold text-white shadow-lg">
+                                            {(isAr ? testimonial.nameAr : testimonial.nameEn).charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-bold text-white">
+                                                {isAr ? testimonial.nameAr : testimonial.nameEn}
+                                            </div>
+                                            <div className="text-xs text-white/40">
+                                                {isAr ? testimonial.roleAr : testimonial.roleEn}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Stars */}
+                                    <div className="absolute end-6 top-8 flex gap-0.5">
+                                        {FIVE_STARS.map((_, j) => (
+                                            <Star key={j} className="h-3.5 w-3.5 fill-primary/70 text-primary/70" />
+                                        ))}
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="font-bold">{isAr ? testimonial.nameAr : testimonial.nameEn}</div>
-                                    <div className="text-sm text-muted-foreground">{isAr ? testimonial.roleAr : testimonial.roleEn}</div>
-                                </div>
-                            </div>
-                            {/* Stars */}
-                            <div className="absolute top-8 end-8 flex gap-1">
-                                {[...Array(5)].map((_, j) => (
-                                    <Star key={j} className="h-4 w-4 fill-primary text-primary" />
-                                ))}
-                            </div>
+                            ))}
                         </motion.div>
-                    ))}
+                    </div>
                 </div>
             </div>
         </section>

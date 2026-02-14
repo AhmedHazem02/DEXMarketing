@@ -56,17 +56,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 import { useTasksKanban } from '@/hooks/use-tasks'
 import { KANBAN_COLUMNS, PRIORITY_CONFIG, type TaskWithRelations } from '@/types/task'
-import type { TaskStatus, Department } from '@/types/database'
+import type { TaskStatus } from '@/types/database'
 import { cn } from '@/lib/utils'
 
 interface TasksTableProps {
     projectId?: string
-    department?: Department
     onTaskClick?: (task: TaskWithRelations) => void
     onCreateTask?: () => void
 }
 
-export function TasksTable({ projectId, department, onTaskClick, onCreateTask }: TasksTableProps) {
+export function TasksTable({ projectId, onTaskClick, onCreateTask }: TasksTableProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
 
@@ -76,7 +75,7 @@ export function TasksTable({ projectId, department, onTaskClick, onCreateTask }:
     const [globalFilter, setGlobalFilter] = useState('')
 
     // Fetch tasks
-    const { data: tasksByStatus, isLoading } = useTasksKanban(projectId, department)
+    const { data: tasksByStatus, isLoading } = useTasksKanban(projectId)
 
     // Flatten tasks from all statuses
     const tasks = useMemo(() => {

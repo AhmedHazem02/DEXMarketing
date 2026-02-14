@@ -25,7 +25,6 @@ export function ForgotPasswordForm() {
     const t = useTranslations('auth')
     const common = useTranslations('common')
     const [isLoading, setIsLoading] = useState(false)
-    const supabase = createClient()
 
     const formSchema = z.object({
         email: z.string().email(),
@@ -40,6 +39,7 @@ export function ForgotPasswordForm() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true)
+        const supabase = createClient()
 
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(values.email, {

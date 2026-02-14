@@ -68,30 +68,30 @@ function Satellite({ text, radius, speed, yOffset, color, initialAngle }: Satell
 
 export function OrbitingLogo() {
     const satellites = useMemo(() => [
-        { text: 'D', radius: 3.5, speed: 0.5, yOffset: 1, color: '#FBBF24', initialAngle: 0 },       // Amber
-        { text: 'E', radius: 4.5, speed: 0.4, yOffset: 0, color: '#22D3EE', initialAngle: Math.PI * 2 / 3 }, // Cyan
-        { text: 'X', radius: 3.5, speed: 0.6, yOffset: -1, color: '#F472B6', initialAngle: Math.PI * 4 / 3 } // Pink
+        { text: 'D', radius: 2.0, speed: 0.4, yOffset: 0.5, color: '#FBBF24', initialAngle: 0 },       // Amber
+        { text: 'E', radius: 2.5, speed: 0.3, yOffset: -0.1, color: '#22D3EE', initialAngle: Math.PI * 2 / 3 }, // Cyan
+        { text: 'X', radius: 2.0, speed: 0.5, yOffset: -0.7, color: '#F472B6', initialAngle: Math.PI * 4 / 3 } // Pink
     ], [])
 
     return (
-        <group position={[0, -1, 0]}>
-            {/* Centered vertically roughly around the astronaut */}
+        <group position={[3.2, -1.8, -1]}>
+            {/* Centered around the astronaut's corner position */}
             {satellites.map((sat, i) => (
                 <Satellite key={i} {...sat} />
             ))}
 
             {/* Optional: Orbital Rings for visual guide */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 1, 0]}>
-                <ringGeometry args={[3.45, 3.55, 64]} />
-                <meshBasicMaterial color="#ffffff" transparent opacity={0.05} side={THREE.DoubleSide} />
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.5, 0]}>
+                <ringGeometry args={[1.95, 2.05, 64]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.02} side={THREE.DoubleSide} />
             </mesh>
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]}>
-                <ringGeometry args={[3.45, 3.55, 64]} />
-                <meshBasicMaterial color="#ffffff" transparent opacity={0.05} side={THREE.DoubleSide} />
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.7, 0]}>
+                <ringGeometry args={[1.95, 2.05, 64]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.02} side={THREE.DoubleSide} />
             </mesh>
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-                <ringGeometry args={[4.45, 4.55, 64]} />
-                <meshBasicMaterial color="#ffffff" transparent opacity={0.05} side={THREE.DoubleSide} />
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
+                <ringGeometry args={[2.45, 2.55, 64]} />
+                <meshBasicMaterial color="#ffffff" transparent opacity={0.02} side={THREE.DoubleSide} />
             </mesh>
         </group>
     )

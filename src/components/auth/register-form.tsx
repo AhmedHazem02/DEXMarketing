@@ -26,7 +26,6 @@ export function RegisterForm() {
     const common = useTranslations('common')
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
-    const supabase = createClient()
 
     const formSchema = z.object({
         name: z.string().min(2, { message: t('nameMin') }),
@@ -50,6 +49,7 @@ export function RegisterForm() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true)
+        const supabase = createClient()
 
         try {
             const { error } = await supabase.auth.signUp({

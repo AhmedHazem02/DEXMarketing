@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cairo, Inter } from "next/font/google";
+import { Tajawal } from "next/font/google";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -10,8 +10,12 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import "../globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
-const cairo = Cairo({ subsets: ["arabic"], variable: '--font-cairo' });
+const tajawal = Tajawal({
+  subsets: ["arabic", "latin"],
+  weight: ["200", "300", "400", "500", "700", "800", "900"],
+  variable: '--font-tajawal',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: "DEX ERP",
@@ -69,7 +73,7 @@ export default async function RootLayout({
   // Use both fonts variables to allow switching
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
-      <body className={`${inter.variable} ${cairo.variable} ${locale === 'ar' ? cairo.className : inter.className} antialiased min-h-screen bg-background text-foreground`}>
+      <body className={`${tajawal.variable} ${tajawal.className} antialiased min-h-screen bg-background text-foreground`}>
         <QueryProvider>
           <NextIntlClientProvider messages={messages}>
             {children}

@@ -1,29 +1,53 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { useMemo } from 'react'
+import Image from 'next/image'
 
 // ============================================
-// STAR FIELD - Animated Twinkling Stars
+// CSS keyframes injected once (much cheaper than 40 JS animation loops)
+// ============================================
+const STAR_KEYFRAMES = `
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.8; }
+}
+@keyframes shootingStar {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translate(200px, 100px); opacity: 0; }
+}
+`
+
+// ============================================
+// Seeded random for deterministic star positions (no hydration mismatch)
+// ============================================
+function seededRandom(seed: number): number {
+    const x = Math.sin(seed * 9301 + 49297) * 49297
+    return x - Math.floor(x)
+}
+
+// ============================================
+// STAR FIELD — Pure CSS animations
 // ============================================
 export function StarField({ count = 40 }: { count?: number }) {
-    const [stars, setStars] = useState<Array<{ x: number; y: number; size: number; delay: number }>>([])
-
-    useEffect(() => {
-        // Reduced max count for mobile performance
-        const generatedStars = Array.from({ length: count }, () => ({
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            size: Math.random() * 2 + 1,
-            delay: Math.random() * 3,
-        }))
-        setStars(generatedStars)
-    }, [count])
+    const stars = useMemo(
+        () =>
+            Array.from({ length: count }, (_, i) => ({
+                x: seededRandom(i * 3 + 1) * 100,
+                y: seededRandom(i * 3 + 2) * 100,
+                size: seededRandom(i * 3 + 3) * 2 + 1,
+                delay: seededRandom(i * 3 + 4) * 3,
+                duration: 3 + seededRandom(i * 3 + 5) * 2,
+            })),
+        [count],
+    )
 
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <style dangerouslySetInnerHTML={{ __html: STAR_KEYFRAMES }} />
             {stars.map((star, i) => (
-                <motion.div
+                <div
                     key={i}
                     className="absolute rounded-full bg-white"
                     style={{
@@ -31,15 +55,7 @@ export function StarField({ count = 40 }: { count?: number }) {
                         top: `${star.y}%`,
                         width: star.size,
                         height: star.size,
-                        willChange: 'opacity', // Hint to browser
-                    }}
-                    animate={{
-                        opacity: [0.2, 0.8, 0.2], // Removed scale animation for performance
-                    }}
-                    transition={{
-                        duration: 3 + Math.random() * 2,
-                        repeat: Infinity,
-                        delay: star.delay,
+                        animation: `twinkle ${star.duration}s ease-in-out ${star.delay}s infinite`,
                     }}
                 />
             ))}
@@ -48,70 +64,58 @@ export function StarField({ count = 40 }: { count?: number }) {
 }
 
 // ============================================
-// NEBULA - Gradient Cloud Effects
+// NEBULA — CSS transitions only, reduced blur sizes
 // ============================================
 export function Nebula() {
+    const prefersReducedMotion = useReducedMotion()
+
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* Cyan Nebula - Reduced Blur */}
+            {/* Cyan Nebula */}
             <motion.div
                 className="absolute w-[600px] h-[600px] rounded-full opacity-20"
                 style={{
                     background: 'radial-gradient(circle, rgba(0,212,255,0.4) 0%, transparent 70%)',
                     left: '60%',
                     top: '20%',
-                    filter: 'blur(40px)', // Reduced from 60px
-                    willChange: 'transform',
+                    filter: 'blur(40px)',
                 }}
-                animate={{
-                    scale: [1, 1.1, 1], // Reduced scale range
-                    x: [0, 20, 0],
-                    y: [0, -10, 0],
-                }}
-                transition={{
-                    duration: 15,
-                    repeat: Infinity,
-                    ease: 'linear', // Simplified ease
-                }}
+                animate={
+                    prefersReducedMotion
+                        ? undefined
+                        : { scale: [1, 1.1, 1], x: [0, 20, 0], y: [0, -10, 0] }
+                }
+                transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
             />
-            {/* Golden Nebula - Reduced Blur */}
+            {/* Golden Nebula */}
             <motion.div
                 className="absolute w-[500px] h-[500px] rounded-full opacity-15"
                 style={{
                     background: 'radial-gradient(circle, rgba(255,215,0,0.5) 0%, rgba(249,115,22,0.3) 50%, transparent 70%)',
                     left: '10%',
                     bottom: '10%',
-                    filter: 'blur(50px)', // Reduced from 80px
-                    willChange: 'transform',
+                    filter: 'blur(50px)',
                 }}
-                animate={{
-                    scale: [1.1, 1, 1.1],
-                    x: [0, -10, 0],
-                }}
-                transition={{
-                    duration: 20,
-                    repeat: Infinity,
-                    ease: 'linear',
-                }}
+                animate={
+                    prefersReducedMotion
+                        ? undefined
+                        : { scale: [1.1, 1, 1.1], x: [0, -10, 0] }
+                }
+                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
             />
-            {/* Deep Purple Nebula - Reduced Blur */}
+            {/* Deep Purple Nebula */}
             <motion.div
                 className="absolute w-[400px] h-[400px] rounded-full opacity-10"
                 style={{
                     background: 'radial-gradient(circle, rgba(139,92,246,0.4) 0%, transparent 70%)',
                     right: '20%',
                     bottom: '30%',
-                    filter: 'blur(40px)', // Reduced from 70px
-                    willChange: 'transform',
+                    filter: 'blur(40px)',
                 }}
-                animate={{
-                    scale: [1, 1.2, 1],
-                }}
-                transition={{
-                    duration: 18,
-                    repeat: Infinity,
-                    ease: 'linear',
-                }}
+                animate={
+                    prefersReducedMotion ? undefined : { scale: [1, 1.2, 1] }
+                }
+                transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
             />
         </div>
     )
@@ -121,6 +125,12 @@ export function Nebula() {
 // FLOATING PLANETS
 // ============================================
 export function FloatingPlanets() {
+    const prefersReducedMotion = useReducedMotion()
+
+    if (prefersReducedMotion) {
+        return null
+    }
+
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {/* Small Planet 1 */}
@@ -132,10 +142,7 @@ export function FloatingPlanets() {
                     right: '15%',
                     top: '25%',
                 }}
-                animate={{
-                    y: [0, -20, 0],
-                    rotate: [0, 360],
-                }}
+                animate={{ y: [0, -20, 0], rotate: [0, 360] }}
                 transition={{
                     y: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
                     rotate: { duration: 20, repeat: Infinity, ease: 'linear' },
@@ -150,15 +157,8 @@ export function FloatingPlanets() {
                     left: '10%',
                     top: '40%',
                 }}
-                animate={{
-                    y: [0, 15, 0],
-                    x: [0, 10, 0],
-                }}
-                transition={{
-                    duration: 7,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                }}
+                animate={{ y: [0, 15, 0], x: [0, 10, 0] }}
+                transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
             />
             {/* Ring Planet */}
             <motion.div
@@ -169,24 +169,12 @@ export function FloatingPlanets() {
                     left: '5%',
                     bottom: '20%',
                 }}
-                animate={{
-                    y: [0, -10, 0],
-                    scale: [1, 1.1, 1],
-                }}
-                transition={{
-                    duration: 8,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                }}
+                animate={{ y: [0, -10, 0], scale: [1, 1.1, 1] }}
+                transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
             >
-                {/* Ring */}
                 <div
                     className="absolute w-20 h-4 border-2 border-purple-400/50 rounded-full"
-                    style={{
-                        left: '-40%',
-                        top: '35%',
-                        transform: 'rotateX(60deg)',
-                    }}
+                    style={{ left: '-40%', top: '35%', transform: 'rotateX(60deg)' }}
                 />
             </motion.div>
         </div>
@@ -194,42 +182,29 @@ export function FloatingPlanets() {
 }
 
 // ============================================
-// SHOOTING STARS
+// SHOOTING STARS — Pure CSS animations
 // ============================================
 export function ShootingStars() {
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(3)].map((_, i) => (
-                <motion.div
+            <style dangerouslySetInnerHTML={{ __html: STAR_KEYFRAMES }} />
+            {[0, 1, 2].map((i) => (
+                <div
                     key={i}
                     className="absolute w-1 h-1 bg-white rounded-full"
                     style={{
                         left: `${20 + i * 30}%`,
                         top: `${10 + i * 15}%`,
                         boxShadow: '0 0 6px 2px rgba(255,255,255,0.8)',
-                    }}
-                    animate={{
-                        x: [0, 200],
-                        y: [0, 100],
-                        opacity: [0, 1, 0],
-                    }}
-                    transition={{
-                        duration: 1.5,
-                        repeat: Infinity,
-                        delay: i * 4 + 2,
-                        repeatDelay: 8,
+                        animation: `shootingStar 1.5s ease-in-out ${i * 4 + 2}s infinite`,
+                        animationDelay: `${i * 4 + 2}s`,
                     }}
                 >
-                    {/* Trail */}
                     <div
                         className="absolute w-20 h-[1px] bg-gradient-to-r from-white to-transparent"
-                        style={{
-                            right: '100%',
-                            top: '50%',
-                            transform: 'translateY(-50%) rotate(-25deg)',
-                        }}
+                        style={{ right: '100%', top: '50%', transform: 'translateY(-50%) rotate(-25deg)' }}
                     />
-                </motion.div>
+                </div>
             ))}
         </div>
     )
@@ -239,29 +214,25 @@ export function ShootingStars() {
 // ASTRONAUT FLOATING ELEMENT
 // ============================================
 export function FloatingAstronaut({ imageSrc }: { imageSrc?: string }) {
+    const prefersReducedMotion = useReducedMotion()
+
     return (
         <motion.div
             className="relative"
-            animate={{
-                y: [0, -20, 0],
-            }}
-            transition={{
-                duration: 6,
-                repeat: Infinity,
-                ease: 'easeInOut',
-            }}
+            animate={prefersReducedMotion ? undefined : { y: [0, -20, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
         >
             {imageSrc ? (
-                <img
+                // NOTE: Consider using next/image for production images
+                <Image
                     src={imageSrc}
                     alt="Astronaut"
+                    width={500}
+                    height={500}
                     className="w-full h-auto max-w-md drop-shadow-xl"
-                    style={{
-                        filter: 'drop-shadow(0 0 20px rgba(0,212,255,0.3))', // Reduced from 40px
-                    }}
+                    style={{ filter: 'drop-shadow(0 0 20px rgba(0,212,255,0.3))' }}
                 />
             ) : (
-                // Placeholder astronaut silhouette
                 <div className="w-80 h-96 relative">
                     <div
                         className="absolute inset-0 rounded-3xl"
@@ -270,7 +241,6 @@ export function FloatingAstronaut({ imageSrc }: { imageSrc?: string }) {
                             boxShadow: '0 0 60px rgba(0,212,255,0.2)',
                         }}
                     />
-                    {/* Helmet visor glow */}
                     <div
                         className="absolute top-8 left-1/2 -translate-x-1/2 w-32 h-32 rounded-full"
                         style={{
@@ -280,12 +250,9 @@ export function FloatingAstronaut({ imageSrc }: { imageSrc?: string }) {
                     />
                 </div>
             )}
-            {/* Glow effect */}
             <div
                 className="absolute inset-0 opacity-30"
-                style={{
-                    background: 'radial-gradient(circle at 50% 30%, rgba(0,212,255,0.3) 0%, transparent 60%)',
-                }}
+                style={{ background: 'radial-gradient(circle at 50% 30%, rgba(0,212,255,0.3) 0%, transparent 60%)' }}
             />
         </motion.div>
     )
@@ -312,23 +279,23 @@ export function CosmicGrid() {
 // ============================================
 // GRADIENT TEXT
 // ============================================
+const GRADIENTS = {
+    golden: 'from-yellow-300 via-yellow-400 to-orange-500',
+    cyan: 'from-cyan-300 via-cyan-400 to-blue-500',
+    mixed: 'from-yellow-300 via-orange-400 to-cyan-400',
+} as const
+
 export function GradientText({
     children,
     className = '',
-    variant = 'golden'
+    variant = 'golden',
 }: {
     children: React.ReactNode
     className?: string
-    variant?: 'golden' | 'cyan' | 'mixed'
+    variant?: keyof typeof GRADIENTS
 }) {
-    const gradients = {
-        golden: 'from-yellow-300 via-yellow-400 to-orange-500',
-        cyan: 'from-cyan-300 via-cyan-400 to-blue-500',
-        mixed: 'from-yellow-300 via-orange-400 to-cyan-400',
-    }
-
     return (
-        <span className={`bg-gradient-to-r ${gradients[variant]} bg-clip-text text-transparent ${className}`}>
+        <span className={`bg-gradient-to-r ${GRADIENTS[variant]} bg-clip-text text-transparent ${className}`}>
             {children}
         </span>
     )

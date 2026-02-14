@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useMemo, memo } from 'react'
+import { useLocale } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
     useTreasury,
@@ -30,45 +30,17 @@ import {
     RotateCcw,
 } from 'lucide-react'
 import { isBefore } from 'date-fns'
-import type { TaskStatus } from '@/types/database'
+import type { TaskStatus, Transaction, User } from '@/types/database'
+import type { TaskWithRelations } from '@/types/task'
 import { Skeleton } from '@/components/ui/skeleton'
-
-// ============================================
-// Constants
-// ============================================
-
-const PERIOD_OPTIONS = [
-    { value: 'month', label: 'هذا الشهر' },
-    { value: 'week', label: 'هذا الأسبوع' },
-    { value: 'day', label: 'اليوم' },
-    { value: 'year', label: 'هذا العام' },
-] as const
-
-const DEPARTMENT_OPTIONS = [
-    { value: 'all', label: 'كل الأقسام' },
-    { value: 'content', label: 'المحتوى' },
-    { value: 'photography', label: 'التصوير' },
-] as const
-
-type Period = 'day' | 'week' | 'month' | 'year'
-
-// ============================================
-// Memoized Intl formatters (created once, reused)
-// ============================================
-
-const currencyFormatter = new Intl.NumberFormat('ar-EG', {
-    style: 'currency',
-    currency: 'EGP',
-    minimumFractionDigits: 0,
-})
-
-const dateFormatter = new Intl.DateTimeFormat('ar-EG', {
-    day: 'numeric',
-    month: 'short',
-})
-
-const formatCurrency = (amount: number) => currencyFormatter.format(amount)
-const formatDate = (date: string) => dateFormatter.format(new Date(date))
+import {
+    DASHBOARD_DEPARTMENT_OPTIONS,
+    PERIOD_OPTIONS,
+    STATUS_CONFIG,
+    PRIORITY_CONFIG,
+    getFormatters,
+    type Period,
+} from '@/lib/constants/admin'
 
 // ============================================
 // Loading Skeleton
@@ -105,27 +77,29 @@ function DashboardSkeleton() {
 // ============================================
 
 export function AdminDashboardClient() {
+    const locale = useLocale()
+    const { formatCurrency, formatDate } = useMemo(() => getFormatters(locale), [locale])
     const [period, setPeriod] = useState<Period>('month')
     const [departmentFilter, setDepartmentFilter] = useState('all')
 
     // Data hooks - each has staleTime for caching
     const { data: treasury, isLoading: treasuryLoading } = useTreasury()
-    const { data: summary, isLoading: summaryLoading } = useTransactionSummary(period)
+    const { data: summary } = useTransactionSummary(period)
     const { data: users, isLoading: usersLoading } = useUsers()
     const { data: allTasks, isLoading: tasksLoading } = useTasks()
-    const { data: transactions, isLoading: txLoading } = useTransactions({ limit: 7 })
+    const { data: transactions } = useTransactions({ limit: 7 })
 
     // Filter tasks by department
     const tasks = useMemo(() => {
-        if (!allTasks) return []
-        if (departmentFilter === 'all') return allTasks
-        return allTasks.filter((t: any) => t.department === departmentFilter)
+        if (!allTasks) return [] as TaskWithRelations[]
+        if (departmentFilter === 'all') return allTasks as TaskWithRelations[]
+        return (allTasks as TaskWithRelations[]).filter((t) => t.department === departmentFilter)
     }, [allTasks, departmentFilter])
 
     // Task statistics - single pass instead of multiple .filter() calls
     const taskStats = useMemo(() => {
         if (!tasks) return null
-        const arr = tasks as any[]
+        const arr = tasks
         const now = new Date()
 
         const stats = {
@@ -213,8 +187,8 @@ export function AdminDashboardClient() {
 
     // Recent tasks (latest 6)
     const recentTasks = useMemo(() => {
-        if (!tasks) return []
-        return (tasks as any[]).slice(0, 6)
+        if (!tasks) return [] as TaskWithRelations[]
+        return tasks.slice(0, 6)
     }, [tasks])
 
     // Progressive loading - show content as it arrives instead of blocking all
@@ -246,7 +220,7 @@ export function AdminDashboardClient() {
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            {DEPARTMENT_OPTIONS.map(opt => (
+                            {DASHBOARD_DEPARTMENT_OPTIONS.map(opt => (
                                 <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                             ))}
                         </SelectContent>
@@ -464,7 +438,7 @@ export function AdminDashboardClient() {
                             {recentTasks.length === 0 ? (
                                 <p className="text-muted-foreground text-center py-6 text-sm">لا توجد مهام</p>
                             ) : (
-                                recentTasks.map((task: any) => (
+                                recentTasks.map((task) => (
                                     <div key={task.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
@@ -529,7 +503,7 @@ export function AdminDashboardClient() {
                             {!transactions || transactions.length === 0 ? (
                                 <p className="text-muted-foreground text-center py-6 text-sm">لا توجد معاملات</p>
                             ) : (
-                                transactions.map((tx: any) => (
+                                (transactions as Transaction[]).map((tx) => (
                                     <div key={tx.id} className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                                             tx.type === 'income'
@@ -684,43 +658,21 @@ const RoleStat = memo(function RoleStat({
     )
 })
 
-const TASK_STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-    new: { label: 'جديدة', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-    in_progress: { label: 'قيد التنفيذ', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    review: { label: 'مراجعة', className: 'bg-purple-100 text-purple-700 border-purple-200' },
-    revision: { label: 'تعديل', className: 'bg-orange-100 text-orange-700 border-orange-200' },
-    approved: { label: 'معتمد', className: 'bg-green-100 text-green-700 border-green-200' },
-    rejected: { label: 'مرفوض', className: 'bg-red-100 text-red-700 border-red-200' },
-}
-
 const TaskStatusBadge = memo(function TaskStatusBadge({ status }: { status: TaskStatus }) {
-    const c = TASK_STATUS_CONFIG[status] || TASK_STATUS_CONFIG.new
+    const c = STATUS_CONFIG[status] || STATUS_CONFIG.new
     return (
-        <Badge variant="outline" className={`${c.className} text-[10px] px-1.5 py-0`}>
+        <Badge variant="outline" className={`${c.style} text-[10px] px-1.5 py-0`}>
             {c.label}
         </Badge>
     )
 })
 
-const PRIORITY_COLORS: Record<string, string> = {
-    urgent: 'bg-red-500',
-    high: 'bg-orange-500',
-    medium: 'bg-blue-400',
-    low: 'bg-slate-300',
-}
-
-const PRIORITY_LABELS: Record<string, string> = {
-    urgent: 'عاجل',
-    high: 'عالي',
-    medium: 'متوسط',
-    low: 'منخفض',
-}
-
 const PriorityDot = memo(function PriorityDot({ priority }: { priority: string }) {
+    const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.medium
     return (
-        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground" title={PRIORITY_LABELS[priority]}>
-            <span className={`w-1.5 h-1.5 rounded-full ${PRIORITY_COLORS[priority] || PRIORITY_COLORS.medium}`} />
-            <span className="hidden sm:inline">{PRIORITY_LABELS[priority]}</span>
+        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground" title={config.label}>
+            <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
+            <span className="hidden sm:inline">{config.label}</span>
         </span>
     )
 })

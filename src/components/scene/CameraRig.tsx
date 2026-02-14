@@ -7,18 +7,11 @@ import { useEffect, useRef } from 'react'
 
 export function CameraRig() {
     const { camera } = useThree()
-    // useScroll gives us access to scroll offsets inside ScrollControls
-    // But we might be using native window scroll. 
-    // If we are NOT using <ScrollControls>, we need to listen to window scroll.
-
-    // For this implementation, we'll assume we want to react to standard window scroll
-    // Since we are integrating into a standard Next.js page.
 
     const scrollRef = useRef(0)
 
     useEffect(() => {
         const handleScroll = () => {
-            // Normalize scroll 0-1 based on window height
             scrollRef.current = window.scrollY / (document.body.scrollHeight - window.innerHeight)
         }
         window.addEventListener('scroll', handleScroll)
@@ -26,20 +19,21 @@ export function CameraRig() {
     }, [])
 
     useFrame((state, delta) => {
-        // Smooth damp camera position
-        const targetZ = 5 - (scrollRef.current * 3) // Zoom in on scroll
-        const targetY = -(scrollRef.current * 2)    // Move down on scroll
+        // Camera centered — astronaut is decorative in corner
+        const baseX = 0
+        const targetZ = 5.5 - (scrollRef.current * 2.5)
+        const targetY = -(scrollRef.current * 1.5)
 
-        // Lerp for smoothness
+        camera.position.x = THREE.MathUtils.lerp(camera.position.x, baseX, delta * 2)
         camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetZ, delta * 2)
         camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetY, delta * 2)
 
         // Subtle mouse parallax
-        const mouseX = state.pointer.x * 0.5
-        const mouseY = state.pointer.y * 0.5
+        const mouseX = state.pointer.x * 0.3
+        const mouseY = state.pointer.y * 0.3
 
-        camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, -mouseY * 0.1, delta * 2)
-        camera.rotation.y = THREE.MathUtils.lerp(camera.rotation.y, mouseX * 0.1, delta * 2)
+        camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, -mouseY * 0.06, delta * 2)
+        camera.rotation.y = THREE.MathUtils.lerp(camera.rotation.y, mouseX * 0.06, delta * 2)
     })
 
     return null

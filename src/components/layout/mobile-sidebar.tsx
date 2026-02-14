@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -15,22 +16,21 @@ import {
     SheetTitle,
     SheetDescription,
 } from '@/components/ui/sheet'
-import { useState } from 'react'
 
 export function MobileSidebar({ role, department }: { role?: string; department?: Department | null }) {
     const pathname = usePathname()
     const router = useRouter()
-    const supabase = createClient()
     const [open, setOpen] = useState(false)
 
     const isAr = pathname.startsWith('/ar')
     const routes = getRoutes(role || 'guest', isAr, department)
 
-    const handleLogout = async () => {
+    const handleLogout = useCallback(async () => {
+        const supabase = createClient()
         await supabase.auth.signOut()
         router.refresh()
         router.push('/login')
-    }
+    }, [router])
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>

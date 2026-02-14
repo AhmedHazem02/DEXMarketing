@@ -1,3 +1,4 @@
+export { useThrottle } from './use-throttle'
 export { useUsers, useUser, useCurrentUser, useUpdateUser, useDeleteUser } from './use-users'
 export {
     // Query keys
@@ -126,6 +127,9 @@ export {
     useTypingIndicator,
     useFindOrCreateConversation,
 } from './use-chat'
+
+// Auth hooks
+export { useAuthDashboardLink } from './use-auth-dashboard-link'
 
 // Utility hooks
 export { usePagination } from './use-pagination'

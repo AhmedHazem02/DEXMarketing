@@ -407,7 +407,7 @@ export function useUpdateTaskStatus() {
                     .select('client_id')
                     .eq('id', id)
                     .single() as { data: { client_id: string | null } | null; error: unknown }
-                
+
                 if (task?.client_id) {
                     finalStatus = 'client_review'
                 }
@@ -787,13 +787,14 @@ export function useAdminTasks(filters: TaskFilters = {}, page = 1, pageSize = 15
                 .from('tasks')
                 .select(`
                     id, title, description, status, priority, department, task_type,
-                    created_at, deadline, client_feedback,
+                    created_at, deadline, client_feedback, company_name,
                     assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
                     creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
                     project:projects(
                         id, name, status,
                         client:clients(id, name, company)
-                    )
+                    ),
+                    client:clients!tasks_client_id_fkey(id, name, company)
                 `, { count: 'exact' })
                 .order('created_at', { ascending: false })
                 .range((page - 1) * pageSize, page * pageSize - 1)
@@ -810,8 +811,9 @@ export function useAdminTasks(filters: TaskFilters = {}, page = 1, pageSize = 15
 }
 
 /**
- * Lightweight stats query - fetches only status column for summary counts.
+ * Lightweight stats query - uses efficient count queries instead of fetching all rows.
  * Separate from main query so stats don't flicker on page changes.
+ * Performs parallel count queries for optimal performance.
  */
 export function useAdminTasksStats(filters: TaskFilters = {}) {
     const supabase = createClient()
@@ -819,21 +821,40 @@ export function useAdminTasksStats(filters: TaskFilters = {}) {
     return useQuery({
         queryKey: [...taskKeys.all, 'admin-stats', filters],
         queryFn: async () => {
-            let query = supabase
-                .from('tasks')
-                .select('status')
+            // Create base query helper
+            const createCountQuery = (statusFilter?: string) => {
+                let query = supabase
+                    .from('tasks')
+                    .select('*', { count: 'exact', head: true })
+                
+                query = applyAdminFilters(query, filters)
+                
+                if (statusFilter) {
+                    query = query.eq('status', statusFilter)
+                }
+                
+                return query
+            }
 
-            query = applyAdminFilters(query, filters)
+            // Execute all count queries in parallel for optimal performance
+            const [totalResult, inProgressResult, reviewResult, approvedResult] = await Promise.all([
+                createCountQuery(),
+                createCountQuery('in_progress'),
+                createCountQuery('review'),
+                createCountQuery('approved'),
+            ])
 
-            const { data, error } = await query
-            if (error) throw error
+            // Check for errors
+            if (totalResult.error) throw totalResult.error
+            if (inProgressResult.error) throw inProgressResult.error
+            if (reviewResult.error) throw reviewResult.error
+            if (approvedResult.error) throw approvedResult.error
 
-            const statuses = data ?? []
             return {
-                total: statuses.length,
-                in_progress: statuses.filter((t: any) => t.status === 'in_progress').length,
-                review: statuses.filter((t: any) => t.status === 'review').length,
-                approved: statuses.filter((t: any) => t.status === 'approved').length,
+                total: totalResult.count ?? 0,
+                in_progress: inProgressResult.count ?? 0,
+                review: reviewResult.count ?? 0,
+                approved: approvedResult.count ?? 0,
             }
         },
         placeholderData: keepPreviousData,
@@ -855,13 +876,14 @@ export function useAdminTasksExport(filters: TaskFilters = {}, enabled = false) 
                 .from('tasks')
                 .select(`
                     id, title, description, status, priority, department, task_type,
-                    created_at, client_feedback,
+                    created_at, client_feedback, company_name,
                     assigned_user:users!tasks_assigned_to_fkey(id, name),
                     creator:users!tasks_created_by_fkey(id, name),
                     project:projects(
                         id, name,
                         client:clients(id, name, company)
-                    )
+                    ),
+                    client:clients!tasks_client_id_fkey(id, name, company)
                 `)
                 .order('created_at', { ascending: false })
 
@@ -1012,7 +1034,7 @@ export function useCreatePhotographyTask() {
             const taskType = input.task_type ?? 'video'
             const initialStage: WorkflowStage = taskType === 'video' ? 'filming'
                 : taskType === 'photo' ? 'shooting'
-                : 'none'
+                    : 'none'
 
             const insertData = {
                 title: input.title,
@@ -1216,5 +1238,118 @@ export function useRejectClientRequest() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: taskKeys.all })
         },
+    })
+}
+
+// ============================================
+// Client Tasks - Paginated View
+// ============================================
+
+/**
+ * Fetch tasks for a specific client with pagination and filters.
+ * Optimized for performance with server-side pagination.
+ */
+export function useClientTasks(clientId: string, filters: TaskFilters = {}, page = 1, pageSize = 15) {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: [...taskKeys.all, 'client-tasks', clientId, filters, page, pageSize],
+        queryFn: async () => {
+            let query = supabase
+                .from('tasks')
+                .select(`
+                    id, title, description, status, priority, department, task_type,
+                    created_at, updated_at, deadline, client_feedback, workflow_stage,
+                    assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
+                    creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
+                    editor:users!tasks_editor_id_fkey(id, name, email, avatar_url),
+                    project:projects(id, name, status)
+                `, { count: 'exact' })
+                .eq('client_id', clientId)
+                .order('created_at', { ascending: false })
+                .range((page - 1) * pageSize, page * pageSize - 1)
+
+            // Apply filters
+            if (filters.status && filters.status !== 'all') {
+                query = query.eq('status', filters.status)
+            }
+            if (filters.priority && filters.priority !== 'all') {
+                query = query.eq('priority', filters.priority)
+            }
+            if (filters.department && filters.department !== 'all') {
+                query = query.eq('department', filters.department)
+            }
+            if (filters.task_type && filters.task_type !== 'all') {
+                query = query.eq('task_type', filters.task_type)
+            }
+            if (filters.search) {
+                query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
+            }
+            if (filters.dateFrom) {
+                query = query.gte('created_at', filters.dateFrom)
+            }
+            if (filters.dateTo) {
+                query = query.lte('created_at', filters.dateTo)
+            }
+
+            const { data, error, count } = await query
+            if (error) throw error
+            return { data: data as unknown as TaskWithRelations[], totalCount: count ?? 0 }
+        },
+        enabled: !!clientId,
+        placeholderData: keepPreviousData,
+        staleTime: 30 * 1000, // 30 seconds
+    })
+}
+
+/**
+ * Get client tasks statistics (lightweight query)
+ */
+export function useClientTasksStats(clientId: string, filters: TaskFilters = {}) {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: [...taskKeys.all, 'client-tasks-stats', clientId, filters],
+        queryFn: async () => {
+            let query = supabase
+                .from('tasks')
+                .select('status, deadline')
+                .eq('client_id', clientId)
+
+            // Apply same filters
+            if (filters.status && filters.status !== 'all') {
+                query = query.eq('status', filters.status)
+            }
+            if (filters.priority && filters.priority !== 'all') {
+                query = query.eq('priority', filters.priority)
+            }
+            if (filters.department && filters.department !== 'all') {
+                query = query.eq('department', filters.department)
+            }
+            if (filters.task_type && filters.task_type !== 'all') {
+                query = query.eq('task_type', filters.task_type)
+            }
+            if (filters.search) {
+                query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
+            }
+
+            const { data, error } = await query
+            if (error) throw error
+
+            const tasks = data ?? []
+            const now = new Date()
+
+            return {
+                total: tasks.length,
+                new: tasks.filter((t: any) => t.status === 'new').length,
+                in_progress: tasks.filter((t: any) => t.status === 'in_progress').length,
+                review: tasks.filter((t: any) => t.status === 'review').length,
+                client_review: tasks.filter((t: any) => t.status === 'client_review').length,
+                approved: tasks.filter((t: any) => t.status === 'approved').length,
+                overdue: tasks.filter((t: any) => t.deadline && new Date(t.deadline) < now && t.status !== 'approved').length,
+            }
+        },
+        enabled: !!clientId,
+        staleTime: 60 * 1000, // 1 minute
     })
 }

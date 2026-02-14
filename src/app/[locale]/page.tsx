@@ -1,4 +1,4 @@
-import { Navbar, HeroSection, ServicesSection, GalaxyPortfolio, TestimonialsSection, CTASection, Footer } from '@/components/landing'
+import { Navbar, HeroSection, BrandsMarquee, ServicesSection, ProcessSection, GalaxyPortfolio, TestimonialsSection, CTASection, Footer } from '@/components/landing'
 import { CustomCursor } from '@/components/ui/custom-cursor'
 import { SiteSettingsProvider } from '@/components/providers/site-settings-provider'
 import { getSiteSettings } from '@/lib/actions/get-site-settings'
@@ -42,7 +42,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <Navbar initialUser={user} initialRole={role} />
         <CustomCursor />
         <HeroSection />
+        <BrandsMarquee />
         <ServicesSection />
+        <ProcessSection />
         <GalaxyPortfolio />
         <TestimonialsSection />
         <CTASection />

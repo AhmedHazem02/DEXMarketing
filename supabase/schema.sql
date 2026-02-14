@@ -150,9 +150,15 @@ CREATE OR REPLACE FUNCTION public.update_treasury_balance()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.type = 'income' THEN
-    UPDATE public.treasury SET current_balance = current_balance + NEW.amount, updated_at = now();
+    UPDATE public.treasury 
+    SET current_balance = current_balance + NEW.amount, 
+        updated_at = now()
+    WHERE id = (SELECT id FROM public.treasury LIMIT 1);
   ELSE
-    UPDATE public.treasury SET current_balance = current_balance - NEW.amount, updated_at = now();
+    UPDATE public.treasury 
+    SET current_balance = current_balance - NEW.amount, 
+        updated_at = now()
+    WHERE id = (SELECT id FROM public.treasury LIMIT 1);
   END IF;
   RETURN NEW;
 END;

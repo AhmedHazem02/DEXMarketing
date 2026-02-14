@@ -1,164 +1,201 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, ArrowRight, Play, Rocket, MousePointer2 } from 'lucide-react'
-import Link from 'next/link'
+import { ArrowLeft, ArrowRight, Rocket } from 'lucide-react'
+import { Link } from '@/i18n/navigation'
 import { useLocale } from 'next-intl'
+import { useRef } from 'react'
+import { useIntroStore } from '@/store/intro-store'
+import { HERO_STATS as STATS } from '@/lib/constants/landing'
+
+/* ---------- floating mission badges ---------- */
+const BADGES_EN = ['Branding', 'Social Media', 'Video', 'SEO', 'Web']
+const BADGES_AR = ['هوية بصرية', 'سوشيال ميديا', 'فيديو', 'تحسين محركات', 'ويب']
 
 export function HeroOverlay() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const Arrow = isAr ? ArrowLeft : ArrowRight
+    const prefersReducedMotion = useReducedMotion()
+    const ref = useRef<HTMLDivElement>(null)
+
+    // Wait for cinematic entrance
+    const isIntroComplete = useIntroStore((state) => state.isIntroComplete)
+
+    const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
+    const yText = useTransform(scrollYProgress, [0, 1], [0, 150])
+    const opacityText = useTransform(scrollYProgress, [0, 0.5], [1, 0])
+
+    const badges = isAr ? BADGES_AR : BADGES_EN
+
+    // Only render or animate if intro is complete
+    // We can use a simple variant toggle
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    }
 
     return (
-        <div className="relative z-10 container mx-auto px-6 py-20 h-full flex flex-col justify-center">
-            <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto w-full">
-
-                {/* Left Side: Empty or Floating Element placeholder if needed
-                    In the new design, the 3D Astronaut is handled by the Canvas, 
-                    but we might want to preserve layout space or add interactive zones.
-                 */}
-                <div className={`hidden lg:block ${isAr ? 'lg:order-2' : 'lg:order-1'}`} />
-
-                {/* Right Side: Text Content */}
-                <div className={`${isAr ? 'lg:order-1 text-right' : 'lg:order-2 text-left'} lg:text-start text-center`}>
-
-                    {/* Top Badge */}
+        <div ref={ref} className="relative z-10 flex min-h-[100dvh] flex-col justify-center px-6 py-32">
+            {/* Centered text — astronaut is now a small decorative element in the corner */}
+            <div className="mx-auto w-full max-w-4xl">
+                <motion.div
+                    style={{ y: yText, opacity: opacityText }}
+                    className="text-center"
+                    initial="hidden"
+                    animate={isIntroComplete ? "visible" : "hidden"}
+                    variants={containerVariants}
+                >
+                    {/* Mission badge */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        className={`flex ${isAr ? 'justify-end lg:justify-start' : 'justify-start'} justify-center lg:justify-start mb-8`}
+                        variants={{
+                            hidden: { opacity: 0, y: 30, filter: 'blur(10px)' },
+                            visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.8 } }
+                        }}
+                        className="mb-10 inline-flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/[0.06] px-6 py-3 backdrop-blur-sm"
                     >
-                        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-400/30 backdrop-blur-sm">
-                            <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                            >
-                                <Rocket className="h-5 w-5 text-yellow-400" />
-                            </motion.div>
-                            <span className="text-base font-semibold bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent">
-                                {isAr ? '🚀 نأخذ علامتك التجارية إلى آفاق جديدة' : '🚀 Launching Brands to New Heights'}
-                            </span>
-                        </div>
+                        {/* ... Rocket Icon ... */}
+                        <motion.div
+                            animate={prefersReducedMotion ? undefined : { rotate: 360 }}
+                            transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                        >
+                            <Rocket className="h-5 w-5 text-primary" />
+                        </motion.div>
+                        <span className="bg-gradient-to-r from-primary via-yellow-300 to-orange-400 bg-clip-text text-sm font-bold text-transparent">
+                            {isAr ? 'نطلق علامتك التجارية إلى المدار' : 'Launching Brands Into Orbit'}
+                        </span>
                     </motion.div>
- 
-                    {/* Main Title - Optimized for LCP */}
-                    <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1]">
-                            <span className="block mb-4">
-                                <span className="text-white font-black tracking-wider drop-shadow-lg">DEX</span>
-                                <span className="text-yellow-400/80 text-xl md:text-2xl font-light ms-2 tracking-widest drop-shadow-md"> ADVERTISING</span>
-                            </span>
 
-                            <span className="block mt-4">
-                                <span className="relative inline-block">
-                                    <span className="bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500 bg-clip-text text-transparent drop-shadow-sm">
-                                        {isAr ? 'نصنع' : 'We Create'}
-                                    </span>
-                                </span>
-                                <span className="text-white mx-3 drop-shadow-lg">
-                                    {isAr ? 'علامات تجارية' : 'Iconic'}
-                                </span>
+                    {/* ---------- Main Headline ---------- */}
+                    <div className="mb-10 overflow-hidden">
+                        <motion.h1
+                            variants={{
+                                hidden: { opacity: 0, y: 60 },
+                                visible: { opacity: 1, y: 0, transition: { duration: 1, delay: 0.2 } }
+                            }}
+                            className="text-5xl sm:text-6xl lg:text-7xl xl:text-[5.5rem] font-black leading-[0.95] tracking-tight"
+                        >
+                            <span className="block text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]">
+                                {isAr ? 'نصنع' : 'We Craft'}
                             </span>
-                            <span className="block mt-2">
-                                <span className="bg-gradient-to-r from-yellow-400 via-orange-400 to-orange-500 bg-clip-text text-transparent drop-shadow-sm">
-                                    {isAr ? 'لا تُنسى' : 'Brands'}
-                                </span>
-                                <motion.span
-                                    className="inline-block ms-4"
-                                    animate={{ rotate: [0, 10, -10, 0] }}
-                                    transition={{ duration: 2, repeat: Infinity }}
-                                >
-                                    ✨
-                                </motion.span>
+                            <span className="block bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent drop-shadow-none">
+                                {isAr ? 'علامات تجارية' : 'Iconic Brands'}
                             </span>
-                        </h1>
+                            <span className="block text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]">
+                                {isAr ? 'لا تُنسى ✦' : 'That Conquer ✦'}
+                            </span>
+                        </motion.h1>
                     </div>
 
                     {/* Subtitle */}
                     <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.4 }}
-                        className="text-lg md:text-xl text-gray-300 max-w-xl mb-10 drop-shadow-md font-medium"
+                        variants={{
+                            hidden: { opacity: 0, y: 20 },
+                            visible: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.4 } }
+                        }}
+                        className="mb-14 mx-auto max-w-2xl text-lg md:text-xl font-medium leading-relaxed text-white/50"
                     >
                         {isAr
-                            ? 'وكالة تسويق رقمي متكاملة - من التصميم الإبداعي إلى إدارة الحملات الرقمية'
-                            : 'Full-Service Digital Marketing Agency - From Creative Design to Digital Campaign Management'
-                        }
+                            ? 'وكالة تسويق رقمي تُحرّك الأرقام وتبني الهويات — من الإبداع البصري إلى إدارة الحملات، كل ما يحتاجه مشروعك ليتصدر'
+                            : 'A full-spectrum digital agency turning bold ideas into measurable growth — creativity, strategy, and execution under one mission.'}
                     </motion.p>
 
-                    {/* CTA Buttons */}
+                    {/* CTAs */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.6 }}
-                        className={`flex flex-col sm:flex-row items-center gap-4 ${isAr ? 'lg:justify-start' : 'lg:justify-start'} justify-center lg:justify-start mb-12`}
+                        variants={{
+                            hidden: { opacity: 0, y: 20 },
+                            visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.6 } }
+                        }}
+                        className="mb-16 flex flex-col items-center gap-5 sm:flex-row justify-center"
                     >
                         <Link href="/register">
-                            <Button size="lg" className="group relative text-lg px-8 py-6 bg-primary hover:bg-primary/90 transition-all duration-500 shadow-2xl shadow-primary/30 rounded-full overflow-hidden text-background font-bold">
-                                <span className="relative z-10 flex items-center">
-                                    <Rocket className="me-2 h-5 w-5 group-hover:-translate-y-1 group-hover:rotate-12 transition-transform" />
-                                    {isAr ? 'ابدأ رحلتك' : 'Start Your Journey'}
-                                    <Arrow className="ms-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                            <Button
+                                size="lg"
+                                className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-yellow-400 to-orange-500 px-10 py-7 text-lg font-bold text-background shadow-[0_0_30px_rgba(251,191,36,0.2)] transition-all duration-500 hover:shadow-[0_0_50px_rgba(251,191,36,0.35)] hover:brightness-110"
+                            >
+                                <span className="relative z-10 flex items-center gap-2">
+                                    <Rocket className="h-5 w-5 transition-transform group-hover:-translate-y-1 group-hover:rotate-12" />
+                                    {isAr ? 'ابدأ مهمتك' : 'Start Your Mission'}
+                                    <Arrow className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                                 </span>
-                                <motion.div
-                                    className="absolute inset-0 bg-white/20"
-                                    animate={{ x: ['100%', '-100%'] }}
-                                    transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
-                                />
+                                {!prefersReducedMotion && (
+                                    <motion.div
+                                        className="absolute inset-0 bg-white/20"
+                                        animate={{ x: ['100%', '-100%'] }}
+                                        transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
+                                    />
+                                )}
                             </Button>
                         </Link>
-                        <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-yellow-400/50 text-yellow-400 rounded-full hover:bg-yellow-400/10 group bg-black/20 backdrop-blur-sm">
-                            <Play className="me-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                            {isAr ? 'شاهد أعمالنا' : 'View Our Work'}
+                        <Button
+                            size="lg"
+                            variant="outline"
+                            className="group rounded-2xl border-2 border-white/15 bg-white/[0.04] px-10 py-7 text-lg font-semibold text-white backdrop-blur-sm hover:border-primary/40 hover:bg-white/[0.08] transition-all duration-300"
+                        >
+                            {isAr ? 'شاهد أعمالنا' : 'Explore Work'}
                         </Button>
                     </motion.div>
 
-                    {/* Stats Highlights */}
+                    {/* Stats row */}
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 1, delay: 0.8 }}
-                        className="grid grid-cols-3 gap-6 max-w-md"
+                        variants={{
+                            hidden: { opacity: 0 },
+                            visible: { opacity: 1, transition: { duration: 1, delay: 0.8 } }
+                        }}
+                        className="flex items-center gap-10 md:gap-14 justify-center"
                     >
-                        {[
-                            { value: '500+', labelAr: 'مشروع', labelEn: 'Projects' },
-                            { value: '200+', labelAr: 'عميل', labelEn: 'Clients' },
-                            { value: '15+', labelAr: 'سنة', labelEn: 'Years' },
-                        ].map((stat, i) => (
+                        {STATS.map((stat, i) => (
                             <motion.div
-                                key={i}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 1 + i * 0.1 }}
-                                className={`${isAr ? 'text-right' : 'text-left'} text-center lg:text-start`}
+                                key={stat.value}
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    visible: { opacity: 1, y: 0, transition: { delay: 1.0 + i * 0.15 } }
+                                }}
+                                className="text-center"
                             >
-                                <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-transparent drop-shadow-sm">
+                                <div className="text-3xl md:text-4xl font-black bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent">
                                     {stat.value}
                                 </div>
-                                <div className="text-sm text-gray-400 font-medium drop-shadow-sm">{isAr ? stat.labelAr : stat.labelEn}</div>
+                                <div className="mt-1 text-xs md:text-sm font-medium text-white/40 uppercase tracking-wider">
+                                    {isAr ? stat.labelAr : stat.labelEn}
+                                </div>
                             </motion.div>
                         ))}
                     </motion.div>
-                </div>
+                </motion.div>
             </div>
 
-            {/* Scroll Indicator */}
-            <motion.div
-                className="absolute bottom-8 left-1/2 -translate-x-1/2"
-                animate={{ y: [0, 10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-            >
-                <div className="flex flex-col items-center gap-2 drop-shadow-md">
-                    <span className="text-xs text-gray-400 font-medium">
-                        {isAr ? 'اكتشف المزيد' : 'Discover More'}
-                    </span>
-                    <MousePointer2 className="h-5 w-5 text-yellow-400 animate-bounce" />
-                </div>
-            </motion.div>
+            {/* Badges / Floating Elements remain largely same but controlled by parent visibility implicitly or explicit check */}
+            {!prefersReducedMotion && isIntroComplete &&
+                badges.map((badge, i) => {
+                    // Position badges around the edges of the viewport
+                    const positions = [
+                        { x: 8, y: 20 },   // top-left
+                        { x: 85, y: 15 },  // top-right
+                        { x: 5, y: 75 },   // bottom-left
+                        { x: 88, y: 70 },  // bottom-right
+                        { x: 12, y: 48 },  // mid-left
+                    ]
+                    const pos = positions[i % positions.length]
+                    return (
+                        <motion.div
+                            key={badge}
+                            className="pointer-events-none absolute hidden lg:flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 backdrop-blur-md"
+                            style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 0.45, scale: 1, y: [0, -8, 0] }}
+                            transition={{
+                                opacity: { delay: 0.5 + i * 0.15, duration: 0.6 },
+                                scale: { delay: 0.5 + i * 0.15, duration: 0.5, type: 'spring' },
+                                y: { delay: 1.5 + i * 0.1, duration: 4 + i * 0.5, repeat: Infinity, ease: 'easeInOut' },
+                            }}
+                        >
+                            <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+                            <span className="text-xs font-medium text-white/60">{badge}</span>
+                        </motion.div>
+                    )
+                })}
         </div>
     )
 }

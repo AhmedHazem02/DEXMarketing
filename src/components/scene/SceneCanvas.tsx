@@ -1,37 +1,32 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense } from 'react'
 import { useDeviceCapabilities } from '@/hooks/useDeviceCapabilities'
 import { SpaceEnvironment } from './SpaceEnvironment'
 import { ParticleField } from './ParticleField'
 import { Astronaut } from './Astronaut'
 import { CameraRig } from './CameraRig'
 import { OrbitingLogo } from './OrbitingLogo'
-
-// Fallback for low-end devices or initial load
-const SceneLoader = () => (
-    <div className="flex items-center justify-center text-amber-primary/50 text-sm">
-        Initializing Mission...
-    </div>
-)
+import { MoonBase } from './MoonBase'
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 
 export default function SceneCanvas() {
     const { tier } = useDeviceCapabilities()
 
-
-    // Configuration based on device tier
+    // Reduced star/particle counts for a softer, cleaner look
     const config = {
-        high: { stars: 6000, particles: 3000, dpr: [1, 2], antialias: true },
-        mid: { stars: 3000, particles: 1500, dpr: [1, 1.5], antialias: true },
-        low: { stars: 1000, particles: 800, dpr: [1, 1], antialias: false },
-        potato: null, // Should render 2D fallback instead
+        high: { stars: 2000, particles: 800, dpr: [1, 2], antialias: false, post: true },
+        mid: { stars: 1200, particles: 500, dpr: [1, 1.5], antialias: false, post: true },
+        low: { stars: 600, particles: 300, dpr: [1, 1], antialias: true, post: false },
+        potato: null,
     }
 
+    // @ts-ignore - Config indexing
     const settings = config[tier]
 
     if (!settings) {
-        return null // Return null to allow parent to render 2D fallback
+        return null
     }
 
     return (
@@ -48,13 +43,26 @@ export default function SceneCanvas() {
             >
                 <Suspense fallback={null}>
                     <color attach="background" args={['#003E44']} />
-                    {/* Using project background color as base, but will be enhanced by SpaceEnvironment */}
 
                     <SpaceEnvironment starCount={settings.stars} />
                     <ParticleField count={settings.particles} />
+                    <MoonBase />
                     <Astronaut />
                     <CameraRig />
                     <OrbitingLogo />
+
+                    {/* Post Processing Effects - Cinematic Finish */}
+                    {settings.post && (
+                        <EffectComposer enabled={true}>
+                            <Bloom
+                                luminanceThreshold={0.9}
+                                mipmapBlur
+                                intensity={1.0}
+                                radius={0.4}
+                            />
+                            <Vignette eskil={false} offset={0.1} darkness={1.1} />
+                        </EffectComposer>
+                    )}
                 </Suspense>
             </Canvas>
         </div>

@@ -1,164 +1,89 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
-import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin } from 'lucide-react'
-import Link from 'next/link'
+import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin, Rocket } from 'lucide-react'
+import { Link } from '@/i18n/navigation'
 import { useSiteSettingsContext } from '@/components/providers/site-settings-provider'
 import { createClient } from '@/lib/supabase/client'
+import { useAuthDashboardLink } from '@/hooks/use-auth-dashboard-link'
+import type { User } from '@supabase/supabase-js'
 
 interface FooterProps {
-    initialUser?: any
+    initialUser?: User | null
     initialRole?: string
 }
+
+const CURRENT_YEAR = new Date().getFullYear()
+
+const QUICK_LINKS_AR = ['الرئيسية', 'من نحن', 'خدماتنا', 'أعمالنا', 'تواصل معنا'] as const
+const QUICK_LINKS_EN = ['Home', 'About Us', 'Services', 'Portfolio', 'Contact Us'] as const
+const QUICK_LINK_HREFS = ['/', '/about', '/services', '/portfolio', '/contact'] as const
 
 export function Footer({ initialUser, initialRole }: FooterProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
-    // State for auth
-    const [user, setUser] = useState<any>(initialUser || null)
-
-    // Initial link logic
-    const getLink = (r?: string) => {
-        const normalized = r ? String(r).toLowerCase().trim() : ''
-        switch (normalized) {
-            case 'admin': return '/admin'
-            case 'client': return '/client'
-            case 'team_leader': return '/team-leader'
-            case 'creator': return '/creator'
-            case 'accountant': return '/accountant'
-            default: return normalized ? '/client' : '/login'
-        }
-    }
-
-    const [dashboardLink, setDashboardLink] = useState(getLink(initialRole))
-
     const settings = useSiteSettingsContext()
+    const { user, dashboardLink } = useAuthDashboardLink(initialUser, initialRole)
 
-    // State for contact info fetching
-    const [contactInfo, setContactInfo] = useState<{ email?: string, phone?: string, address?: string }>({})
-    const supabase = createClient()
+    // Contact info from CMS
+    const [contactInfo, setContactInfo] = useState<{ email?: string; phone?: string; address?: string }>({})
 
     useEffect(() => {
-        // Only check if we don't have initial data
-        if (!initialUser) {
-            const checkUser = async () => {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (session?.user) {
-                    await updateUserAndLink(session.user)
-                }
-            }
-            checkUser()
-        }
+        const supabase = createClient()
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-                await updateUserAndLink(session?.user ?? null)
-            } else if (event === 'SIGNED_OUT') {
-                setUser(null)
-                setDashboardLink('/login')
-            }
-        })
-
-        return () => {
-            subscription.unsubscribe()
-        }
-    }, [initialUser])
-
-    const updateUserAndLink = async (currentUser: any) => {
-        if (!currentUser) {
-            setUser(null)
-            setDashboardLink('/login')
-            return
-        }
-
-        setUser(currentUser)
-
-        // Always fetch from DB first - it's the source of truth
-        let role = null
-        const { data } = await supabase
-            .from('users')
-            .select('role')
-            .eq('id', currentUser.id)
+        supabase
+            .from('pages')
+            .select('content_ar, content_en')
+            .eq('slug', 'contact')
             .single()
+            .then(({ data }) => {
+                if (!data) return
+                const content = isAr
+                    ? (data as Record<string, unknown>).content_ar
+                    : (data as Record<string, unknown>).content_en
 
-        if (data) {
-            role = (data as any).role
-        } else {
-            // Fallback to metadata only if DB lookup fails
-            role = currentUser.user_metadata?.role
-        }
-
-        if (role) {
-            const normalizedRole = String(role).toLowerCase().trim()
-            setDashboardLink(getLink(normalizedRole))
-        }
-    }
-
-    useEffect(() => {
-        const fetchContactInfo = async () => {
-            const { data } = await supabase
-                .from('pages')
-                .select('*')
-                .eq('slug', 'contact')
-                .single()
-
-            if (data) {
-                const pageData: any = data
-                const content = isAr ? pageData.content_ar : pageData.content_en
-                // Handle text/json content safely
                 try {
-                    const parsedContent = typeof content === 'string' ? JSON.parse(content) : content
-                    setContactInfo({
-                        email: parsedContent?.email,
-                        phone: parsedContent?.phone,
-                        address: parsedContent?.address
-                    })
-                } catch (e) {
-                    // If it's not JSON, maybe it's not usable directly here or fallback
+                    const parsed = typeof content === 'string' ? JSON.parse(content) : content
+                    if (parsed && typeof parsed === 'object') {
+                        setContactInfo({
+                            email: (parsed as Record<string, string>).email,
+                            phone: (parsed as Record<string, string>).phone,
+                            address: (parsed as Record<string, string>).address,
+                        })
+                    }
+                } catch {
+                    // not JSON — ignore
                 }
-            }
-        }
-        fetchContactInfo()
+            })
     }, [isAr])
 
-    // Fallback to settings or hardcoded if fetch fails or data missing
     const phone = contactInfo.phone || settings.contact_phone || '+20 123 456 7890'
     const email = contactInfo.email || settings.contact_email || 'info@dex-advertising.com'
-    const address = contactInfo.address || (isAr
-        ? (settings.contact_address_ar || 'القاهرة، مصر')
-        : (settings.contact_address_en || 'Cairo, Egypt'))
+    const address = contactInfo.address
+        || (isAr ? (settings.contact_address_ar || 'القاهرة، مصر') : (settings.contact_address_en || 'Cairo, Egypt'))
 
-    // روابط السوشيال من الإعدادات
     const socialLinks = [
-        { icon: Facebook, href: settings.social_facebook || '#' },
-        { icon: Instagram, href: settings.social_instagram || '#' },
-        { icon: Twitter, href: settings.social_twitter || '#' },
-        { icon: Linkedin, href: settings.social_linkedin || '#' },
-    ]
-
-    const quickLinks = [
-        { label: isAr ? 'الرئيسية' : 'Home', href: '/' },
-        { label: isAr ? 'من نحن' : 'About Us', href: '/about' },
-        { label: isAr ? 'خدماتنا' : 'Services', href: '/services' },
-        { label: isAr ? 'أعمالنا' : 'Portfolio', href: '/portfolio' },
-        { label: isAr ? 'تواصل معنا' : 'Contact Us', href: '/contact' },
+        { Icon: Facebook, href: settings.social_facebook || '#' },
+        { Icon: Instagram, href: settings.social_instagram || '#' },
+        { Icon: Twitter, href: settings.social_twitter || '#' },
+        { Icon: Linkedin, href: settings.social_linkedin || '#' },
     ]
 
     return (
-        <footer className="relative bg-[#020617] text-white pt-20 pb-10 overflow-hidden border-t border-white/5">
+        <footer className="relative bg-[#011C1F] text-white pt-20 pb-10 overflow-hidden border-t border-white/[0.04]">
             {/* Background Effects */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0" />
-            <div className="absolute -top-[500px] -left-[500px] w-[1000px] h-[1000px] bg-primary/5 rounded-full blur-3xl pointer-events-none opacity-20" />
-            <div className="absolute top-[20%] right-[-10%] w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-3xl pointer-events-none opacity-20" />
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+            <div className="absolute -top-[500px] -left-[500px] w-[1000px] h-[1000px] bg-primary/[0.02] rounded-full blur-[200px] pointer-events-none" />
+            <div className="absolute top-[20%] right-[-10%] w-[600px] h-[600px] bg-blue-500/[0.02] rounded-full blur-[200px] pointer-events-none" />
 
             <div className="container relative z-10 px-6 mx-auto">
                 <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 mb-16">
-                    {/* Brand Column (4 Cols) */}
+                    {/* Brand Column */}
                     <div className="lg:col-span-4 space-y-6">
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center shadow-lg shadow-primary/20 ring-1 ring-white/10">
-                                <span className="font-black text-2xl text-white">D</span>
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.15)] ring-1 ring-white/10">
+                                <Rocket className="h-6 w-6 text-white" />
                             </div>
                             <div>
                                 <span className="text-2xl font-black tracking-tight text-white block leading-none">DEX</span>
@@ -174,61 +99,55 @@ export function Footer({ initialUser, initialRole }: FooterProps) {
 
                         {/* Social Icons */}
                         <div className="flex gap-3 pt-2">
-                            {socialLinks.map((social, i) => (
+                            {socialLinks.map(({ Icon, href }, i) => (
                                 <a
                                     key={i}
-                                    href={social.href}
+                                    href={href}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="w-10 h-10 rounded-full bg-white/5 hover:bg-primary hover:text-white hover:scale-110 flex items-center justify-center transition-all duration-300 text-gray-400 border border-white/5"
                                 >
-                                    <social.icon className="h-4 w-4" />
+                                    <Icon className="h-4 w-4" />
                                 </a>
                             ))}
                         </div>
                     </div>
 
-                    {/* Quick Links (2 Cols) */}
+                    {/* Quick Links */}
                     <div className="lg:col-span-2 lg:col-start-6">
                         <h4 className="font-bold text-lg mb-6 text-white inline-block relative after:content-[''] after:absolute after:bottom-[-8px] after:start-0 after:w-10 after:h-1 after:bg-primary after:rounded-full">
                             {isAr ? 'الشركة' : 'Company'}
                         </h4>
                         <ul className="space-y-4">
-                            {quickLinks.map((link, i) => (
-                                <li key={i}>
-                                    <Link href={link.href} className="text-gray-400 hover:text-primary transition-colors flex items-center gap-2 group">
+                            {QUICK_LINK_HREFS.map((href, i) => (
+                                <li key={href}>
+                                    <Link href={href} className="text-gray-400 hover:text-primary transition-colors flex items-center gap-2 group">
                                         <span className="w-1.5 h-1.5 rounded-full bg-primary/0 group-hover:bg-primary transition-colors" />
-                                        {link.label}
+                                        {isAr ? QUICK_LINKS_AR[i] : QUICK_LINKS_EN[i]}
                                     </Link>
                                 </li>
                             ))}
                         </ul>
                     </div>
 
-                    {/* Legal/Support (2 Cols) */}
+                    {/* Legal / Support */}
                     <div className="lg:col-span-2">
                         <h4 className="font-bold text-lg mb-6 text-white inline-block relative after:content-[''] after:absolute after:bottom-[-8px] after:start-0 after:w-10 after:h-1 after:bg-primary after:rounded-full">
                             {isAr ? 'الدعم' : 'Support'}
                         </h4>
                         <ul className="space-y-4 text-gray-400">
-                            <li>
-                                <Link href="/services" className="hover:text-primary transition-colors flex items-center gap-2 group">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-primary/0 group-hover:bg-primary transition-colors" />
-                                    {isAr ? 'مركز المساعدة' : 'Help Center'}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/privacy" className="hover:text-primary transition-colors flex items-center gap-2 group">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-primary/0 group-hover:bg-primary transition-colors" />
-                                    {isAr ? 'سياسة الخصوصية' : 'Privacy Policy'}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link href="/terms" className="hover:text-primary transition-colors flex items-center gap-2 group">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-primary/0 group-hover:bg-primary transition-colors" />
-                                    {isAr ? 'الشروط والأحكام' : 'Terms & Conditions'}
-                                </Link>
-                            </li>
+                            {[
+                                { href: '/services', labelAr: 'مركز المساعدة', labelEn: 'Help Center' },
+                                { href: '/privacy', labelAr: 'سياسة الخصوصية', labelEn: 'Privacy Policy' },
+                                { href: '/terms', labelAr: 'الشروط والأحكام', labelEn: 'Terms & Conditions' },
+                            ].map(({ href, labelAr, labelEn }) => (
+                                <li key={href}>
+                                    <Link href={href} className="hover:text-primary transition-colors flex items-center gap-2 group">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-primary/0 group-hover:bg-primary transition-colors" />
+                                        {isAr ? labelAr : labelEn}
+                                    </Link>
+                                </li>
+                            ))}
                             <li>
                                 <Link href={dashboardLink} className="hover:text-primary transition-colors flex items-center gap-2 group">
                                     <span className="w-1.5 h-1.5 rounded-full bg-primary/0 group-hover:bg-primary transition-colors" />
@@ -241,7 +160,7 @@ export function Footer({ initialUser, initialRole }: FooterProps) {
                         </ul>
                     </div>
 
-                    {/* Newsletter / Contact (4 Cols) */}
+                    {/* Contact Info */}
                     <div className="lg:col-span-4">
                         <h4 className="font-bold text-lg mb-6 text-white inline-block relative after:content-[''] after:absolute after:bottom-[-8px] after:start-0 after:w-10 after:h-1 after:bg-primary after:rounded-full">
                             {isAr ? 'تواصل معنا' : 'Get in Touch'}
@@ -258,7 +177,7 @@ export function Footer({ initialUser, initialRole }: FooterProps) {
                                 </div>
                             </a>
 
-                            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 transition-colors">
+                            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
                                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                                     <Phone className="w-5 h-5" />
                                 </div>
@@ -268,7 +187,7 @@ export function Footer({ initialUser, initialRole }: FooterProps) {
                                 </div>
                             </div>
 
-                            <div className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5 transition-colors">
+                            <div className="flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
                                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mt-1">
                                     <MapPin className="w-5 h-5" />
                                 </div>
@@ -278,18 +197,15 @@ export function Footer({ initialUser, initialRole }: FooterProps) {
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
                 {/* Footer Bottom */}
                 <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
                     <p className="text-gray-500 text-sm font-medium">
-                        &copy; {new Date().getFullYear()} DEX Advertising. {isAr ? 'جميع الحقوق محفوظة' : 'All rights reserved.'}
+                        &copy; {CURRENT_YEAR} DEX Advertising. {isAr ? 'جميع الحقوق محفوظة' : 'All rights reserved.'}
                     </p>
-
                     <div className="flex items-center gap-6 text-sm font-medium text-gray-500">
-                        {/* Optional extra privacy links or languages could go here */}
                         <span>Designed & Developed by DEX Tech Team</span>
                     </div>
                 </div>

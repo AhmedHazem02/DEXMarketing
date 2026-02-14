@@ -45,7 +45,7 @@ import {
 } from '@/components/ui/form'
 
 import { useCreateTask, useUpdateTask } from '@/hooks/use-tasks'
-import { useUsers, useCurrentUser } from '@/hooks/use-users'
+import { useUsers, useCurrentUser, useTeamMembers } from '@/hooks/use-users'
 import { useClients } from '@/hooks/use-clients'
 import { PRIORITY_CONFIG, KANBAN_COLUMNS, PHOTOGRAPHY_ROLES, CONTENT_ROLES } from '@/types/task'
 import type { TaskStatus, TaskPriority } from '@/types/database'
@@ -100,26 +100,42 @@ export function TaskForm({
     // Hooks
     const createTask = useCreateTask()
     const updateTask = useUpdateTask()
-    const { data: users, isLoading: usersLoading } = useUsers()
     const { data: clients, isLoading: clientsLoading } = useClients()
     const { data: currentUser } = useCurrentUser()
 
-    // Filter assignable users based on the current user's department
-    const assignableUsers = users?.filter(u => {
-        if (!u.is_active) return false
-        
+    // Get users based on role
+    // Team leaders use useTeamMembers to get their department team
+    // Admins use useUsers to get all users
+    const { data: allUsers, isLoading: allUsersLoading } = useUsers()
+    const { data: teamMembers, isLoading: teamMembersLoading } = useTeamMembers(
+        currentUser?.role === 'team_leader' ? currentUserId : ''
+    )
+
+    // Determine which users to show based on current user's role
+    const usersLoading = currentUser?.role === 'team_leader' ? teamMembersLoading : allUsersLoading
+    const assignableUsers = (() => {
+        if (!currentUser) return []
+
         // Admin can assign to anyone
-        if (currentUser?.role === 'admin') {
-            return true
+        if (currentUser.role === 'admin') {
+            return allUsers?.filter(u => u.is_active) ?? []
         }
-        
-        // Team leaders and others can only assign to users in their department
-        if (currentUser?.department && u.department) {
-            return u.department === currentUser.department
+
+        // Team leaders get their department's team members
+        if (currentUser.role === 'team_leader') {
+            return teamMembers ?? []
         }
-        
-        return false
-    }) ?? []
+
+        // Other roles can only assign to users in their department
+        if (currentUser.department && allUsers) {
+            return allUsers.filter(u =>
+                u.is_active &&
+                u.department === currentUser.department
+            )
+        }
+
+        return []
+    })()
 
     // Form setup
     const form = useForm<TaskFormValues>({

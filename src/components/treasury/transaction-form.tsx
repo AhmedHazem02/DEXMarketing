@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/tabs'
 
 import { useCreateTransaction } from '@/hooks/use-treasury'
+import { useCurrentUser } from '@/hooks/use-users'
 import type { TransactionType } from '@/types/database'
 
 // ============================================
@@ -68,6 +69,7 @@ export function TransactionForm() {
     const isAr = locale === 'ar'
     const [open, setOpen] = useState(false)
     const createTransaction = useCreateTransaction()
+    const { data: currentUser } = useCurrentUser()
 
     const form = useForm<TransactionFormValues>({
         resolver: zodResolver(transactionSchema) as any,
@@ -80,11 +82,16 @@ export function TransactionForm() {
     })
 
     const onSubmit = async (values: TransactionFormValues) => {
+        if (!currentUser) {
+            console.error('No authenticated user found')
+            return
+        }
+
         try {
             await createTransaction.mutateAsync({
                 ...values,
                 category: values.category || 'General',
-                created_by: '00000000-0000-0000-0000-000000000000' // Mock ID
+                created_by: currentUser.id
             })
             setOpen(false)
             form.reset()
@@ -219,7 +226,7 @@ export function TransactionForm() {
                         </div>
 
                         <DialogFooter>
-                            <Button type="submit" disabled={createTransaction.isPending}>
+                            <Button type="submit" disabled={createTransaction.isPending || !currentUser}>
                                 {createTransaction.isPending && (
                                     <Loader2 className="me-2 h-4 w-4 animate-spin" />
                                 )}

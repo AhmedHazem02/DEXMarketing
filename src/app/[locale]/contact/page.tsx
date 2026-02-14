@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Mail, Phone, MapPin, Send } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
     const params = await props.params;
@@ -23,7 +23,7 @@ export default async function ContactPage(props: { params: Promise<{ locale: str
     const isAr = locale === 'ar'
 
     // Fetch dynamic content
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: pageData } = await supabase
         .from('pages')
         .select('*')

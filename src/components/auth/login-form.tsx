@@ -28,7 +28,6 @@ export function LoginForm() {
     const isAr = locale === 'ar'
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
-    const supabase = createClient()
 
     const formSchema = z.object({
         email: z.string().email({ message: isAr ? 'البريد الإلكتروني غير صالح' : 'Invalid email address' }),
@@ -45,6 +44,7 @@ export function LoginForm() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true)
+        const supabase = createClient()
 
         try {
             const { error } = await supabase.auth.signInWithPassword({

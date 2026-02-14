@@ -87,7 +87,8 @@ export function usePage(slug: string) {
                 .from('pages')
                 .select('*')
                 .eq('slug', slug)
-                .single()
+                .select('*')
+                .maybeSingle()
 
             if (error) throw error
             return data as unknown as Page
@@ -107,7 +108,8 @@ export function useCreatePage() {
                 // @ts-ignore
                 .insert(page)
                 .select()
-                .single()
+                .select('*')
+                .maybeSingle()
 
             if (error) throw error
             return data as unknown as Page
@@ -189,7 +191,8 @@ export function useCreateTeamMember() {
                 // @ts-ignore
                 .insert(member)
                 .select()
-                .single()
+                .select('*')
+                .maybeSingle()
 
             if (error) throw error
             return data as unknown as TeamMember
@@ -271,7 +274,8 @@ export function useCreatePortfolioItem() {
                 // @ts-ignore
                 .insert(item)
                 .select()
-                .single()
+                .select('*')
+                .maybeSingle()
 
             if (error) throw error
             return data as unknown as PortfolioItem
@@ -314,7 +318,8 @@ export function useStorageSettings() {
             const { data, error } = await supabase
                 .from('storage_settings')
                 .select('*')
-                .single()
+                .select('*')
+                .maybeSingle()
 
             if (error) throw error
             return data as unknown as StorageSettings
@@ -332,7 +337,8 @@ export function useUpdateStorageSettings() {
             const { data: current } = await supabase
                 .from('storage_settings')
                 .select('id')
-                .single()
+                .select('*')
+                .maybeSingle()
 
             const currentId = (current as unknown as { id: string } | null)?.id
             if (!currentId) throw new Error('Storage settings not found')

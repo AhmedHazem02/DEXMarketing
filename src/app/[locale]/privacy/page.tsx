@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { setRequestLocale } from 'next-intl/server'
 import { Navbar, Footer } from '@/components/landing'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 import { ShieldCheck, Calendar } from 'lucide-react'
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
@@ -23,7 +23,7 @@ export default async function PrivacyPage(props: { params: Promise<{ locale: str
     const isAr = locale === 'ar'
 
     // Fetch dynamic content
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: pageData } = await supabase
         .from('pages')
         .select('*')

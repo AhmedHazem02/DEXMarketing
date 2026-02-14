@@ -1,124 +1,79 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Rocket, Star, Code, Layout, Globe, Smartphone } from 'lucide-react'
-
-const projects = [
-    {
-        id: 1,
-        title: 'E-Commerce Platform',
-        category: 'Web App',
-        icon: Globe,
-        color: 'from-purple-500 to-pink-500',
-        size: 'large'
-    },
-    {
-        id: 2,
-        title: 'Agency Dashboard',
-        category: 'Admin Panel',
-        icon: Layout,
-        color: 'from-cyan-500 to-blue-500',
-        size: 'medium'
-    },
-    {
-        id: 3,
-        title: 'Mobile Banking',
-        category: 'Mobile App',
-        icon: Smartphone,
-        color: 'from-amber-400 to-orange-500',
-        size: 'medium'
-    },
-    {
-        id: 4,
-        title: 'API Gateway',
-        category: 'Backend',
-        icon: Code,
-        color: 'from-emerald-400 to-teal-500',
-        size: 'small'
-    },
-]
+import { useLocale } from 'next-intl'
+import { ArrowUpRight, Layers } from 'lucide-react'
+import { Link } from '@/i18n/navigation'
+import { PROJECTS } from '@/lib/constants/landing'
+import { ProjectCard } from '@/components/shared/project-card'
 
 export function GalaxyPortfolio() {
+    const locale = useLocale()
+    const isAr = locale === 'ar'
+
     return (
-        <section className="min-h-screen bg-[#060F1E] py-20 px-4 overflow-hidden relative">
-            <h2 className="text-5xl font-bold text-center mb-16 text-white drop-shadow-[0_0_10px_rgba(252,211,77,0.8)]">
-                Mission Log
-            </h2>
+        <section id="portfolio" className="relative overflow-hidden py-40">
+            {/* Background */}
+            <div className="pointer-events-none absolute inset-0">
+                <div className="absolute left-1/2 top-0 h-[1px] w-[60%] -translate-x-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="absolute right-0 top-1/3 h-[600px] w-[600px] rounded-full bg-purple-500/[0.03] blur-[150px]" />
+            </div>
 
-            <div className="max-w-6xl mx-auto relative h-[800px] flex items-center justify-center">
-                {/* Orbital paths (SVG) */}
-                <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none">
-                    <circle cx="50%" cy="50%" r="200" fill="none" stroke="url(#gradient)" strokeWidth="1" className="animate-[spin_60s_linear_infinite]" />
-                    <circle cx="50%" cy="50%" r="350" fill="none" stroke="url(#gradient)" strokeWidth="1" className="animate-[spin_80s_linear_infinite_reverse]" />
-                    <defs>
-                        <linearGradient id="gradient">
-                            <stop offset="0%" stopColor="#FBBF24" />
-                            <stop offset="100%" stopColor="#22D3EE" />
-                        </linearGradient>
-                    </defs>
-                </svg>
+            <div className="container relative z-10 mx-auto px-6">
+                {/* Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: '-100px' }}
+                    className="mb-20 text-center"
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05]"
+                    >
+                        <Layers className="h-7 w-7 text-primary" />
+                    </motion.div>
+                    <span className="mb-4 inline-block text-sm font-bold uppercase tracking-[0.25em] text-primary">
+                        {isAr ? 'سجل المهام' : 'Mission Log'}
+                    </span>
+                    <h2 className="text-4xl font-black md:text-6xl lg:text-7xl">
+                        {isAr ? 'أعمال ' : 'Work That '}
+                        <span className="bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">
+                            {isAr ? 'تتحدث' : 'Speaks'}
+                        </span>
+                    </h2>
+                </motion.div>
 
-                {/* Central Star */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
-                    <div className="w-32 h-32 rounded-full bg-gradient-to-r from-amber-400 to-orange-600 blur-xl opacity-50 animate-pulse" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <Rocket className="w-16 h-16 text-white text-opacity-80" />
-                    </div>
-                </div>
-
-                {/* Project "planets" */}
-                <div className="absolute inset-0 w-full h-full">
-                    {/* We manually position them in orbits for this demo, or use logic */}
-                    {projects.map((project, index) => {
-                        // Calculate orbit position
-                        const orbitRadius = index === 0 ? 0 : (index % 2 === 0 ? 350 : 200)
-                        const angle = (index * (360 / projects.length)) * (Math.PI / 180)
-
-                        // Initial static position for SSR, we'd want to animate this in a real circular path
-                        // For now, simpler grid or absolute positioning
-
-                        // Let's stick to the grid layout from the plan for robustness on mobile
-                        // but keep the galaxy styling
-                        return null
-                    })}
-                </div>
-
-                {/* Fallback Grid Layout for Usability */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10 w-full">
-                    {projects.map((project, index) => (
-                        <motion.div
+                {/* Portfolio Grid -- Masonry-like bento */}
+                <div className="grid gap-4 md:grid-cols-3 md:auto-rows-[200px] lg:auto-rows-[240px]">
+                    {PROJECTS.map((project, i) => (
+                        <ProjectCard
                             key={project.id}
-                            initial={{ opacity: 0, scale: 0 }}
-                            whileInView={{ opacity: 1, scale: 1 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: index * 0.1, type: 'spring' }}
-                            whileHover={{ scale: 1.05, rotate: 2 }}
-                            className={`
-                relative aspect-video lg:aspect-square rounded-2xl bg-gradient-to-br ${project.color}
-                cursor-pointer overflow-hidden group border border-white/10
-                flex flex-col items-center justify-center p-6 text-center
-                backdrop-blur-sm bg-opacity-20
-                ${project.size === 'large' ? 'lg:col-span-2 lg:row-span-2' : ''}
-              `}
-                            style={{
-                                boxShadow: `0 0 30px -10px var(--tw-gradient-to)`
-                            }}
-                        >
-                            {/* Content */}
-                            <div className="relative z-10 text-white transform transition-transform duration-500 group-hover:-translate-y-2">
-                                <project.icon className="w-12 h-12 mx-auto mb-4 opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all" />
-                                <h3 className="text-2xl font-bold mb-2 text-shadow-sm">
-                                    {project.title}
-                                </h3>
-                                <p className="text-white/80 font-medium">{project.category}</p>
-                            </div>
-
-                            {/* Atmosphere/Hover effect */}
-                            <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
-                            <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/20 to-transparent rotate-45 translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-700 pointer-events-none" />
-                        </motion.div>
+                            project={project}
+                            index={i}
+                            locale={locale as 'ar' | 'en'}
+                            variant="galaxy"
+                        />
                     ))}
                 </div>
+
+                {/* View all link */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    className="mt-12 text-center"
+                >
+                    <Link
+                        href="/portfolio"
+                        className="group inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-white/40 transition-colors hover:text-primary"
+                    >
+                        {isAr ? 'عرض جميع الأعمال' : 'View all projects'}
+                        <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                    </Link>
+                </motion.div>
             </div>
         </section>
     )

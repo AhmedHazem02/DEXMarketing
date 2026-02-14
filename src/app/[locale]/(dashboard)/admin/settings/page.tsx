@@ -1,24 +1,17 @@
-import { StorageSettingsCard, ActivityLogViewer } from '@/components/admin'
+import { StorageSettingsCard, ActivityLogViewer, PageHeader } from '@/components/admin'
 import { ContactSettings } from '@/components/admin/contact-settings'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Settings, Phone, Database, Activity } from 'lucide-react'
-import { locales } from '@/i18n/config'
+import { Phone, Database, Activity } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
-
-export function generateStaticParams() {
-    return locales.map((locale) => ({ locale }))
-}
 
 export default function SettingsPage() {
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">الإعدادات</h1>
-                <p className="text-muted-foreground">
-                    إعدادات النظام والموقع
-                </p>
-            </div>
+            <PageHeader
+                title="الإعدادات"
+                description="إعدادات النظام والموقع"
+            />
 
             <Tabs defaultValue="contact" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">

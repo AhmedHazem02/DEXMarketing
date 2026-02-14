@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react'
+import { useState, useMemo, useCallback, memo, useEffect } from 'react'
 import { useAdminTasks, useAdminTasksStats, useAdminTasksExport } from '@/hooks/use-tasks'
+import { useDebounce } from '@/hooks'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { format } from 'date-fns'
-import { ar } from 'date-fns/locale'
 import { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
@@ -20,16 +20,13 @@ import {
     Loader2,
     Download,
     Search,
-    Filter,
     FileText,
     ChevronLeft,
     ChevronRight,
-    Eye,
     Calendar as CalendarIcon,
     X,
     SlidersHorizontal,
     Building2,
-    ChevronDown,
     FileSpreadsheet
 } from 'lucide-react'
 import { exportTasksToCSV, exportTasksToPDF, type TaskExportData } from '@/lib/export-utils'
@@ -43,24 +40,45 @@ import {
     DialogTrigger
 } from '@/components/ui/dialog'
 import { Card, CardContent } from '@/components/ui/card'
-import type { TaskFilters } from '@/types/task'
+import type { TaskFilters, TaskWithRelations } from '@/types/task'
+import {
+    DEPARTMENT_OPTIONS,
+    STATUS_OPTIONS,
+    PRIORITY_OPTIONS,
+    TASK_TYPE_OPTIONS,
+    STATUS_CONFIG,
+    PRIORITY_CONFIG,
+    DEPARTMENT_BADGE_CONFIG,
+} from '@/lib/constants/admin'
+
+// ============================================
+// Utility Functions
+// ============================================
+
+/**
+ * Safely format a date string, returning fallback if invalid
+ */
+function formatTaskDate(dateString: string | null | undefined, formatStr: string = 'dd/MM/yyyy'): string {
+    if (!dateString) return '-'
+    try {
+        const date = new Date(dateString)
+        if (isNaN(date.getTime())) return '-'
+        return format(date, formatStr)
+    } catch {
+        return '-'
+    }
+}
 
 // ============================================
 // Custom Hooks for Performance
 // ============================================
 
-function useDebounce<T>(value: T, delay: number): T {
-    const [debouncedValue, setDebouncedValue] = useState(value)
-    useEffect(() => {
-        const timer = setTimeout(() => setDebouncedValue(value), delay)
-        return () => clearTimeout(timer)
-    }, [value, delay])
-    return debouncedValue
-}
-
 function useMediaQuery(query: string): boolean {
     const [matches, setMatches] = useState(false)
+    
     useEffect(() => {
+        if (typeof window === 'undefined') return
+        
         const mql = window.matchMedia(query)
         setMatches(mql.matches)
         const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
@@ -72,39 +90,6 @@ function useMediaQuery(query: string): boolean {
 
 const ROWS_PER_PAGE = 15
 
-const DEPARTMENT_OPTIONS = [
-    { value: 'all', label: 'كل الأقسام' },
-    { value: 'content', label: 'قسم المحتوى' },
-    { value: 'photography', label: 'قسم التصوير' },
-] as const
-
-const STATUS_OPTIONS = [
-    { value: 'all', label: 'كل الحالات' },
-    { value: 'new', label: 'جديدة' },
-    { value: 'in_progress', label: 'قيد التنفيذ' },
-    { value: 'review', label: 'مراجعة' },
-    { value: 'revision', label: 'تعديل مطلوب' },
-    { value: 'approved', label: 'معتمد' },
-    { value: 'rejected', label: 'مرفوض' },
-] as const
-
-const PRIORITY_OPTIONS = [
-    { value: 'all', label: 'كل الأولويات' },
-    { value: 'urgent', label: 'عاجل' },
-    { value: 'high', label: 'عالي' },
-    { value: 'medium', label: 'متوسط' },
-    { value: 'low', label: 'منخفض' },
-] as const
-
-const TASK_TYPE_OPTIONS = [
-    { value: 'all', label: 'كل الأنواع' },
-    { value: 'video', label: 'فيديو' },
-    { value: 'photo', label: 'تصوير' },
-    { value: 'editing', label: 'مونتاج' },
-    { value: 'content', label: 'محتوى' },
-    { value: 'general', label: 'عام' },
-] as const
-
 export function TasksManager() {
     const [search, setSearch] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
@@ -114,8 +99,7 @@ export function TasksManager() {
     const [date, setDate] = useState<DateRange | undefined>()
     const [currentPage, setCurrentPage] = useState(1)
     const [showFilters, setShowFilters] = useState(false)
-    const [exportRequested, setExportRequested] = useState(false)
-    const [exportingPDF, setExportingPDF] = useState(false)
+    const [isExporting, setIsExporting] = useState<'csv' | 'pdf' | null>(null)
     const isSmallScreen = useMediaQuery('(max-width: 639px)')
 
     // Debounce search to avoid excessive API calls
@@ -124,10 +108,10 @@ export function TasksManager() {
     // Build filters object — only include non-default values
     const filters = useMemo<TaskFilters>(() => ({
         search: debouncedSearch.length > 2 ? debouncedSearch : undefined,
-        status: statusFilter === 'all' ? undefined : statusFilter as any,
-        department: departmentFilter === 'all' ? undefined : departmentFilter as any,
-        priority: priorityFilter === 'all' ? undefined : priorityFilter as any,
-        task_type: taskTypeFilter === 'all' ? undefined : taskTypeFilter as any,
+        status: statusFilter === 'all' ? undefined : (statusFilter as any),
+        department: departmentFilter === 'all' ? undefined : (departmentFilter as any),
+        priority: priorityFilter === 'all' ? undefined : (priorityFilter as any),
+        task_type: taskTypeFilter === 'all' ? undefined : (taskTypeFilter as any),
         dateFrom: date?.from?.toISOString(),
         dateTo: date?.to?.toISOString(),
     }), [debouncedSearch, statusFilter, departmentFilter, priorityFilter, taskTypeFilter, date])
@@ -137,7 +121,7 @@ export function TasksManager() {
     // Lightweight stats query (separate so stats don't flicker on page change)
     const { data: stats } = useAdminTasksStats(filters)
     // Export data (only fetched when requested)
-    const { data: exportData } = useAdminTasksExport(filters, exportRequested)
+    const { data: exportData } = useAdminTasksExport(filters, isExporting !== null)
 
     const tasks = paginatedResult?.data ?? []
     const totalCount = paginatedResult?.totalCount ?? 0
@@ -156,11 +140,24 @@ export function TasksManager() {
     }, [statusFilter, departmentFilter, priorityFilter, taskTypeFilter, date, debouncedSearch])
 
     // Reset page to 1 when any filter changes
-    const handleFilterChange = useCallback((setter: (v: string) => void) => {
-        return (value: string) => {
-            setter(value)
-            setCurrentPage(1)
-        }
+    const handleStatusChange = useCallback((value: string) => {
+        setStatusFilter(value)
+        setCurrentPage(1)
+    }, [])
+
+    const handleDepartmentChange = useCallback((value: string) => {
+        setDepartmentFilter(value)
+        setCurrentPage(1)
+    }, [])
+
+    const handlePriorityChange = useCallback((value: string) => {
+        setPriorityFilter(value)
+        setCurrentPage(1)
+    }, [])
+
+    const handleTaskTypeChange = useCallback((value: string) => {
+        setTaskTypeFilter(value)
+        setCurrentPage(1)
     }, [])
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,40 +180,28 @@ export function TasksManager() {
         setCurrentPage(1)
     }, [])
 
-    // CSV export — triggers a full data fetch on demand, then downloads
+    // Export handlers - trigger data fetch and wait for useEffect to handle the actual export
     const handleExportCSV = useCallback(() => {
-        if (exportData && exportData.length > 0) {
-            exportTasksToCSV(exportData as TaskExportData[])
-            setExportRequested(false)
-        } else {
-            setExportRequested(true)
-        }
-    }, [exportData])
+        setIsExporting('csv')
+    }, [])
 
-    // PDF export — includes statistics
-    const handleExportPDF = useCallback(async () => {
-        if (exportData && exportData.length > 0) {
-            setExportingPDF(true)
-            try {
-                await exportTasksToPDF(exportData as TaskExportData[], undefined, stats)
-            } catch (error) {
-                console.error('Error exporting PDF:', error)
-            } finally {
-                setExportingPDF(false)
-                setExportRequested(false)
-            }
-        } else {
-            setExportRequested(true)
-        }
-    }, [exportData, stats])
+    const handleExportPDF = useCallback(() => {
+        setIsExporting('pdf')
+    }, [])
 
-    // Perform download once data is available
+    // Perform download once data is available (single source of truth)
     useEffect(() => {
-        if (exportRequested && exportData && exportData.length > 0) {
-            exportTasksToCSV(exportData as TaskExportData[])
-            setExportRequested(false)
+        if (isExporting && exportData && exportData.length > 0) {
+            if (isExporting === 'csv') {
+                exportTasksToCSV(exportData as TaskExportData[])
+                setIsExporting(null)
+            } else if (isExporting === 'pdf') {
+                exportTasksToPDF(exportData as TaskExportData[], undefined, stats)
+                    .catch((error) => console.error('Error exporting PDF:', error))
+                    .finally(() => setIsExporting(null))
+            }
         }
-    }, [exportRequested, exportData])
+    }, [isExporting, exportData, stats])
 
     if (isLoading) {
         return <div className="flex justify-center p-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
@@ -226,33 +211,18 @@ export function TasksManager() {
         return <div className="text-red-500 p-3 md:p-4 border border-red-200 rounded-lg bg-red-50 text-sm">حدث خطأ أثناء تحميل البيانات.</div>
     }
 
+    // Type-safe tasks data
+    const typedTasks = tasks as TaskWithRelations[]
+
     return (
         <Card>
             <CardContent className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
                 {/* Summary Stats — from lightweight stats query */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-                    <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-2.5 md:p-3 text-center">
-                        <div className="text-xl md:text-2xl font-bold text-blue-600">{stats?.total ?? 0}</div>
-                        <div className="text-[10px] md:text-xs text-muted-foreground">إجمالي المهام</div>
-                    </div>
-                    <div className="bg-yellow-50 dark:bg-yellow-500/10 rounded-lg p-2.5 md:p-3 text-center">
-                        <div className="text-xl md:text-2xl font-bold text-yellow-600">
-                            {stats?.in_progress ?? 0}
-                        </div>
-                        <div className="text-[10px] md:text-xs text-muted-foreground">قيد التنفيذ</div>
-                    </div>
-                    <div className="bg-purple-50 dark:bg-purple-500/10 rounded-lg p-2.5 md:p-3 text-center">
-                        <div className="text-xl md:text-2xl font-bold text-purple-600">
-                            {stats?.review ?? 0}
-                        </div>
-                        <div className="text-[10px] md:text-xs text-muted-foreground">مراجعة</div>
-                    </div>
-                    <div className="bg-green-50 dark:bg-green-500/10 rounded-lg p-2.5 md:p-3 text-center">
-                        <div className="text-xl md:text-2xl font-bold text-green-600">
-                            {stats?.approved ?? 0}
-                        </div>
-                        <div className="text-[10px] md:text-xs text-muted-foreground">معتمد</div>
-                    </div>
+                    <TaskStatCard value={stats?.total ?? 0} label="إجمالي المهام" colorClass="bg-blue-100 dark:bg-blue-500/20 text-blue-700" />
+                    <TaskStatCard value={stats?.in_progress ?? 0} label="قيد التنفيذ" colorClass="bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700" />
+                    <TaskStatCard value={stats?.review ?? 0} label="مراجعة" colorClass="bg-purple-100 dark:bg-purple-500/20 text-purple-700" />
+                    <TaskStatCard value={stats?.approved ?? 0} label="معتمد" colorClass="bg-green-100 dark:bg-green-500/20 text-green-700" />
                 </div>
 
                 {/* Search + Filter Toggle (Mobile) + Export */}
@@ -288,7 +258,7 @@ export function TasksManager() {
                                     variant="outline"
                                     size="icon"
                                     className="md:hidden shrink-0"
-                                    disabled={totalCount === 0 || exportRequested || exportingPDF}
+                                    disabled={totalCount === 0 || isExporting !== null}
                                     title="تصدير"
                                 >
                                     <Download className="w-4 h-4" />
@@ -300,20 +270,20 @@ export function TasksManager() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={handleExportCSV}
-                                        disabled={exportRequested}
+                                        disabled={isExporting !== null}
                                         className="justify-start"
                                     >
-                                        {exportRequested ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 ml-2" />}
+                                        {isExporting === 'csv' ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 ml-2" />}
                                         CSV
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={handleExportPDF}
-                                        disabled={exportingPDF}
+                                        disabled={isExporting !== null}
                                         className="justify-start"
                                     >
-                                        {exportingPDF ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileText className="w-4 h-4 ml-2" />}
+                                        {isExporting === 'pdf' ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileText className="w-4 h-4 ml-2" />}
                                         PDF
                                     </Button>
                                 </div>
@@ -324,17 +294,17 @@ export function TasksManager() {
                             <Button
                                 variant="outline"
                                 onClick={handleExportCSV}
-                                disabled={totalCount === 0 || exportRequested}
+                                disabled={totalCount === 0 || isExporting !== null}
                             >
-                                {exportRequested ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 ml-2" />}
+                                {isExporting === 'csv' ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 ml-2" />}
                                 CSV
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={handleExportPDF}
-                                disabled={totalCount === 0 || exportingPDF}
+                                disabled={totalCount === 0 || isExporting !== null}
                             >
-                                {exportingPDF ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileText className="w-4 h-4 ml-2" />}
+                                {isExporting === 'pdf' ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileText className="w-4 h-4 ml-2" />}
                                 PDF
                             </Button>
                         </div>
@@ -347,7 +317,7 @@ export function TasksManager() {
                     )}>
                         {/* Row 1: Department + Status + Priority + Task Type */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                            <Select value={departmentFilter} onValueChange={handleFilterChange(setDepartmentFilter)}>
+                            <Select value={departmentFilter} onValueChange={handleDepartmentChange}>
                                 <SelectTrigger className="w-full">
                                     <Building2 className="w-4 h-4 ml-1 shrink-0 text-muted-foreground" />
                                     <SelectValue placeholder="القسم" />
@@ -359,7 +329,7 @@ export function TasksManager() {
                                 </SelectContent>
                             </Select>
 
-                            <Select value={statusFilter} onValueChange={handleFilterChange(setStatusFilter)}>
+                            <Select value={statusFilter} onValueChange={handleStatusChange}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="الحالة" />
                                 </SelectTrigger>
@@ -370,7 +340,7 @@ export function TasksManager() {
                                 </SelectContent>
                             </Select>
 
-                            <Select value={priorityFilter} onValueChange={handleFilterChange(setPriorityFilter)}>
+                            <Select value={priorityFilter} onValueChange={handlePriorityChange}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="الأولوية" />
                                 </SelectTrigger>
@@ -381,7 +351,7 @@ export function TasksManager() {
                                 </SelectContent>
                             </Select>
 
-                            <Select value={taskTypeFilter} onValueChange={handleFilterChange(setTaskTypeFilter)}>
+                            <Select value={taskTypeFilter} onValueChange={handleTaskTypeChange}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="النوع" />
                                 </SelectTrigger>
@@ -405,7 +375,7 @@ export function TasksManager() {
                                             !date && "text-muted-foreground"
                                         )}
                                     >
-                                        <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                                        <CalendarIcon className="ml-2 h-4 w-4 shrink-0" />
                                         {date?.from ? (
                                             date.to ? (
                                                 <span className="truncate">
@@ -447,39 +417,22 @@ export function TasksManager() {
                         {/* Active Filters Badges */}
                         {activeFilterCount > 0 && (
                             <div className="flex flex-wrap items-center gap-1.5">
-                                {departmentFilter !== 'all' && (
-                                    <Badge variant="secondary" className="gap-1 text-xs">
-                                        <Building2 className="w-3 h-3" />
-                                        {DEPARTMENT_OPTIONS.find(d => d.value === departmentFilter)?.label}
-                                        <button onClick={() => handleFilterChange(setDepartmentFilter)('all')} className="ml-0.5 hover:text-red-500">
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </Badge>
-                                )}
-                                {statusFilter !== 'all' && (
-                                    <Badge variant="secondary" className="gap-1 text-xs">
-                                        {STATUS_OPTIONS.find(s => s.value === statusFilter)?.label}
-                                        <button onClick={() => handleFilterChange(setStatusFilter)('all')} className="ml-0.5 hover:text-red-500">
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </Badge>
-                                )}
-                                {priorityFilter !== 'all' && (
-                                    <Badge variant="secondary" className="gap-1 text-xs">
-                                        {PRIORITY_OPTIONS.find(p => p.value === priorityFilter)?.label}
-                                        <button onClick={() => handleFilterChange(setPriorityFilter)('all')} className="ml-0.5 hover:text-red-500">
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </Badge>
-                                )}
-                                {taskTypeFilter !== 'all' && (
-                                    <Badge variant="secondary" className="gap-1 text-xs">
-                                        {TASK_TYPE_OPTIONS.find(t => t.value === taskTypeFilter)?.label}
-                                        <button onClick={() => handleFilterChange(setTaskTypeFilter)('all')} className="ml-0.5 hover:text-red-500">
-                                            <X className="w-3 h-3" />
-                                        </button>
-                                    </Badge>
-                                )}
+                                {[
+                                    { filter: departmentFilter, options: DEPARTMENT_OPTIONS, handler: handleDepartmentChange, icon: <Building2 className="w-3 h-3" /> },
+                                    { filter: statusFilter, options: STATUS_OPTIONS, handler: handleStatusChange },
+                                    { filter: priorityFilter, options: PRIORITY_OPTIONS, handler: handlePriorityChange },
+                                    { filter: taskTypeFilter, options: TASK_TYPE_OPTIONS, handler: handleTaskTypeChange },
+                                ].map(({ filter, options, handler, icon }, idx) => (
+                                    filter !== 'all' && (
+                                        <Badge key={idx} variant="secondary" className="gap-1 text-xs">
+                                            {icon}
+                                            {options.find(o => o.value === filter)?.label}
+                                            <button onClick={() => handler('all')} className="ml-0.5 hover:text-red-500">
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </Badge>
+                                    )
+                                ))}
                             </div>
                         )}
                     </div>
@@ -492,12 +445,12 @@ export function TasksManager() {
                             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                         </div>
                     )}
-                    {tasks.length === 0 ? (
+                    {typedTasks.length === 0 ? (
                         <div className="text-center py-10 text-muted-foreground text-sm">
                             لا توجد مهام مطابقة
                         </div>
                     ) : (
-                        tasks.map((task: any) => (
+                        typedTasks.map((task) => (
                             <MobileTaskCard key={task.id} task={task} />
                         ))
                     )}
@@ -514,10 +467,9 @@ export function TasksManager() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="text-right">عنوان المهمة</TableHead>
-                                <TableHead className="text-right hidden lg:table-cell">القسم</TableHead>
-                                <TableHead className="text-right">المشروع / العميل</TableHead>
+                                <TableHead className="text-right">العميل</TableHead>
                                 <TableHead className="text-right hidden lg:table-cell">التيم ليدر</TableHead>
-                                <TableHead className="text-right hidden xl:table-cell">المصمم</TableHead>
+                                <TableHead className="text-right hidden lg:table-cell">المصمم</TableHead>
                                 <TableHead className="text-center">الحالة</TableHead>
                                 <TableHead className="text-center hidden lg:table-cell">الأولوية</TableHead>
                                 <TableHead className="text-center hidden xl:table-cell">التاريخ</TableHead>
@@ -525,14 +477,14 @@ export function TasksManager() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {tasks.length === 0 ? (
+                            {typedTasks.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
+                                    <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
                                         لا توجد مهام مطابقة
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                tasks.map((task: any) => (
+                                typedTasks.map((task) => (
                                     <TableRow key={task.id}>
                                         <TableCell className="font-medium">
                                             <div className="flex flex-col">
@@ -540,16 +492,10 @@ export function TasksManager() {
                                                 <span className="text-xs text-muted-foreground truncate max-w-[200px]">{task.description}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="hidden lg:table-cell">
-                                            <DepartmentBadge department={task.department} />
-                                        </TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="font-medium line-clamp-1">{task.project?.name || 'بدون مشروع'}</span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {task.project?.client?.name || task.project?.client?.company || '-'}
-                                                </span>
-                                            </div>
+                                            <span className="font-medium text-sm">
+                                                {task.client?.name || task.client?.company || task.project?.client?.name || task.project?.client?.company || task.company_name || '-'}
+                                            </span>
                                         </TableCell>
                                         <TableCell className="hidden lg:table-cell">
                                             <div className="flex items-center gap-2">
@@ -559,7 +505,7 @@ export function TasksManager() {
                                                 <span>{task.creator?.name || 'System'}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="hidden xl:table-cell">
+                                        <TableCell className="hidden lg:table-cell">
                                             {task.assigned_user ? (
                                                 <div className="flex items-center gap-2">
                                                     {task.assigned_user.avatar_url && (
@@ -578,29 +524,15 @@ export function TasksManager() {
                                             <PriorityBadge priority={task.priority} />
                                         </TableCell>
                                         <TableCell className="text-center text-sm text-gray-500 hidden xl:table-cell">
-                                            {format(new Date(task.created_at), 'dd/MM/yyyy')}
+                                            {formatTaskDate(task.created_at)}
                                         </TableCell>
                                         <TableCell>
                                             {task.client_feedback && (
-                                                <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50">
-                                                            <FileText className="w-4 h-4 ml-1" />
-                                                            <span className="hidden lg:inline">ملاحظات</span>
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent className="max-w-[90vw] sm:max-w-lg">
-                                                        <DialogHeader>
-                                                            <DialogTitle>ملاحظات التعديل من العميل</DialogTitle>
-                                                            <DialogDescription>
-                                                                الخاصة بمهمة: {task.title}
-                                                            </DialogDescription>
-                                                        </DialogHeader>
-                                                        <div className="p-4 bg-orange-50 rounded-lg text-orange-900 border border-orange-100 min-h-[100px]">
-                                                            {task.client_feedback}
-                                                        </div>
-                                                    </DialogContent>
-                                                </Dialog>
+                                                <TaskFeedbackDialog 
+                                                    feedback={task.client_feedback} 
+                                                    taskTitle={task.title} 
+                                                    variant="desktop" 
+                                                />
                                             )}
                                         </TableCell>
                                     </TableRow>
@@ -638,24 +570,26 @@ export function TasksManager() {
                             <ChevronRight className="w-4 h-4" />
                         </Button>
                         {/* Page number buttons - reactive via useMediaQuery */}
-                        {totalPages > 1 && Array.from({ length: Math.min(isSmallScreen ? 3 : 5, totalPages) }, (_, i) => {
+                        {totalPages > 1 && (() => {
                             const maxButtons = isSmallScreen ? 3 : 5
-                            const startPage = Math.max(1, Math.min(currentPage - Math.floor(maxButtons / 2), totalPages - maxButtons + 1))
-                            const page = startPage + i
-                            if (page > totalPages) return null
-                            return (
-                                <Button
-                                    key={page}
-                                    variant={page === currentPage ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setCurrentPage(page)}
-                                    disabled={isFetching}
-                                    className="w-8 h-8 p-0 text-xs"
-                                >
-                                    {page}
-                                </Button>
-                            )
-                        })}
+                            const actualButtons = Math.min(maxButtons, totalPages)
+                            const startPage = Math.max(1, Math.min(currentPage - Math.floor(actualButtons / 2), totalPages - actualButtons + 1))
+                            return Array.from({ length: actualButtons }, (_, i) => {
+                                const page = startPage + i
+                                return (
+                                    <Button
+                                        key={page}
+                                        variant={page === currentPage ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setCurrentPage(page)}
+                                        disabled={isFetching}
+                                        className="w-8 h-8 p-0 text-xs"
+                                    >
+                                        {page}
+                                    </Button>
+                                )
+                            })
+                        })()}
                         <Button
                             variant="outline"
                             size="sm"
@@ -673,13 +607,82 @@ export function TasksManager() {
     )
 }
 
+// ============================================
+// Shared Sub-Components
+// ============================================
 
+/**
+ * Reusable dialog for displaying client feedback
+ */
+const TaskFeedbackDialog = memo(function TaskFeedbackDialog({ 
+    feedback, 
+    taskTitle, 
+    variant = 'desktop' 
+}: { 
+    feedback: string
+    taskTitle: string
+    variant?: 'desktop' | 'mobile'
+}) {
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                {variant === 'desktop' ? (
+                    <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50">
+                        <FileText className="w-4 h-4 ml-1" />
+                        <span className="hidden lg:inline">ملاحظات</span>
+                    </Button>
+                ) : (
+                    <Button variant="ghost" size="sm" className="h-7 text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50 px-2">
+                        <FileText className="w-3.5 h-3.5 ml-1" />
+                        ملاحظات
+                    </Button>
+                )}
+            </DialogTrigger>
+            <DialogContent className={variant === 'desktop' ? "max-w-[90vw] sm:max-w-lg" : "max-w-[92vw] sm:max-w-lg"}>
+                <DialogHeader>
+                    <DialogTitle className={variant === 'mobile' ? "text-base" : undefined}>
+                        ملاحظات التعديل{variant === 'desktop' ? ' من العميل' : ''}
+                    </DialogTitle>
+                    <DialogDescription className={variant === 'mobile' ? "text-xs" : undefined}>
+                        {variant === 'desktop' ? 'الخاصة بمهمة: ' : 'مهمة: '}{taskTitle}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className={cn(
+                    "bg-orange-50 rounded-lg text-orange-900 border border-orange-100",
+                    variant === 'desktop' ? "p-4 min-h-[100px]" : "p-3 min-h-[80px] text-sm"
+                )}>
+                    {feedback}
+                </div>
+            </DialogContent>
+        </Dialog>
+    )
+})
+
+/**
+ * Reusable stat card for task metrics
+ */
+const TaskStatCard = memo(function TaskStatCard({ 
+    value, 
+    label, 
+    colorClass 
+}: { 
+    value: number
+    label: string
+    colorClass: string
+}) {
+    return (
+        <div className={cn("rounded-lg p-2.5 md:p-3 text-center", colorClass)}>
+            <div className="text-xl md:text-2xl font-bold">{value}</div>
+            <div className="text-[10px] md:text-xs text-muted-foreground">{label}</div>
+        </div>
+    )
+})
 
 // ============================================
 // Mobile Task Card — React.memo to prevent unnecessary re-renders
 // ============================================
 
-const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: any }) {
+const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: TaskWithRelations }) {
     return (
         <div className="border rounded-lg p-3 space-y-2.5 bg-card">
             {/* Header: Title + Status */}
@@ -705,10 +708,9 @@ const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: any }) {
                     <span className="text-muted-foreground">الأولوية:</span>
                     <PriorityBadge priority={task.priority} />
                 </div>
-                {/* Project */}
                 <div className="flex items-center gap-1.5 col-span-2">
-                    <span className="text-muted-foreground shrink-0">المشروع:</span>
-                    <span className="truncate font-medium">{task.project?.name || 'بدون مشروع'}</span>
+                    <span className="text-muted-foreground shrink-0">العميل:</span>
+                    <span className="truncate font-medium">{task.client?.name || task.client?.company || task.project?.client?.name || task.project?.client?.company || task.company_name || '-'}</span>
                 </div>
                 {/* Assigned */}
                 <div className="flex items-center gap-1.5">
@@ -718,7 +720,7 @@ const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: any }) {
                 {/* Date */}
                 <div className="flex items-center gap-1.5">
                     <span className="text-muted-foreground">التاريخ:</span>
-                    <span>{format(new Date(task.created_at), 'dd/MM/yyyy')}</span>
+                    <span>{formatTaskDate(task.created_at)}</span>
                 </div>
             </div>
 
@@ -731,25 +733,11 @@ const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: any }) {
                     <span>{task.creator?.name || 'System'}</span>
                 </div>
                 {task.client_feedback && (
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50 px-2">
-                                <FileText className="w-3.5 h-3.5 ml-1" />
-                                ملاحظات
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-[92vw] sm:max-w-lg">
-                            <DialogHeader>
-                                <DialogTitle className="text-base">ملاحظات التعديل</DialogTitle>
-                                <DialogDescription className="text-xs">
-                                    مهمة: {task.title}
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="p-3 bg-orange-50 rounded-lg text-orange-900 border border-orange-100 min-h-[80px] text-sm">
-                                {task.client_feedback}
-                            </div>
-                        </DialogContent>
-                    </Dialog>
+                    <TaskFeedbackDialog 
+                        feedback={task.client_feedback} 
+                        taskTitle={task.title} 
+                        variant="mobile" 
+                    />
                 )}
             </div>
         </div>
@@ -761,51 +749,19 @@ const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: any }) {
 // ============================================
 
 const StatusBadge = memo(function StatusBadge({ status }: { status: string }) {
-    const styles: Record<string, string> = {
-        'new': 'bg-blue-100 text-blue-800 border-blue-200',
-        'in_progress': 'bg-purple-100 text-purple-800 border-purple-200',
-        'review': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        'revision': 'bg-red-100 text-red-800 border-red-200',
-        'approved': 'bg-green-100 text-green-800 border-green-200',
-        'rejected': 'bg-red-100 text-red-800 border-red-200',
-        'completed': 'bg-gray-100 text-gray-800 border-gray-200',
-    }
-
-    const labels: Record<string, string> = {
-        'new': 'جديدة',
-        'in_progress': 'قيد التنفيذ',
-        'review': 'مراجعة',
-        'revision': 'تعديل مطلوب',
-        'approved': 'معتمد',
-        'rejected': 'مرفوض',
-        'completed': 'مكتمل'
-    }
-
+    const config = STATUS_CONFIG[status] || STATUS_CONFIG['new']
     return (
-        <Badge variant="outline" className={`${styles[status] || styles['new']} whitespace-nowrap text-[10px] sm:text-xs`}>
-            {labels[status] || status}
+        <Badge variant="outline" className={`${config.style} whitespace-nowrap text-[10px] sm:text-xs`}>
+            {config.label}
         </Badge>
     )
 })
 
 const PriorityBadge = memo(function PriorityBadge({ priority }: { priority: string }) {
-    const styles: Record<string, string> = {
-        'urgent': 'bg-red-100 text-red-800 border-red-200',
-        'high': 'bg-orange-100 text-orange-800 border-orange-200',
-        'medium': 'bg-blue-100 text-blue-800 border-blue-200',
-        'low': 'bg-slate-100 text-slate-600 border-slate-200',
-    }
-
-    const labels: Record<string, string> = {
-        'urgent': 'عاجل',
-        'high': 'عالي',
-        'medium': 'متوسط',
-        'low': 'منخفض',
-    }
-
+    const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG['medium']
     return (
-        <Badge variant="outline" className={`${styles[priority] || styles['medium']} whitespace-nowrap text-[10px] sm:text-xs`}>
-            {labels[priority] || priority}
+        <Badge variant="outline" className={`${config.style} whitespace-nowrap text-[10px] sm:text-xs`}>
+            {config.label}
         </Badge>
     )
 })
@@ -815,16 +771,11 @@ const DepartmentBadge = memo(function DepartmentBadge({ department }: { departme
         return <span className="text-[10px] sm:text-xs text-muted-foreground">—</span>
     }
 
-    const config: Record<string, { label: string; className: string }> = {
-        'content': { label: 'محتوى', className: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
-        'photography': { label: 'تصوير', className: 'bg-cyan-100 text-cyan-800 border-cyan-200' },
-    }
-
-    const c = config[department] || { label: department, className: 'bg-gray-100 text-gray-800 border-gray-200' }
+    const config = DEPARTMENT_BADGE_CONFIG[department] || { label: department, className: 'bg-gray-100 text-gray-800 border-gray-200' }
 
     return (
-        <Badge variant="outline" className={`${c.className} whitespace-nowrap text-[10px] sm:text-xs`}>
-            {c.label}
+        <Badge variant="outline" className={`${config.className} whitespace-nowrap text-[10px] sm:text-xs`}>
+            {config.label}
         </Badge>
     )
 })
