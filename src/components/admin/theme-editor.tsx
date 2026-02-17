@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useSiteSettings, useUpdateSiteSetting } from '@/hooks/use-cms'
+import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { Loader2, Palette, Save, RotateCcw } from 'lucide-react'
 
@@ -22,13 +23,21 @@ const defaultTheme: ThemeColors = {
 }
 
 export function ThemeEditor() {
+    const t = useTranslations('themeEditor')
     const { data: settings, isLoading } = useSiteSettings()
     const updateSetting = useUpdateSiteSetting()
 
     const currentTheme = (settings?.theme as ThemeColors) || defaultTheme
 
-    const [colors, setColors] = useState<ThemeColors>(currentTheme)
+    const [colors, setColors] = useState<ThemeColors>(defaultTheme)
     const [hasChanges, setHasChanges] = useState(false)
+
+    // Sync colors state when settings data loads from server
+    useEffect(() => {
+        if (settings?.theme) {
+            setColors(settings.theme as ThemeColors)
+        }
+    }, [settings])
 
     const handleColorChange = (key: keyof ThemeColors, value: string) => {
         setColors(prev => ({ ...prev, [key]: value }))
@@ -38,10 +47,10 @@ export function ThemeEditor() {
     const handleSave = async () => {
         try {
             await updateSetting.mutateAsync({ key: 'theme', value: colors })
-            toast.success('تم حفظ الألوان بنجاح')
+            toast.success(t('saveSuccess'))
             setHasChanges(false)
         } catch (error) {
-            toast.error('حدث خطأ أثناء الحفظ')
+            toast.error(t('saveError'))
         }
     }
 
@@ -65,10 +74,10 @@ export function ThemeEditor() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Palette className="h-5 w-5" />
-                    محرر الثيم
+                    {t('title')}
                 </CardTitle>
                 <CardDescription>
-                    تخصيص ألوان النظام الرئيسية
+                    {t('description')}
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -78,31 +87,31 @@ export function ThemeEditor() {
                     style={{ backgroundColor: colors.background }}
                 >
                     <h3 className="text-lg font-bold mb-4" style={{ color: colors.primary }}>
-                        معاينة الألوان
+                        {t('preview')}
                     </h3>
                     <div className="flex gap-4">
                         <div
                             className="px-4 py-2 rounded-lg font-medium"
                             style={{ backgroundColor: colors.primary, color: colors.background }}
                         >
-                            زر رئيسي
+                            {t('primaryButton')}
                         </div>
                         <div
                             className="px-4 py-2 rounded-lg font-medium border"
                             style={{ borderColor: colors.accent, color: colors.accent }}
                         >
-                            زر ثانوي
+                            {t('secondaryButton')}
                         </div>
                     </div>
                     <p className="mt-4 text-sm" style={{ color: colors.accent }}>
-                        هذا نص بلون التمييز (Accent)
+                        {t('accentText')}
                     </p>
                 </div>
 
                 {/* Color Inputs */}
                 <div className="grid gap-6 md:grid-cols-3">
                     <div className="space-y-2">
-                        <Label htmlFor="primary">اللون الرئيسي (Primary)</Label>
+                        <Label htmlFor="primary">{t('primaryColor')}</Label>
                         <div className="flex gap-2">
                             <Input
                                 id="primary"
@@ -121,7 +130,7 @@ export function ThemeEditor() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="background">لون الخلفية (Background)</Label>
+                        <Label htmlFor="background">{t('backgroundColor')}</Label>
                         <div className="flex gap-2">
                             <Input
                                 id="background"
@@ -140,7 +149,7 @@ export function ThemeEditor() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="accent">لون التمييز (Accent)</Label>
+                        <Label htmlFor="accent">{t('accentColor')}</Label>
                         <div className="flex gap-2">
                             <Input
                                 id="accent"
@@ -163,7 +172,7 @@ export function ThemeEditor() {
                 <div className="flex justify-end gap-2">
                     <Button variant="outline" onClick={handleReset}>
                         <RotateCcw className="h-4 w-4 me-2" />
-                        إعادة للافتراضي
+                        {t('resetDefault')}
                     </Button>
                     <Button onClick={handleSave} disabled={!hasChanges || updateSetting.isPending}>
                         {updateSetting.isPending ? (
@@ -171,7 +180,7 @@ export function ThemeEditor() {
                         ) : (
                             <Save className="h-4 w-4 me-2" />
                         )}
-                        حفظ التغييرات
+                        {t('saveChanges')}
                     </Button>
                 </div>
             </CardContent>

@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin, Rocket } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { useSiteSettingsContext } from '@/components/providers/site-settings-provider'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthDashboardLink } from '@/hooks/use-auth-dashboard-link'
+import { useQuery } from '@tanstack/react-query'
 import type { User } from '@supabase/supabase-js'
 
 interface FooterProps {
@@ -26,37 +26,39 @@ export function Footer({ initialUser, initialRole }: FooterProps) {
     const settings = useSiteSettingsContext()
     const { user, dashboardLink } = useAuthDashboardLink(initialUser, initialRole)
 
-    // Contact info from CMS
-    const [contactInfo, setContactInfo] = useState<{ email?: string; phone?: string; address?: string }>({})
+    // Contact info from CMS — cached via React Query with 5min stale time
+    const { data: contactInfo = {} } = useQuery({
+        queryKey: ['footer-contact', isAr ? 'ar' : 'en'],
+        queryFn: async () => {
+            const supabase = createClient()
+            const { data } = await supabase
+                .from('pages')
+                .select('content_ar, content_en')
+                .eq('slug', 'contact')
+                .single()
 
-    useEffect(() => {
-        const supabase = createClient()
+            if (!data) return {}
+            const content = isAr
+                ? (data as Record<string, unknown>).content_ar
+                : (data as Record<string, unknown>).content_en
 
-        supabase
-            .from('pages')
-            .select('content_ar, content_en')
-            .eq('slug', 'contact')
-            .single()
-            .then(({ data }) => {
-                if (!data) return
-                const content = isAr
-                    ? (data as Record<string, unknown>).content_ar
-                    : (data as Record<string, unknown>).content_en
-
-                try {
-                    const parsed = typeof content === 'string' ? JSON.parse(content) : content
-                    if (parsed && typeof parsed === 'object') {
-                        setContactInfo({
-                            email: (parsed as Record<string, string>).email,
-                            phone: (parsed as Record<string, string>).phone,
-                            address: (parsed as Record<string, string>).address,
-                        })
+            try {
+                const parsed = typeof content === 'string' ? JSON.parse(content) : content
+                if (parsed && typeof parsed === 'object') {
+                    return {
+                        email: (parsed as Record<string, string>).email,
+                        phone: (parsed as Record<string, string>).phone,
+                        address: (parsed as Record<string, string>).address,
                     }
-                } catch {
-                    // not JSON — ignore
                 }
-            })
-    }, [isAr])
+            } catch {
+                // not JSON — ignore
+            }
+            return {}
+        },
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000,   // 10 minutes
+    })
 
     const phone = contactInfo.phone || settings.contact_phone || '+20 123 456 7890'
     const email = contactInfo.email || settings.contact_email || 'info@dex-advertising.com'

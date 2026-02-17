@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { sanitizeSearch } from '@/lib/utils'
 import type { Client } from '@/types/database'
 
 // Query keys
@@ -21,6 +22,7 @@ interface ClientFilters {
 export function useClients(filters?: ClientFilters) {
   return useQuery({
     queryKey: clientKeys.list(filters || {}),
+    staleTime: 2 * 60 * 1000,
     queryFn: async () => {
       const supabase = createClient()
 
@@ -33,9 +35,12 @@ export function useClients(filters?: ClientFilters) {
         .order('company', { ascending: true })
 
       if (filters?.search) {
-        query = query.or(
-          `company.ilike.%${filters.search}%,name.ilike.%${filters.search}%`
-        )
+        const safe = sanitizeSearch(filters.search)
+        if (safe) {
+          query = query.or(
+            `company.ilike.%${safe}%,name.ilike.%${safe}%`
+          )
+        }
       }
 
       const { data, error } = await query
@@ -56,6 +61,7 @@ export function useClients(filters?: ClientFilters) {
 export function useClient(id: string | undefined) {
   return useQuery({
     queryKey: clientKeys.detail(id || ''),
+    staleTime: 2 * 60 * 1000,
     queryFn: async () => {
       if (!id) return null
 

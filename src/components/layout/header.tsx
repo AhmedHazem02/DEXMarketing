@@ -16,11 +16,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 import { MobileSidebar } from '@/components/layout/mobile-sidebar'
 import type { Department } from '@/types/database'
+import { useLogout } from '@/hooks/use-logout'
 
 export function Header({ user, role, department }: { user?: any, role?: string, department?: Department | null }) {
     const locale = useLocale()
@@ -32,16 +32,7 @@ export function Header({ user, role, department }: { user?: any, role?: string, 
     const [mounted, setMounted] = useState(false)
     useEffect(() => { setMounted(true) }, [])
 
-    const handleLogout = async () => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-            await supabase.from('activity_log').insert({ user_id: user.id, action: 'logout' } as never)
-        }
-        await supabase.auth.signOut()
-        router.refresh()
-        router.push('/login')
-    }
+    const handleLogout = useLogout()
 
     const navigateToAccount = () => {
         router.push(`/${locale}/account`)
@@ -68,6 +59,7 @@ export function Header({ user, role, department }: { user?: any, role?: string, 
                         type="search"
                         placeholder={isAr ? 'بحث...' : 'Search...'}
                         className="w-full bg-background ps-8"
+                        aria-label={isAr ? 'بحث' : 'Search'}
                     />
                 </div>
             </div>

@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation' // Change to i18n/navigation later if needed
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {

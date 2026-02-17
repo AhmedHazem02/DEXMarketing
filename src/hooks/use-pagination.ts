@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 
 interface UsePaginationProps {
     totalItems: number
@@ -82,7 +82,7 @@ export function usePagination<T = any>({
     const canGoPrev = currentPage > 1
 
     // Reset to page 1 if current page exceeds total pages
-    useMemo(() => {
+    useEffect(() => {
         if (currentPage > totalPages && totalPages > 0) {
             setCurrentPage(1)
         }

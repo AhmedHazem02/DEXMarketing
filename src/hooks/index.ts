@@ -85,7 +85,7 @@ export {
     usePages,
     usePage,
     useUpdatePage,
-    useTeamMembers,
+    useCMSTeamMembers,
     useCreateTeamMember,
     useUpdateTeamMember,
     useDeleteTeamMember,
@@ -96,6 +96,7 @@ export {
     useUpdateStorageSettings,
     useActivityLog,
     useLogActivity,
+    useUpdateMultipleSiteSettings,
 } from './use-cms'
 export {
     useClientProfile,
@@ -156,6 +157,7 @@ export {
 } from './use-chat'
 
 // Auth hooks
+export { useLogout } from './use-logout'
 
 
 // Team activity hooks

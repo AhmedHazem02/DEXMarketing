@@ -2,8 +2,14 @@
 // Cloudinary Configuration - Single Source of Truth
 // ============================================
 
-export const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'demo'
-export const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'dex_preset'
+export const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || (() => {
+    if (process.env.NODE_ENV === 'development') console.warn('Missing NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, using fallback')
+    return 'demo'
+})()
+export const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || (() => {
+    if (process.env.NODE_ENV === 'development') console.warn('Missing NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET, using fallback')
+    return 'dex_preset'
+})()
 export const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
 
 /**
@@ -35,6 +41,7 @@ export async function uploadToCloudinary(file: File, folder?: string): Promise<s
         return data.secure_url
     } catch (error) {
         console.error('Cloudinary upload error:', error)
-        throw new Error('فشل رفع الصورة. يرجى المحاولة مرة أخرى.')
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        throw new Error(`فشل رفع الصورة: ${message}`)
     }
 }

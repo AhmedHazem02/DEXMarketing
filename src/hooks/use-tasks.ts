@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { sanitizeSearch } from '@/lib/utils'
 import type { TaskStatus, TaskPriority, Comment, Attachment, WorkflowStage, TaskType, Department } from '@/types/database'
 import type {
     TaskWithRelations,
@@ -42,11 +43,11 @@ export const taskKeys = {
 /**
  * Fetch tasks with optional filters and includes user data
  */
-export function useTasks(filters: TaskFilters = {}) {
+export function useTasks(filters: TaskFilters = {}, limit?: number) {
     const supabase = createClient()
 
     return useQuery({
-        queryKey: taskKeys.list(filters),
+        queryKey: [...taskKeys.list(filters), limit],
         queryFn: async () => {
             let query = supabase
                 .from('tasks')
@@ -60,32 +61,11 @@ export function useTasks(filters: TaskFilters = {}) {
                 .order('created_at', { ascending: false })
 
             // Apply filters
-            if (filters.status && filters.status !== 'all') {
-                query = query.eq('status', filters.status)
-            }
-            if (filters.priority && filters.priority !== 'all') {
-                query = query.eq('priority', filters.priority)
-            }
-            if (filters.assigned_to && filters.assigned_to !== 'all') {
-                query = query.eq('assigned_to', filters.assigned_to)
-            }
-            if (filters.project_id && filters.project_id !== 'all') {
-                query = query.eq('project_id', filters.project_id)
-            }
-            if (filters.search) {
-                query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
-            }
-            if (filters.dateFrom) {
-                query = query.gte('created_at', filters.dateFrom)
-            }
-            if (filters.dateTo) {
-                query = query.lte('created_at', filters.dateTo)
-            }
-            if (filters.department && filters.department !== 'all') {
-                query = query.eq('department', filters.department)
-            }
-            if (filters.task_type && filters.task_type !== 'all') {
-                query = query.eq('task_type', filters.task_type)
+            query = applyTaskFilters(query, filters)
+
+            // Apply limit if specified
+            if (limit) {
+                query = query.limit(limit)
             }
 
             const { data, error } = await query
@@ -264,6 +244,7 @@ export function useTaskDetails(taskId: string) {
 
     return useQuery({
         queryKey: taskKeys.detail(taskId),
+        staleTime: 30 * 1000,
         queryFn: async () => {
             // Fetch task with relations
             const { data: task, error } = await supabase
@@ -552,6 +533,7 @@ export function useTaskComments(taskId: string) {
 
     return useQuery({
         queryKey: taskKeys.comments(taskId),
+        staleTime: 30 * 1000,
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('comments')
@@ -632,6 +614,7 @@ export function useTaskAttachments(taskId: string) {
 
     return useQuery({
         queryKey: taskKeys.attachments(taskId),
+        staleTime: 30 * 1000,
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('attachments')
@@ -742,7 +725,7 @@ export function useMarkAttachmentFinal() {
 /**
  * Apply common admin task filters to a Supabase query builder
  */
-function applyAdminFilters(query: any, filters: TaskFilters) {
+function applyTaskFilters(query: any, filters: TaskFilters) {
     if (filters.status && filters.status !== 'all') {
         query = query.eq('status', filters.status)
     }
@@ -799,7 +782,7 @@ export function useAdminTasks(filters: TaskFilters = {}, page = 1, pageSize = 15
                 .order('created_at', { ascending: false })
                 .range((page - 1) * pageSize, page * pageSize - 1)
 
-            query = applyAdminFilters(query, filters)
+            query = applyTaskFilters(query, filters)
 
             const { data, error, count } = await query
             if (error) throw error
@@ -827,7 +810,7 @@ export function useAdminTasksStats(filters: TaskFilters = {}) {
                     .from('tasks')
                     .select('*', { count: 'exact', head: true })
                 
-                query = applyAdminFilters(query, filters)
+                query = applyTaskFilters(query, filters)
                 
                 if (statusFilter) {
                     query = query.eq('status', statusFilter)
@@ -887,7 +870,7 @@ export function useAdminTasksExport(filters: TaskFilters = {}, enabled = false) 
                 `)
                 .order('created_at', { ascending: false })
 
-            query = applyAdminFilters(query, filters)
+            query = applyTaskFilters(query, filters)
 
             const { data, error } = await query
             if (error) throw error
@@ -1269,28 +1252,7 @@ export function useClientTasks(clientId: string, filters: TaskFilters = {}, page
                 .order('created_at', { ascending: false })
                 .range((page - 1) * pageSize, page * pageSize - 1)
 
-            // Apply filters
-            if (filters.status && filters.status !== 'all') {
-                query = query.eq('status', filters.status)
-            }
-            if (filters.priority && filters.priority !== 'all') {
-                query = query.eq('priority', filters.priority)
-            }
-            if (filters.department && filters.department !== 'all') {
-                query = query.eq('department', filters.department)
-            }
-            if (filters.task_type && filters.task_type !== 'all') {
-                query = query.eq('task_type', filters.task_type)
-            }
-            if (filters.search) {
-                query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
-            }
-            if (filters.dateFrom) {
-                query = query.gte('created_at', filters.dateFrom)
-            }
-            if (filters.dateTo) {
-                query = query.lte('created_at', filters.dateTo)
-            }
+            query = applyTaskFilters(query, filters)
 
             const { data, error, count } = await query
             if (error) throw error
@@ -1316,22 +1278,7 @@ export function useClientTasksStats(clientId: string, filters: TaskFilters = {})
                 .select('status, deadline')
                 .eq('client_id', clientId)
 
-            // Apply same filters
-            if (filters.status && filters.status !== 'all') {
-                query = query.eq('status', filters.status)
-            }
-            if (filters.priority && filters.priority !== 'all') {
-                query = query.eq('priority', filters.priority)
-            }
-            if (filters.department && filters.department !== 'all') {
-                query = query.eq('department', filters.department)
-            }
-            if (filters.task_type && filters.task_type !== 'all') {
-                query = query.eq('task_type', filters.task_type)
-            }
-            if (filters.search) {
-                query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
-            }
+            query = applyTaskFilters(query, filters)
 
             const { data, error } = await query
             if (error) throw error

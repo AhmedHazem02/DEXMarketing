@@ -5,7 +5,7 @@
 // Until then, some queries below use @ts-ignore to bypass 'never' type errors.
 
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type {
     ConversationWithDetails,
@@ -36,6 +36,7 @@ export function useConversations(userId: string) {
     return useQuery({
         queryKey: chatKeys.conversations(),
         enabled: !!userId,
+        staleTime: 30 * 1000,
         queryFn: async () => {
             // Get conversation IDs where user is a participant
             const { data: participations, error: pError } = await (supabase
@@ -63,10 +64,17 @@ export function useConversations(userId: string) {
 
             if (cError) throw cError
 
-            // Get last message for each conversation + unread count
+            // Get last message and unread counts in bulk (avoid N+1)
+            // Fetch last message and unread count per conversation in parallel
+            // (each query returns at most 1 row — far cheaper than fetching ALL messages)
             const result: ConversationWithDetails[] = await Promise.all(
                 (conversations ?? []).map(async (conv: any) => {
-                    // Last message
+                    const myParticipation = (conv.participants as any[])?.find(
+                        (p: any) => p.user_id === userId
+                    )
+                    const lastReadAt = myParticipation?.last_read_at
+
+                    // Fetch last message only (1 row max)
                     const { data: lastMsg } = await (supabase
                         .from('messages') as any)
                         .select(`
@@ -76,15 +84,9 @@ export function useConversations(userId: string) {
                         .eq('conversation_id', conv.id)
                         .order('created_at', { ascending: false })
                         .limit(1)
-                        .single()
+                        .maybeSingle()
 
-                    // Find user's last_read_at for unread count
-                    const myParticipation = (conv.participants as any[])?.find(
-                        (p: any) => p.user_id === userId
-                    )
-                    const lastReadAt = myParticipation?.last_read_at
-
-                    // Unread messages count
+                    // Count unread messages (head-only — no data transfer)
                     let unreadQuery = (supabase
                         .from('messages') as any)
                         .select('id', { count: 'exact', head: true })
@@ -99,7 +101,7 @@ export function useConversations(userId: string) {
 
                     return {
                         ...conv,
-                        last_message: lastMsg as MessageWithSender | null,
+                        last_message: (lastMsg as MessageWithSender | null) ?? null,
                         unread_count: count ?? 0,
                     } as ConversationWithDetails
                 })
@@ -304,20 +306,30 @@ export function useUnreadCount(userId: string) {
 
             if (!participations?.length) return 0
 
-            let total = 0
+            const convIds = participations.map((p: any) => p.conversation_id)
+
+            // Bulk fetch all unread messages across all conversations at once
+            const { data: allUnreadMessages } = await (supabase
+                .from('messages') as any)
+                .select('id, conversation_id, created_at')
+                .in('conversation_id', convIds)
+                .neq('sender_id', userId)
+
+            if (!allUnreadMessages?.length) return 0
+
+            // Build a map of conversation_id -> last_read_at
+            const lastReadMap = new Map<string, string | null>()
             for (const p of participations) {
-                let query = (supabase
-                    .from('messages') as any)
-                    .select('id', { count: 'exact', head: true })
-                    .eq('conversation_id', p.conversation_id)
-                    .neq('sender_id', userId)
+                lastReadMap.set(p.conversation_id, p.last_read_at)
+            }
 
-                if (p.last_read_at) {
-                    query = query.gt('created_at', p.last_read_at)
+            // Count unread messages per conversation
+            let total = 0
+            for (const msg of allUnreadMessages) {
+                const lastReadAt = lastReadMap.get(msg.conversation_id)
+                if (!lastReadAt || msg.created_at > lastReadAt) {
+                    total++
                 }
-
-                const { count } = await query
-                total += count ?? 0
             }
 
             return total
@@ -385,7 +397,8 @@ export function useChatRealtime(conversationId: string, userId: string) {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [conversationId, userId, queryClient, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversationId, userId, queryClient])
 }
 
 // ============================================
@@ -395,7 +408,7 @@ export function useChatRealtime(conversationId: string, userId: string) {
 export function useTypingIndicator(conversationId: string, userId: string, userName: string) {
     const supabase = createClient()
     const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-    const typingUsersRef = useRef<Map<string, string>>(new Map())
+    const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map())
 
     const setTyping = useCallback((isTyping: boolean) => {
         if (!channelRef.current) return
@@ -416,13 +429,14 @@ export function useTypingIndicator(conversationId: string, userId: string, userN
         channel
             .on('presence', { event: 'sync' }, () => {
                 const state = channel.presenceState()
-                typingUsersRef.current.clear()
+                const newMap = new Map<string, string>()
                 Object.entries(state).forEach(([key, presences]) => {
                     const presence = (presences as any[])?.[0]
                     if (presence?.is_typing && key !== userId) {
-                        typingUsersRef.current.set(key, presence.user_name)
+                        newMap.set(key, presence.user_name)
                     }
                 })
+                setTypingUsers(newMap)
             })
             .subscribe()
 
@@ -432,11 +446,12 @@ export function useTypingIndicator(conversationId: string, userId: string, userN
             supabase.removeChannel(channel)
             channelRef.current = null
         }
-    }, [conversationId, userId, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [conversationId, userId])
 
     return {
         setTyping,
-        getTypingUsers: () => Array.from(typingUsersRef.current.values()),
+        getTypingUsers: () => Array.from(typingUsers.values()),
     }
 }
 
@@ -476,16 +491,23 @@ export function useFindOrCreateConversation() {
                     .in('conversation_id', myConvIds)
 
                 // If conversations exist between them, check for 2-person conversations
+                // Batch: fetch all participant counts in parallel instead of N+1 sequential queries
                 if (shared?.length) {
-                    for (const s of shared) {
-                        const { count } = await (supabase
-                            .from('conversation_participants') as any)
-                            .select('id', { count: 'exact', head: true })
-                            .eq('conversation_id', s.conversation_id)
+                    const sharedIds = shared.map((s: any) => s.conversation_id)
 
-                        if (count === 2) {
-                            return { conversation_id: s.conversation_id, created: false }
-                        }
+                    const counts = await Promise.all(
+                        sharedIds.map(async (convId: string) => {
+                            const { count } = await (supabase
+                                .from('conversation_participants') as any)
+                                .select('id', { count: 'exact', head: true })
+                                .eq('conversation_id', convId)
+                            return { convId, count }
+                        })
+                    )
+
+                    const directConv = counts.find(c => c.count === 2)
+                    if (directConv) {
+                        return { conversation_id: directConv.convId, created: false }
                     }
                 }
             }

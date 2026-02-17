@@ -26,8 +26,12 @@ export function useCurrentRole(): { role: UserRole | null; isAdmin: boolean; isA
 
 /**
  * Hook to check if user is admin or accountant
+ * Returns both the boolean result and the loading state
  */
-export function useIsAccountantOrAdmin(): boolean {
-    const { role } = useCurrentRole()
-    return role === 'admin' || role === 'accountant'
+export function useIsAccountantOrAdmin(): { isAccountantOrAdmin: boolean; isLoading: boolean } {
+    const { role, isLoading } = useCurrentRole()
+    return {
+        isAccountantOrAdmin: role === 'admin' || role === 'accountant',
+        isLoading,
+    }
 }

@@ -63,7 +63,7 @@ export interface PriorityStyleConfig {
     dotColor: string
 }
 
-export const PRIORITY_CONFIG: Record<string, PriorityStyleConfig> = {
+export const PRIORITY_STYLE_CONFIG: Record<string, PriorityStyleConfig> = {
     urgent: { label: 'عاجل', labelEn: 'Urgent', style: 'bg-red-100 text-red-800 border-red-200', dotColor: 'bg-red-500' },
     high: { label: 'عالي', labelEn: 'High', style: 'bg-orange-100 text-orange-800 border-orange-200', dotColor: 'bg-orange-500' },
     medium: { label: 'متوسط', labelEn: 'Medium', style: 'bg-blue-100 text-blue-800 border-blue-200', dotColor: 'bg-blue-400' },

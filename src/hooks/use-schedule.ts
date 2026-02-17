@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { sanitizeSearch, getMonthRange } from '@/lib/utils'
 import type { ScheduleStatus } from '@/types/database'
 import type {
     ScheduleWithRelations,
@@ -57,7 +58,10 @@ export function useSchedules(filters: ScheduleFilters = {}) {
                 query = query.eq('client_id', filters.client_id)
             }
             if (filters.search) {
-                query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
+                const safe = sanitizeSearch(filters.search)
+                if (safe) {
+                    query = query.or(`title.ilike.%${safe}%,description.ilike.%${safe}%`)
+                }
             }
 
             const { data, error } = await query
@@ -73,10 +77,7 @@ export function useSchedules(filters: ScheduleFilters = {}) {
 
 export function useCalendarSchedules(teamLeaderId: string, year: number, month: number) {
     const supabase = createClient()
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-    const endDate = month === 12
-        ? `${year + 1}-01-01`
-        : `${year}-${String(month + 1).padStart(2, '0')}-01`
+    const { startDate, endDate } = getMonthRange(year, month)
 
     return useQuery({
         queryKey: scheduleKeys.calendar(`${teamLeaderId}-${year}-${month}`),
@@ -109,10 +110,7 @@ export function useCalendarSchedules(teamLeaderId: string, year: number, month: 
 
 export function useMySchedules(userId: string, year: number, month: number) {
     const supabase = createClient()
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-    const endDate = month === 12
-        ? `${year + 1}-01-01`
-        : `${year}-${String(month + 1).padStart(2, '0')}-01`
+    const { startDate, endDate } = getMonthRange(year, month)
 
     return useQuery({
         queryKey: [...scheduleKeys.calendar(`user-${userId}-${year}-${month}`)],
@@ -159,10 +157,7 @@ export function useMySchedules(userId: string, year: number, month: number) {
 
 export function useClientSchedules(clientId: string, year: number, month: number) {
     const supabase = createClient()
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-    const endDate = month === 12
-        ? `${year + 1}-01-01`
-        : `${year}-${String(month + 1).padStart(2, '0')}-01`
+    const { startDate, endDate } = getMonthRange(year, month)
 
     return useQuery({
         queryKey: [...scheduleKeys.calendar(`client-${clientId}-${year}-${month}`)],
@@ -226,19 +221,10 @@ export function useCreateSchedule() {
 
     return useMutation({
         mutationFn: async (input: CreateScheduleInput & { team_leader_id: string; task_id?: string; assigned_members?: string[] }) => {
-            // Debug: Check auth state
-            const { data: { user: authUser } } = await supabase.auth.getUser()
-            console.log('🔑 [useCreateSchedule] Auth user:', authUser?.id, authUser?.email)
-
-            // Debug: Check user role in DB
-            const { data: dbUser } = await supabase.from('users').select('id, role, department').eq('id', authUser?.id || '').single()
-            console.log('👤 [useCreateSchedule] DB user:', dbUser)
-
             const insertPayload = {
                 ...input,
                 assigned_members: input.assigned_members || [],
             }
-            console.log('📦 [useCreateSchedule] Insert payload:', JSON.stringify(insertPayload, null, 2))
 
             const { data: schedule, error } = await (supabase
                 .from('schedules') as any)
@@ -247,10 +233,8 @@ export function useCreateSchedule() {
                 .single()
 
             if (error) {
-                console.error('💥 [useCreateSchedule] Supabase error:', { code: error.code, message: error.message, details: error.details, hint: error.hint })
                 throw error
             }
-            console.log('✅ [useCreateSchedule] Created:', schedule)
             return schedule
         },
         onSuccess: () => {
@@ -342,10 +326,7 @@ export function useUpdateScheduleStatus() {
 
 export function useContentSchedules(year: number, month: number) {
     const supabase = createClient()
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-    const endDate = month === 12
-        ? `${year + 1}-01-01`
-        : `${year}-${String(month + 1).padStart(2, '0')}-01`
+    const { startDate, endDate } = getMonthRange(year, month)
 
     return useQuery({
         queryKey: [...scheduleKeys.all, 'content', `${year}-${month}`],

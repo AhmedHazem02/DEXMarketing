@@ -39,9 +39,12 @@ const ROLE_HOME: Record<string, string> = {
 
 export default async function DashboardLayout({
     children,
+    params,
 }: {
     children: React.ReactNode
+    params: Promise<{ locale: string }>
 }) {
+    const { locale } = await params
     let user: any = null
     let role = 'client'
     let department: any = null
@@ -51,20 +54,26 @@ export default async function DashboardLayout({
         const { data: { user: authUser } } = await supabase.auth.getUser()
 
         if (!authUser) {
-            redirect('/login')
+            redirect(`/${locale}/login`)
         }
 
         user = authUser
 
-        // Fetch role & department
+        // Fetch role, department & active status
         const { data: profile } = await supabase
             .from('users')
-            .select('role, department')
+            .select('role, department, is_active')
             .eq('id', authUser.id)
             .single()
 
-        role = ((profile as any)?.role || 'client') as string
-        department = (profile as any)?.department || null
+        // Block deactivated users
+        const profileData = profile as { role?: string; department?: string; is_active?: boolean | null } | null
+        if (profileData && profileData.is_active === false) {
+            redirect(`/${locale}/blocked`)
+        }
+
+        role = (profileData?.role || 'client') as string
+        department = profileData?.department || null
     } catch (e: any) {
         // Re-throw redirect (Next.js uses a special error for redirect)
         if (e?.digest?.startsWith?.('NEXT_REDIRECT')) throw e
@@ -86,7 +95,7 @@ export default async function DashboardLayout({
         const isAllowed = allowedPrefixes.some(prefix => logicalPath.startsWith(prefix))
 
         if (!isAllowed) {
-            redirect(ROLE_HOME[normalizedRole] || '/client')
+            redirect(`/${locale}${ROLE_HOME[normalizedRole] || '/client'}`)
         }
     }
 

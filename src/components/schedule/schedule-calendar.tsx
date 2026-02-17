@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo, useCallback } from 'react'
 import { useLocale } from 'next-intl'
@@ -10,10 +10,10 @@ import {
 import { ar, enUS } from 'date-fns/locale'
 import {
     Calendar as CalendarIcon, ChevronLeft, ChevronRight,
-    Plus, Clock, MapPin, Building2, Loader2,
-    LayoutGrid, List, Trash2, Edit2, CheckCircle2,
-    Users, AlertTriangle, X, Search, Filter,
-    CalendarDays, TrendingUp, Timer, Bug, ClipboardList
+    Plus, Loader2,
+    LayoutGrid, List, CheckCircle2,
+    Users, AlertTriangle, X,
+    CalendarDays, Timer
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -25,14 +25,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
-    Tooltip, TooltipContent, TooltipProvider, TooltipTrigger
+    TooltipProvider
 } from '@/components/ui/tooltip'
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -47,51 +44,17 @@ import {
     useUpdateScheduleApproval
 } from '@/hooks/use-schedule'
 import { useClients } from '@/hooks/use-clients'
-import { useMyTasks } from '@/hooks/use-tasks'
-import { useCurrentUser, useTeamMembers, getRoleLabel } from '@/hooks/use-users'
-import {
-    SCHEDULE_STATUS_CONFIG, getScheduleStatusConfig,
-    isScheduleOverdue, OVERDUE_CONFIG, SCHEDULE_TYPE_CONFIG,
-    MISSING_ITEMS_STATUS_CONFIG, APPROVAL_STATUS_CONFIG
-} from '@/types/schedule'
+import { useCurrentUser, useTeamMembers } from '@/hooks/use-users'
+import { isScheduleOverdue } from '@/types/schedule'
 import type { ScheduleWithRelations, CreateScheduleInput, ScheduleStatus } from '@/types/schedule'
-import type { Department, User, ScheduleType, ScheduleLink, MissingItemsStatus } from '@/types/database'
-import { EmojiTextarea } from '@/components/ui/emoji-textarea'
-import { LinksInput } from '@/components/ui/links-input'
-import { ImageUploader } from '@/components/ui/image-uploader'
+import type { User } from '@/types/database'
 
-// ============================================
-// Status color helpers
-// ============================================
-
-function getStatusDot(status: ScheduleStatus, overdue: boolean): string {
-    if (overdue) return 'bg-red-500'
-    switch (status) {
-        case 'completed': return 'bg-emerald-500'
-        case 'in_progress': return 'bg-amber-400'
-        case 'cancelled': return 'bg-gray-400'
-        default: return 'bg-sky-400'
-    }
-}
-
-function getStatusBadgeClasses(status: ScheduleStatus, overdue: boolean): string {
-    if (overdue) return 'bg-red-500/15 text-red-400 border-red-500/30'
-    switch (status) {
-        case 'completed': return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-        case 'in_progress': return 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-        case 'cancelled': return 'bg-gray-500/15 text-gray-400 border-gray-500/30'
-        default: return 'bg-sky-500/15 text-sky-400 border-sky-500/30'
-    }
-}
-
-function getCardBorderClass(status: ScheduleStatus, overdue: boolean): string {
-    if (overdue) return 'border-red-500/40 hover:border-red-500/60'
-    switch (status) {
-        case 'completed': return 'border-emerald-500/30 hover:border-emerald-500/50'
-        case 'in_progress': return 'border-amber-500/30 hover:border-amber-500/50'
-        default: return 'border-border hover:border-primary/30'
-    }
-}
+import { getStatusDot } from './schedule-helpers'
+import { StatsCard } from './stats-card'
+import { ScheduleCard } from './schedule-card'
+import { ScheduleListView } from './schedule-list-view'
+import { ScheduleForm } from './schedule-form'
+import { MissingItemsForm } from './missing-items-form'
 
 // ============================================
 // Schedule Calendar View
@@ -227,30 +190,22 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
     }, [enrichedSchedules])
 
     const handleCreate = async (input: CreateScheduleInput & { team_leader_id: string; assigned_members?: string[] }) => {
-        console.log('🔵 [handleCreate] Current user:', { id: currentUser?.id, role: currentUser?.role, department: currentUser?.department })
-        console.log('🔵 [handleCreate] Input payload:', JSON.stringify(input, null, 2))
         try {
-            const result = await createSchedule.mutateAsync(input)
-            console.log('✅ [handleCreate] Success:', result)
+            await createSchedule.mutateAsync(input)
             setFormOpen(false)
-            toast.success(isAr ? '✅ تم إنشاء الجدولة بنجاح' : '✅ Schedule created successfully')
+            toast.success(isAr ? 'âœ… ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø© Ø¨Ù†Ø¬Ø§Ø­' : 'âœ… Schedule created successfully')
         } catch (error: any) {
-            console.error('❌ [handleCreate] Error:', { code: error?.code, message: error?.message, details: error?.details, hint: error?.hint })
-            toast.error(isAr ? '❌ فشل إنشاء الجدولة' : '❌ Failed to create schedule')
+            toast.error(isAr ? 'âŒ ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©' : 'âŒ Failed to create schedule')
         }
     }
 
     const handleCreateMissingItems = async (input: CreateScheduleInput & { team_leader_id: string; assigned_members?: string[] }) => {
-        console.log('🟡 [handleCreateMissingItems] Current user:', { id: currentUser?.id, role: currentUser?.role, department: currentUser?.department })
-        console.log('🟡 [handleCreateMissingItems] Input payload:', JSON.stringify(input, null, 2))
         try {
-            const result = await createSchedule.mutateAsync(input)
-            console.log('✅ [handleCreateMissingItems] Success:', result)
+            await createSchedule.mutateAsync(input)
             setMissingFormOpen(false)
-            toast.success(isAr ? '✅ تم إرسال النواقص بنجاح' : '✅ Missing items reported successfully')
+            toast.success(isAr ? 'âœ… ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ù†ÙˆØ§Ù‚Øµ Ø¨Ù†Ø¬Ø§Ø­' : 'âœ… Missing items reported successfully')
         } catch (error: any) {
-            console.error('❌ [handleCreateMissingItems] Error:', { code: error?.code, message: error?.message, details: error?.details, hint: error?.hint })
-            toast.error(isAr ? '❌ فشل إرسال النواقص' : '❌ Failed to report missing items')
+            toast.error(isAr ? 'âŒ ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ù†ÙˆØ§Ù‚Øµ' : 'âŒ Failed to report missing items')
         }
     }
 
@@ -260,9 +215,9 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
             await updateSchedule.mutateAsync({ id: editingSchedule.id, ...input })
             setEditingSchedule(null)
             setFormOpen(false)
-            toast.success(isAr ? '✅ تم تحديث الجدولة بنجاح' : '✅ Schedule updated successfully')
+            toast.success(isAr ? 'âœ… ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø© Ø¨Ù†Ø¬Ø§Ø­' : 'âœ… Schedule updated successfully')
         } catch (error) {
-            toast.error(isAr ? '❌ فشل تحديث الجدولة' : '❌ Failed to update schedule')
+            toast.error(isAr ? 'âŒ ÙØ´Ù„ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©' : 'âŒ Failed to update schedule')
             console.error('Update schedule error:', error)
         }
     }
@@ -278,9 +233,9 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
             await deleteSchedule.mutateAsync(scheduleToDelete)
             setDeleteDialogOpen(false)
             setScheduleToDelete(null)
-            toast.success(isAr ? '✅ تم حذف الجدولة بنجاح' : '✅ Schedule deleted successfully')
+            toast.success(isAr ? 'âœ… ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø© Ø¨Ù†Ø¬Ø§Ø­' : 'âœ… Schedule deleted successfully')
         } catch (error) {
-            toast.error(isAr ? '❌ فشل حذف الجدولة' : '❌ Failed to delete schedule')
+            toast.error(isAr ? 'âŒ ÙØ´Ù„ Ø­Ø°Ù Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©' : 'âŒ Failed to delete schedule')
             console.error('Delete schedule error:', error)
         }
     }
@@ -288,9 +243,9 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
     const handleStatusChange = async (id: string, status: ScheduleStatus) => {
         try {
             await updateStatus.mutateAsync({ id, status })
-            toast.success(isAr ? '✅ تم تحديث الحالة' : '✅ Status updated')
+            toast.success(isAr ? 'âœ… ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø©' : 'âœ… Status updated')
         } catch (error) {
-            toast.error(isAr ? '❌ فشل تحديث الحالة' : '❌ Failed to update status')
+            toast.error(isAr ? 'âŒ ÙØ´Ù„ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø©' : 'âŒ Failed to update status')
             console.error('Update status error:', error)
         }
     }
@@ -299,10 +254,10 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
         try {
             await approveSchedule.mutateAsync({ id, approval_status, manager_notes })
             toast.success(isAr
-                ? (approval_status === 'approved' ? '✅ تمت الموافقة على الجدولة' : '❌ تم رفض الجدولة')
-                : (approval_status === 'approved' ? '✅ Schedule approved' : '❌ Schedule rejected'))
+                ? (approval_status === 'approved' ? 'âœ… ØªÙ…Øª Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©' : 'âŒ ØªÙ… Ø±ÙØ¶ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©')
+                : (approval_status === 'approved' ? 'âœ… Schedule approved' : 'âŒ Schedule rejected'))
         } catch (error) {
-            toast.error(isAr ? '❌ فشل تحديث حالة الموافقة' : '❌ Failed to update approval status')
+            toast.error(isAr ? 'âŒ ÙØ´Ù„ ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø©' : 'âŒ Failed to update approval status')
             console.error('Approval error:', error)
         }
     }
@@ -314,7 +269,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
 
     const weekDays = useMemo(() => {
         const days = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri']
-        const daysAr = ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة']
+        const daysAr = ['Ø³Ø¨Øª', 'Ø£Ø­Ø¯', 'Ø§Ø«Ù†ÙŠÙ†', 'Ø«Ù„Ø§Ø«Ø§Ø¡', 'Ø£Ø±Ø¨Ø¹Ø§Ø¡', 'Ø®Ù…ÙŠØ³', 'Ø¬Ù…Ø¹Ø©']
         return isAr ? daysAr : days
     }, [isAr])
 
@@ -356,7 +311,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                             onClick={() => { setCurrentDate(new Date()); setSelectedDate(new Date()) }}
                         >
                             <CalendarDays className="h-3.5 w-3.5 me-1.5" />
-                            {isAr ? 'اليوم' : 'Today'}
+                            {isAr ? 'Ø§Ù„ÙŠÙˆÙ…' : 'Today'}
                         </Button>
                     </div>
 
@@ -367,12 +322,12 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                             <SelectTrigger className="w-full sm:w-[180px] h-9 rounded-xl border-border">
                                 <div className="flex items-center gap-2">
                                     <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                    <SelectValue placeholder={isAr ? 'كل العملاء' : 'All Clients'} />
+                                    <SelectValue placeholder={isAr ? 'ÙƒÙ„ Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡' : 'All Clients'} />
                                 </div>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">
-                                    {isAr ? 'كل العملاء' : 'All Clients'}
+                                    {isAr ? 'ÙƒÙ„ Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡' : 'All Clients'}
                                 </SelectItem>
                                 {clients?.map(client => (
                                     <SelectItem key={client.id} value={client.id}>
@@ -428,7 +383,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                 onClick={() => { setEditingSchedule(null); setFormOpen(true) }}
                             >
                                 <Plus className="h-4 w-4 me-1.5" />
-                                {isAr ? 'جدولة جديدة' : 'New Schedule'}
+                                {isAr ? 'Ø¬Ø¯ÙˆÙ„Ø© Ø¬Ø¯ÙŠØ¯Ø©' : 'New Schedule'}
                             </Button>
                         )}
 
@@ -438,13 +393,13 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                 <DialogHeader>
                                     <DialogTitle className="text-lg">
                                         {editingSchedule
-                                            ? (isAr ? '✏️ تعديل الجدول' : '✏️ Edit Schedule')
-                                            : (isAr ? '📅 جدولة جديدة' : '📅 New Schedule')}
+                                            ? (isAr ? 'âœï¸ ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø¬Ø¯ÙˆÙ„' : 'âœï¸ Edit Schedule')
+                                            : (isAr ? 'ðŸ“… Ø¬Ø¯ÙˆÙ„Ø© Ø¬Ø¯ÙŠØ¯Ø©' : 'ðŸ“… New Schedule')}
                                     </DialogTitle>
                                     <DialogDescription>
                                         {editingSchedule
-                                            ? (isAr ? 'تعديل تفاصيل الجدولة' : 'Edit schedule details')
-                                            : (isAr ? 'إضافة جدولة جديدة للفريق' : 'Add a new schedule for your team')}
+                                            ? (isAr ? 'ØªØ¹Ø¯ÙŠÙ„ ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©' : 'Edit schedule details')
+                                            : (isAr ? 'Ø¥Ø¶Ø§ÙØ© Ø¬Ø¯ÙˆÙ„Ø© Ø¬Ø¯ÙŠØ¯Ø© Ù„Ù„ÙØ±ÙŠÙ‚' : 'Add a new schedule for your team')}
                                     </DialogDescription>
                                 </DialogHeader>
                                 <ScheduleForm
@@ -470,16 +425,16 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                     className="rounded-xl border-amber-500/30 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
                                 >
                                     <AlertTriangle className="h-4 w-4 me-1.5" />
-                                    {isAr ? 'نواقص' : 'Missing Items'}
+                                    {isAr ? 'Ù†ÙˆØ§Ù‚Øµ' : 'Missing Items'}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-lg border-amber-500/20">
                                 <DialogHeader>
                                     <DialogTitle className="text-lg">
-                                        {isAr ? '⚠️ إبلاغ عن نواقص' : '⚠️ Report Missing Items'}
+                                        {isAr ? 'âš ï¸ Ø¥Ø¨Ù„Ø§Øº Ø¹Ù† Ù†ÙˆØ§Ù‚Øµ' : 'âš ï¸ Report Missing Items'}
                                     </DialogTitle>
                                     <DialogDescription>
-                                        {isAr ? 'أضف النواقص المطلوبة وسيتم إرسالها للمسؤول' : 'Add required missing items and they will be sent to the manager'}
+                                        {isAr ? 'Ø£Ø¶Ù Ø§Ù„Ù†ÙˆØ§Ù‚Øµ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© ÙˆØ³ÙŠØªÙ… Ø¥Ø±Ø³Ø§Ù„Ù‡Ø§ Ù„Ù„Ù…Ø³Ø¤ÙˆÙ„' : 'Add required missing items and they will be sent to the manager'}
                                     </DialogDescription>
                                 </DialogHeader>
                                 <MissingItemsForm
@@ -500,7 +455,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <StatsCard
                     icon={<CalendarIcon className="h-5 w-5" />}
-                    label={isAr ? 'إجمالي' : 'Total'}
+                    label={isAr ? 'Ø¥Ø¬Ù…Ø§Ù„ÙŠ' : 'Total'}
                     value={monthStats.total}
                     color="primary"
                     active={statusFilter === 'all'}
@@ -508,7 +463,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                 />
                 <StatsCard
                     icon={<Timer className="h-5 w-5" />}
-                    label={isAr ? 'مجدول' : 'Scheduled'}
+                    label={isAr ? 'Ù…Ø¬Ø¯ÙˆÙ„' : 'Scheduled'}
                     value={monthStats.upcoming}
                     color="sky"
                     active={statusFilter === 'scheduled'}
@@ -516,7 +471,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                 />
                 <StatsCard
                     icon={<AlertTriangle className="h-5 w-5" />}
-                    label={isAr ? 'النواقص' : 'Missing'}
+                    label={isAr ? 'Ø§Ù„Ù†ÙˆØ§Ù‚Øµ' : 'Missing'}
                     value={monthStats.missingItems}
                     color="amber"
                     active={false}
@@ -525,7 +480,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                 />
                 <StatsCard
                     icon={<CheckCircle2 className="h-5 w-5" />}
-                    label={isAr ? 'مكتمل' : 'Done'}
+                    label={isAr ? 'Ù…ÙƒØªÙ…Ù„' : 'Done'}
                     value={monthStats.completed}
                     color="emerald"
                     active={statusFilter === 'completed'}
@@ -533,7 +488,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                 />
                 <StatsCard
                     icon={<AlertTriangle className="h-5 w-5" />}
-                    label={isAr ? 'متأخر' : 'Overdue'}
+                    label={isAr ? 'Ù…ØªØ£Ø®Ø±' : 'Overdue'}
                     value={monthStats.overdue}
                     color="red"
                     active={false}
@@ -640,14 +595,14 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                                                 getStatusDot(s.status, overdue)
                                                             )} />
                                                             <span className="truncate">
-                                                                {s.start_time?.slice(0, 5)} {s.schedule_type ? (s.schedule_type === 'reels' ? '📹' : '📝') + ' ' : ''}{s.title}
+                                                                {s.start_time?.slice(0, 5)} {s.schedule_type ? (s.schedule_type === 'reels' ? 'ðŸ“¹' : 'ðŸ“') + ' ' : ''}{s.title}
                                                             </span>
                                                         </div>
                                                     )
                                                 })}
                                                 {daySchedules.length > 2 && (
                                                     <div className="text-[10px] text-muted-foreground/60 font-medium px-1.5">
-                                                        +{daySchedules.length - 2} {isAr ? 'أخرى' : 'more'}
+                                                        +{daySchedules.length - 2} {isAr ? 'Ø£Ø®Ø±Ù‰' : 'more'}
                                                     </div>
                                                 )}
                                             </div>
@@ -687,7 +642,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10">
-                                            {selectedSchedules.length} {isAr ? 'مواعيد' : 'events'}
+                                            {selectedSchedules.length} {isAr ? 'Ù…ÙˆØ§Ø¹ÙŠØ¯' : 'events'}
                                         </Badge>
                                         <Button
                                             variant="ghost"
@@ -707,7 +662,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                             <CalendarIcon className="h-6 w-6 text-muted-foreground/30" />
                                         </div>
                                         <p className="text-sm text-muted-foreground font-semibold">
-                                            {isAr ? 'لا توجد مواعيد في هذا اليوم' : 'No events scheduled for this day'}
+                                            {isAr ? 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…ÙˆØ§Ø¹ÙŠØ¯ ÙÙŠ Ù‡Ø°Ø§ Ø§Ù„ÙŠÙˆÙ…' : 'No events scheduled for this day'}
                                         </p>
                                         {canCreate && (
                                             <Button
@@ -717,7 +672,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                                 onClick={() => { setEditingSchedule(null); setFormOpen(true) }}
                                             >
                                                 <Plus className="h-3.5 w-3.5 me-1.5" />
-                                                {isAr ? 'إضافة جدولة' : 'Add Schedule'}
+                                                {isAr ? 'Ø¥Ø¶Ø§ÙØ© Ø¬Ø¯ÙˆÙ„Ø©' : 'Add Schedule'}
                                             </Button>
                                         )}
                                     </div>
@@ -762,17 +717,17 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>
-                            {isAr ? '⚠️ تأكيد الحذف' : '⚠️ Confirm Deletion'}
+                            {isAr ? 'âš ï¸ ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø­Ø°Ù' : 'âš ï¸ Confirm Deletion'}
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                             {isAr 
-                                ? 'هل أنت متأكد من حذف هذه الجدولة؟ لا يمكن التراجع عن هذا الإجراء.'
+                                ? 'Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø­Ø°Ù Ù‡Ø°Ù‡ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©ØŸ Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø§Ù„ØªØ±Ø§Ø¬Ø¹ Ø¹Ù† Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡.'
                                 : 'Are you sure you want to delete this schedule? This action cannot be undone.'}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>
-                            {isAr ? 'إلغاء' : 'Cancel'}
+                            {isAr ? 'Ø¥Ù„ØºØ§Ø¡' : 'Cancel'}
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDelete}
@@ -781,7 +736,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                             {deleteSchedule.isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                                isAr ? 'حذف' : 'Delete'
+                                isAr ? 'Ø­Ø°Ù' : 'Delete'
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>
@@ -789,1205 +744,5 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
             </AlertDialog>
         </div>
         </TooltipProvider>
-    )
-}
-
-// ============================================
-// Stats Card
-// ============================================
-
-interface StatsCardProps {
-    icon: React.ReactNode
-    label: string
-    value: number
-    color: 'primary' | 'sky' | 'amber' | 'emerald' | 'red'
-    active: boolean
-    onClick: () => void
-    pulse?: boolean
-}
-
-const colorMap = {
-    primary: {
-        bg: 'bg-primary/10',
-        icon: 'text-primary',
-        value: 'text-primary',
-        ring: 'ring-primary/30',
-        border: 'border-primary/20',
-    },
-    sky: {
-        bg: 'bg-sky-500/10',
-        icon: 'text-sky-400',
-        value: 'text-sky-400',
-        ring: 'ring-sky-500/30',
-        border: 'border-sky-500/20',
-    },
-    amber: {
-        bg: 'bg-amber-500/10',
-        icon: 'text-amber-400',
-        value: 'text-amber-400',
-        ring: 'ring-amber-500/30',
-        border: 'border-amber-500/20',
-    },
-    emerald: {
-        bg: 'bg-emerald-500/10',
-        icon: 'text-emerald-400',
-        value: 'text-emerald-400',
-        ring: 'ring-emerald-500/30',
-        border: 'border-emerald-500/20',
-    },
-    red: {
-        bg: 'bg-red-500/10',
-        icon: 'text-red-400',
-        value: 'text-red-400',
-        ring: 'ring-red-500/30',
-        border: 'border-red-500/20',
-    },
-}
-
-function StatsCard({ icon, label, value, color, active, onClick, pulse }: StatsCardProps) {
-    const colors = colorMap[color]
-
-    return (
-        <button
-            onClick={onClick}
-            className={cn(
-                'relative flex items-center gap-3 p-3 sm:p-4 rounded-2xl border transition-all duration-200',
-                'bg-card/50 hover:bg-card hover:shadow-lg',
-                colors.border,
-                active && `ring-2 ${colors.ring} ${colors.bg}`,
-            )}
-        >
-            <div className={cn(
-                'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                colors.bg
-            )}>
-                <span className={colors.icon}>
-                    {icon}
-                </span>
-            </div>
-            <div className="text-start">
-                <p className="text-xs text-muted-foreground font-medium">{label}</p>
-                <p className={cn('text-xl font-bold', colors.value)}>{value}</p>
-            </div>
-            {pulse && value > 0 && (
-                <span className="absolute top-2 end-2 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                </span>
-            )}
-        </button>
-    )
-}
-
-// ============================================
-// Schedule Card
-// ============================================
-
-interface ScheduleCardProps {
-    schedule: ScheduleWithRelations
-    isAr: boolean
-    memberMap: Map<string, Pick<User, 'id' | 'name' | 'avatar_url' | 'role'>>
-    onEdit: () => void
-    onDelete: (id: string) => void
-    onStatusChange: (status: ScheduleStatus) => void
-    isAccountManager?: boolean
-    onApproval?: (id: string, status: 'approved' | 'rejected') => void
-}
-
-function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onStatusChange, isAccountManager, onApproval }: ScheduleCardProps) {
-    const overdue = isScheduleOverdue(schedule)
-    const statusCfg = overdue ? OVERDUE_CONFIG : getScheduleStatusConfig(schedule.status)
-
-    const members = useMemo(() => 
-        (schedule.assigned_members || [])
-            .map(id => memberMap.get(id))
-            .filter(Boolean) as Pick<User, 'id' | 'name' | 'avatar_url' | 'role'>[],
-        [schedule.assigned_members, memberMap]
-    )
-
-    return (
-        <div className={cn(
-            'group relative rounded-xl border p-4 transition-all duration-200',
-            getCardBorderClass(schedule.status, overdue),
-            overdue && 'bg-red-500/5',
-            schedule.status === 'completed' && 'bg-emerald-500/5',
-        )}>
-            {/* Status accent line */}
-            <div className={cn(
-                'absolute top-0 start-0 w-1 h-full rounded-s-xl',
-                getStatusDot(schedule.status, overdue)
-            )} />
-
-            <div className="ps-3">
-                {/* Top row: title + actions */}
-                <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-sm truncate">{schedule.title}</h4>
-                            <Badge
-                                variant="outline"
-                                className={cn('shrink-0 text-[10px] px-2 py-0 h-5 rounded-md border', getStatusBadgeClasses(schedule.status, overdue))}
-                            >
-                                {overdue
-                                    ? (isAr ? 'متأخر' : 'Overdue')
-                                    : (isAr ? statusCfg?.labelAr : statusCfg?.label)}
-                            </Badge>
-                        </div>
-
-                        {schedule.schedule_type && (
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                                <span>{schedule.schedule_type === 'reels' ? '📹' : '📝'}</span>
-                                <span className="truncate">{schedule.schedule_type === 'reels' ? (isAr ? 'ريلز' : 'Reels') : (isAr ? 'بوست' : 'Post')}</span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 rounded-lg hover:bg-muted"
-                                    onClick={onEdit}
-                                >
-                                    <Edit2 className="h-3.5 w-3.5" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{isAr ? 'تعديل' : 'Edit'}</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 rounded-lg hover:bg-destructive/10 text-destructive"
-                                    onClick={() => onDelete(schedule.id)}
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{isAr ? 'حذف' : 'Delete'}</TooltipContent>
-                        </Tooltip>
-                    </div>
-                </div>
-
-                {/* Info chips */}
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                    {schedule.start_time && (
-                        <div className="flex items-center gap-1 text-xs bg-muted/30 text-muted-foreground px-2 py-1 rounded-lg">
-                            <Clock className="h-3 w-3" />
-                            {schedule.start_time.slice(0, 5)}
-                            {schedule.end_time && (
-                                <span className="text-muted-foreground/60">
-                                    → {schedule.end_time.slice(0, 5)}
-                                </span>
-                            )}
-                        </div>
-                    )}
-                    {schedule.location && (
-                        <div className="flex items-center gap-1 text-xs bg-muted/30 text-muted-foreground px-2 py-1 rounded-lg">
-                            <MapPin className="h-3 w-3" />
-                            <span className="truncate max-w-[120px]">{schedule.location}</span>
-                        </div>
-                    )}
-                    {schedule.client && (
-                        <div className="flex items-center gap-1 text-xs bg-primary/5 text-primary px-2 py-1 rounded-lg">
-                            <Building2 className="h-3 w-3" />
-                            <span className="truncate max-w-[120px]">{schedule.client?.name || schedule.client?.company}</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Assigned Members */}
-                {members.length > 0 && (
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30">
-                        <Users className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-                        <div className="flex -space-x-1.5">
-                            {members.slice(0, 6).map(member => (
-                                <Tooltip key={member.id}>
-                                    <TooltipTrigger asChild>
-                                            <Avatar className="h-7 w-7 border-2 border-card ring-0">
-                                                <AvatarImage src={member.avatar_url || ''} />
-                                                <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                                                    {member.name?.charAt(0) || '?'}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom" className="text-xs">
-                                            <p className="font-semibold">{member.name}</p>
-                                            <p className="text-muted-foreground">
-                                                {getRoleLabel(member.role, isAr)}
-                                            </p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                ))}
-                        </div>
-                        {members.length > 6 && (
-                            <span className="text-[10px] text-muted-foreground">
-                                +{members.length - 6}
-                            </span>
-                        )}
-                        <span className="text-xs text-muted-foreground/60 ms-1">
-                            {members.map(m => m.name?.split(' ')[0]).join(' · ')}
-                        </span>
-                    </div>
-                )}
-
-                {/* Notes */}
-                {schedule.notes && (
-                    <p className="text-xs text-muted-foreground/60 mt-2 line-clamp-1 italic">
-                        {schedule.notes}
-                    </p>
-                )}
-
-                {/* Approval Status & Missing Items */}
-                {(schedule.approval_status || schedule.missing_items) && (
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-border/20">
-                        {schedule.approval_status && (
-                            <Badge
-                                variant="outline"
-                                className={cn(
-                                    'text-[10px] px-2 py-0 h-5 rounded-md border',
-                                    schedule.approval_status === 'approved' && 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
-                                    schedule.approval_status === 'rejected' && 'bg-red-500/10 text-red-600 border-red-500/30',
-                                    schedule.approval_status === 'pending' && 'bg-amber-500/10 text-amber-600 border-amber-500/30',
-                                )}
-                            >
-                                {isAr
-                                    ? APPROVAL_STATUS_CONFIG.find(c => c.id === schedule.approval_status)?.labelAr
-                                    : APPROVAL_STATUS_CONFIG.find(c => c.id === schedule.approval_status)?.label}
-                            </Badge>
-                        )}
-                        {schedule.missing_items && (
-                            <Badge
-                                variant="outline"
-                                className={cn(
-                                    'text-[10px] px-2 py-0 h-5 rounded-md border',
-                                    schedule.missing_items_status === 'pending' && 'bg-orange-500/10 text-orange-600 border-orange-500/30',
-                                    schedule.missing_items_status === 'resolved' && 'bg-green-500/10 text-green-600 border-green-500/30',
-                                    schedule.missing_items_status === 'not_applicable' && 'bg-gray-400/10 text-gray-500 border-gray-400/30',
-                                )}
-                            >
-                                <AlertTriangle className="h-3 w-3 me-1" />
-                                {isAr ? 'نواقص' : 'Missing'}
-                            </Badge>
-                        )}
-                    </div>
-                )}
-
-                {/* Manager Notes */}
-                {schedule.manager_notes && (
-                    <div className="mt-2 px-2.5 py-1.5 rounded-lg bg-blue-500/5 border border-blue-500/20">
-                        <p className="text-[10px] font-semibold text-blue-600 mb-0.5">{isAr ? 'ملاحظات المدير' : 'Manager Notes'}</p>
-                        <p className="text-xs text-blue-600/80 line-clamp-2">{schedule.manager_notes}</p>
-                    </div>
-                )}
-
-                {/* Account Manager Approval Controls */}
-                {isAccountManager && onApproval && schedule.approval_status !== 'approved' && (
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-7 text-xs rounded-lg bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20"
-                            onClick={() => onApproval(schedule.id, 'approved')}
-                        >
-                            <CheckCircle2 className="h-3 w-3 me-1" />
-                            {isAr ? 'موافقة' : 'Approve'}
-                        </Button>
-                        {schedule.approval_status !== 'rejected' && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 h-7 text-xs rounded-lg bg-red-500/10 text-red-600 border-red-500/30 hover:bg-red-500/20"
-                                onClick={() => onApproval(schedule.id, 'rejected')}
-                            >
-                                <X className="h-3 w-3 me-1" />
-                                {isAr ? 'رفض' : 'Reject'}
-                            </Button>
-                        )}
-                    </div>
-                )}
-
-                {/* Status Change Dropdown */}
-                <div className="mt-3 pt-3 border-t border-border/20">
-                    <Select value={schedule.status} onValueChange={(v) => onStatusChange(v as ScheduleStatus)}>
-                        <SelectTrigger className="h-8 rounded-lg text-xs">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {SCHEDULE_STATUS_CONFIG.map(cfg => (
-                                <SelectItem key={cfg.id} value={cfg.id}>
-                                    <span className="text-xs">{isAr ? cfg.labelAr : cfg.label}</span>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-// ============================================
-// Schedule List View
-// ============================================
-
-interface ScheduleListViewProps {
-    schedules: ScheduleWithRelations[]
-    isAr: boolean
-    memberMap: Map<string, Pick<User, 'id' | 'name' | 'avatar_url' | 'role'>>
-    onEdit: (s: ScheduleWithRelations) => void
-    onDelete: (id: string) => void
-    onStatusChange: (id: string, status: ScheduleStatus) => void
-    isAccountManager?: boolean
-    onApproval?: (id: string, status: 'approved' | 'rejected') => void
-}
-
-function ScheduleListView({ schedules, isAr, memberMap, onEdit, onDelete, onStatusChange, isAccountManager, onApproval }: ScheduleListViewProps) {
-    const dateLocale = isAr ? ar : enUS
-
-    const grouped = useMemo(() => {
-        const map = new Map<string, ScheduleWithRelations[]>()
-        const sorted = [...schedules].sort((a, b) => {
-            const dateCompare = a.scheduled_date.localeCompare(b.scheduled_date)
-            if (dateCompare !== 0) return dateCompare
-            return (a.start_time || '').localeCompare(b.start_time || '')
-        })
-        sorted.forEach(s => {
-            const arr = map.get(s.scheduled_date) || []
-            arr.push(s)
-            map.set(s.scheduled_date, arr)
-        })
-        return map
-    }, [schedules])
-
-    if (schedules.length === 0) {
-        return (
-            <Card className="border-border/50">
-                <CardContent className="py-16">
-                    <div className="text-center">
-                        <div className="w-16 h-16 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-4">
-                            <CalendarIcon className="h-8 w-8 text-muted-foreground/20" />
-                        </div>
-                        <p className="text-muted-foreground font-medium">
-                            {isAr ? 'لا توجد مواعيد هذا الشهر' : 'No schedules this month'}
-                        </p>
-                        <p className="text-xs text-muted-foreground/50 mt-1">
-                            {isAr ? 'أضف جدولة جديدة للبدء' : 'Add a new schedule to get started'}
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-        )
-    }
-
-    return (
-        <Card className="border-border/50">
-            <ScrollArea className="h-[600px]">
-                <div className="divide-y divide-border/30">
-                    {Array.from(grouped.entries()).map(([dateStr, items]) => {
-                        const date = new Date(dateStr)
-                        const isToday = isTodayFn(date)
-
-                        return (
-                            <div key={dateStr} className="p-4">
-                                {/* Date header */}
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className={cn(
-                                        'w-10 h-10 rounded-xl flex flex-col items-center justify-center text-xs font-bold shrink-0',
-                                        isToday
-                                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30'
-                                            : 'bg-muted/50'
-                                    )}>
-                                        <span className="leading-none text-[10px] font-medium opacity-70">
-                                            {format(date, 'EEE', { locale: dateLocale })}
-                                        </span>
-                                        <span className="leading-none text-sm">
-                                            {format(date, 'd')}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-sm font-semibold">
-                                            {format(date, 'EEEE', { locale: dateLocale })}
-                                        </h3>
-                                        <p className="text-xs text-muted-foreground">
-                                            {format(date, 'd MMMM yyyy', { locale: dateLocale })}
-                                            {isToday && (
-                                                <Badge variant="outline" className="ms-2 text-[10px] px-1.5 py-0 h-4 border-primary/30 text-primary">
-                                                    {isAr ? 'اليوم' : 'Today'}
-                                                </Badge>
-                                            )}
-                                        </p>
-                                    </div>
-                                    <Badge variant="outline" className="ms-auto text-xs">
-                                        {items.length}
-                                    </Badge>
-                                </div>
-
-                                {/* Cards */}
-                                <div className="space-y-2 ms-[52px]">
-                                    {items.map(s => (
-                                        <ScheduleCard
-                                            key={s.id}
-                                            schedule={s}
-                                            isAr={isAr}
-                                            memberMap={memberMap}
-                                            onEdit={() => onEdit(s)}
-                                            onDelete={() => onDelete(s.id)}
-                                            onStatusChange={(status) => onStatusChange(s.id, status)}
-                                            isAccountManager={isAccountManager}
-                                            onApproval={onApproval}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div>
-            </ScrollArea>
-        </Card>
-    )
-}
-
-// ============================================
-// Schedule Form
-// ============================================
-
-interface ScheduleFormProps {
-    teamLeaderId: string
-    initialDate?: string
-    schedule?: ScheduleWithRelations | null
-    isLoading: boolean
-    onSubmit: (data: any) => void
-    defaultClientId?: string  // من الفلتر
-    userRole?: string         // لتخصيص الحقول حسب الدور
-    simplifiedForm?: boolean  // إخفاء endTime و team members
-}
-
-function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, onSubmit, defaultClientId, userRole, simplifiedForm = false }: ScheduleFormProps) {
-    const locale = useLocale()
-    const isAr = locale === 'ar'
-
-    const { data: currentUser } = useCurrentUser()
-    const { data: clients } = useClients()
-    const { data: teamMembers } = useTeamMembers(teamLeaderId)
-
-    const [title, setTitle] = useState(schedule?.title || '')
-    const [date] = useState(schedule?.scheduled_date || initialDate || '')
-    const [time, setTime] = useState(schedule?.start_time?.slice(0, 5) || '')
-    const [endTime, setEndTime] = useState(schedule?.end_time?.slice(0, 5) || '')
-    const [location, setLocation] = useState(schedule?.location || '')
-    const [description, setDescription] = useState(schedule?.description || '')
-    const [notes, setNotes] = useState(schedule?.notes || '')
-    const [status, setStatus] = useState<ScheduleStatus>(schedule?.status || 'scheduled')
-    const [clientId, setClientId] = useState(schedule?.client_id || defaultClientId || 'no-client')
-    const [department, setDepartment] = useState<Department>(schedule?.department || (currentUser?.department || 'photography'))
-    const [assignedMembers, setAssignedMembers] = useState<string[]>(schedule?.assigned_members || [])
-    const [scheduleType, setScheduleType] = useState<ScheduleType>(schedule?.schedule_type || 'post')
-    const [missingItems, setMissingItems] = useState(schedule?.missing_items || '')
-    const [missingItemsStatus, setMissingItemsStatus] = useState<MissingItemsStatus>(schedule?.missing_items_status || 'not_applicable')
-    const [links, setLinks] = useState<ScheduleLink[]>(schedule?.links || [])
-    const [images, setImages] = useState<string[]>(schedule?.images || [])
-
-    // Simplified form: hide endTime & team members (for content department)
-    const isSimplified = simplifiedForm || userRole === 'creator' || currentUser?.role === 'creator'
-
-    const toggleMember = (memberId: string) => {
-        setAssignedMembers(prev =>
-            prev.includes(memberId)
-                ? prev.filter(id => id !== memberId)
-                : [...prev, memberId]
-        )
-    }
-
-    const selectAllMembers = () => {
-        if (teamMembers) {
-            setAssignedMembers(teamMembers.map(m => m.id))
-        }
-    }
-
-    const clearAllMembers = () => {
-        setAssignedMembers([])
-    }
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        const selectedClient = clients?.find(c => c.id === clientId)
-        const companyName = selectedClient ? (selectedClient.name || selectedClient.company) : title
-        onSubmit({
-            title,
-            company_name: companyName,
-            scheduled_date: date,
-            start_time: time || null,
-            end_time: endTime || null,
-            location: location || null,
-            description: description || null,
-            notes: notes || null,
-            status,
-            client_id: clientId === 'no-client' ? null : clientId,
-            department,
-            assigned_members: assignedMembers,
-            team_leader_id: teamLeaderId,
-            schedule_type: scheduleType,
-            missing_items: missingItems || null,
-            missing_items_status: missingItems.trim() ? missingItemsStatus : 'not_applicable',
-            links: links.filter(l => l.url.trim()),
-            images,
-        })
-    }
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
-            {/* Title */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {isAr ? 'العنوان' : 'Title'} *
-                </Label>
-                <Input
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    required
-                    className="rounded-xl"
-                    placeholder={isAr ? 'مثال: تصوير منتجات' : 'e.g. Product Photoshoot'}
-                />
-            </div>
-
-            {/* Schedule Type */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {isAr ? 'نوع المحتوى' : 'Content Type'} *
-                </Label>
-                <Select value={scheduleType} onValueChange={(v) => setScheduleType(v as ScheduleType)}>
-                    <SelectTrigger className="rounded-xl">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {SCHEDULE_TYPE_CONFIG.map(cfg => (
-                            <SelectItem key={cfg.id} value={cfg.id}>
-                                <span className="flex items-center gap-2">
-                                    <span>{cfg.icon}</span>
-                                    <span>{isAr ? cfg.labelAr : cfg.label}</span>
-                                </span>
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            {/* Date & Time */}
-            <div className={cn("grid gap-3", isSimplified ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-3")}>
-                <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {isAr ? 'التاريخ' : 'Date'}
-                    </Label>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border/50 bg-muted/30 text-sm">
-                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                        <span>{date ? format(new Date(date + 'T00:00:00'), 'dd MMM yyyy', { locale: isAr ? ar : enUS }) : (isAr ? 'اختر من التقويم' : 'Select from calendar')}</span>
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {isAr ? 'من' : 'From'}
-                    </Label>
-                    <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="rounded-xl" />
-                </div>
-                {!isSimplified && (
-                    <div className="space-y-2">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            {isAr ? 'إلى' : 'To'}
-                        </Label>
-                        <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="rounded-xl" />
-                    </div>
-                )}
-            </div>
-
-            {/* Client */}
-            <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                        <span className="flex items-center gap-1.5">
-                            <Building2 className="h-3.5 w-3.5" />
-                            {isAr ? 'العميل' : 'Client'}
-                        </span>
-                        {clients && clients.length > 0 && (
-                            <span className="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                                {clients.length} {isAr ? 'عميل' : 'clients'}
-                            </span>
-                        )}
-                    </Label>
-                    <Select value={clientId} onValueChange={setClientId}>
-                        <SelectTrigger className="rounded-xl">
-                            <SelectValue placeholder={isAr ? 'اختر العميل (اختياري)' : 'Select client (optional)'} />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                            {/* No Client Option */}
-                            <SelectItem value="no-client">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center">
-                                        <X className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                    <div>
-                                        <div className="font-medium text-sm">
-                                            {isAr ? 'بدون عميل' : 'No Client'}
-                                        </div>
-                                        <div className="text-[10px] text-muted-foreground">
-                                            {isAr ? 'مهمة عامة' : 'General task'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </SelectItem>
-                            
-                            {clients && clients.length > 0 ? (
-                                <>
-                                    <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1 pt-2">
-                                        {isAr ? 'العملاء المتاحين' : 'Available Clients'}
-                                    </div>
-                                    {clients.map(client => {
-                                        const hasUserAccount = !!client.user_id
-                                        return (
-                                            <SelectItem key={client.id} value={client.id}>
-                                                <div className="flex items-center gap-2.5 py-1">
-                                                    <Avatar className="h-8 w-8 border border-border/50">
-                                                        <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-primary/20 to-primary/5">
-                                                            {(client.name || client.company)?.charAt(0)?.toUpperCase() || '?'}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <span className="font-medium text-sm truncate">
-                                                                {client.name || client.company}
-                                                            </span>
-                                                            {hasUserAccount && (
-                                                                <span className="text-emerald-500" title={isAr ? 'لديه حساب - يمكنه الدخول' : 'Has account - Can login'}>
-                                                                    ✓
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <div className="text-[10px] text-muted-foreground truncate">
-                                                            {hasUserAccount 
-                                                                ? (client.email || (client.phone ? `📱 ${client.phone}` : (isAr ? 'لديه حساب' : 'Has account')))
-                                                                : (isAr ? '⚠️ بدون حساب - لن يرى الجدولة' : '⚠️ No account - Won\'t see schedule')}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </SelectItem>
-                                        )
-                                    })}
-                                </>
-                            ) : (
-                                <div className="px-3 py-6 text-center">
-                                    <div className="w-12 h-12 rounded-xl bg-muted/30 flex items-center justify-center mx-auto mb-2">
-                                        <Users className="h-6 w-6 text-muted-foreground/30" />
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mb-1 font-medium">
-                                        {isAr ? 'لا يوجد عملاء' : 'No clients yet'}
-                                    </p>
-                                    <p className="text-[10px] text-muted-foreground/60">
-                                        {isAr ? 'قم بإضافة عميل جديد أولاً' : 'Add a new client first'}
-                                    </p>
-                                </div>
-                            )}
-                        </SelectContent>
-                    </Select>
-                    {/* Warning if client has no account */}
-                    {clientId && clientId !== 'no-client' && clients?.find(c => c.id === clientId && !c.user_id) && (
-                        <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                            <div className="flex-1 text-[11px] text-amber-600 dark:text-amber-400">
-                                <p className="font-semibold mb-0.5">
-                                    {isAr ? '⚠️ تنبيه: هذا العميل ليس لديه حساب' : '⚠️ Warning: This client has no account'}
-                                </p>
-                                <p className="text-amber-600/80 dark:text-amber-400/80">
-                                    {isAr 
-                                        ? 'لن يتمكن من رؤية هذه الجدولة في لوحة التحكم الخاصة به. قم بإنشاء حساب له أولاً.'
-                                        : 'They won\'t be able to see this schedule in their dashboard. Create an account for them first.'}
-                                </p>
-                            </div>
-                        </div>
-                    )}
-                    {/* Debug tip for admins */}
-                    {clientId && clientId !== 'no-client' && (
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border/30 text-xs text-muted-foreground">
-                            <Bug className="h-3.5 w-3.5 shrink-0" />
-                            <span>
-                                {isAr 
-                                    ? 'للتشخيص: اذهب إلى Admin → 🔍 تشخيص الجدولات'
-                                    : 'Debug: Go to Admin → 🔍 Debug Schedules'}
-                            </span>
-                        </div>
-                    )}
-                </div>
-
-            {/* Location */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {isAr ? 'الموقع' : 'Location'}
-                </Label>
-                <Input
-                    value={location}
-                    onChange={e => setLocation(e.target.value)}
-                    className="rounded-xl"
-                    placeholder={isAr ? 'عنوان أو رابط الموقع' : 'Address or location link'}
-                />
-            </div>
-
-            {/* Team Members */}
-            {!isSimplified && (
-            <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                        <Users className="h-3.5 w-3.5" />
-                        {isAr ? 'أعضاء الفريق' : 'Team Members'}
-                        {assignedMembers.length > 0 && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 rounded-md">
-                                {assignedMembers.length}
-                            </Badge>
-                        )}
-                    </Label>
-                    {teamMembers && teamMembers.length > 0 && (
-                        <div className="flex gap-1.5">
-                            <button
-                                type="button"
-                                onClick={selectAllMembers}
-                                className="text-[10px] text-primary hover:underline font-medium"
-                            >
-                                {isAr ? 'تحديد الكل' : 'Select all'}
-                            </button>
-                            {assignedMembers.length > 0 && (
-                                <>
-                                    <span className="text-muted-foreground/30">|</span>
-                                    <button
-                                        type="button"
-                                        onClick={clearAllMembers}
-                                        className="text-[10px] text-muted-foreground hover:underline font-medium"
-                                    >
-                                        {isAr ? 'إلغاء الكل' : 'Clear'}
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
-                {teamMembers && teamMembers.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2">
-                        {teamMembers.map(member => {
-                            const isSelected = assignedMembers.includes(member.id)
-                            return (
-                                <button
-                                    key={member.id}
-                                    type="button"
-                                    onClick={() => toggleMember(member.id)}
-                                    className={cn(
-                                        'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-sm transition-all duration-200',
-                                        isSelected
-                                            ? 'bg-primary/10 border-primary/40 shadow-sm'
-                                            : 'bg-card/50 hover:bg-muted/50 border-border/50'
-                                    )}
-                                >
-                                    <div className="relative">
-                                        <Avatar className="h-7 w-7">
-                                            <AvatarImage src={member.avatar_url || ''} />
-                                            <AvatarFallback className={cn(
-                                                'text-[10px] font-bold',
-                                                isSelected ? 'bg-primary/20 text-primary' : 'bg-muted'
-                                            )}>
-                                                {member.name?.charAt(0) || '?'}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        {isSelected && (
-                                            <div className="absolute -top-0.5 -end-0.5 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center">
-                                                <CheckCircle2 className="h-2.5 w-2.5 text-primary-foreground" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="text-start min-w-0">
-                                        <div className={cn(
-                                            'font-medium text-xs truncate',
-                                            isSelected ? 'text-primary' : 'text-foreground'
-                                        )}>
-                                            {member.name}
-                                        </div>
-                                        <div className="text-[10px] text-muted-foreground truncate">
-                                            {getRoleLabel(member.role, isAr)}
-                                        </div>
-                                    </div>
-                                </button>
-                            )
-                        })}
-                    </div>
-                ) : (
-                    <div className="text-center py-4 rounded-xl border border-dashed border-border/50">
-                        <Users className="h-5 w-5 text-muted-foreground/30 mx-auto mb-1" />
-                        <p className="text-xs text-muted-foreground">
-                            {isAr ? 'لا يوجد أعضاء فريق متاحين' : 'No team members available'}
-                        </p>
-                    </div>
-                )}
-            </div>
-            )}
-
-            {/* Department - Read Only */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {isAr ? 'القسم' : 'Department'}
-                </Label>
-                <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-primary/30 bg-primary/5">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        {department === 'photography' ? (
-                            <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                        ) : (
-                            <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                        )}
-                    </div>
-                    <div className="flex-1">
-                        <div className="font-semibold text-sm text-foreground">
-                            {department === 'photography' 
-                                ? (isAr ? 'التصوير' : 'Photography')
-                                : (isAr ? 'المحتوى' : 'Content')}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                            {isAr ? 'قسمك الحالي' : 'Your current department'}
-                        </div>
-                    </div>
-                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 h-5 rounded-md">
-                        {isAr ? 'تلقائي' : 'Auto'}
-                    </Badge>
-                </div>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {isAr ? 'الوصف' : 'Description'}
-                </Label>
-                <EmojiTextarea
-                    value={description}
-                    onChange={setDescription}
-                    rows={2}
-                    className="rounded-xl resize-none"
-                    placeholder={isAr ? 'وصف تفصيلي...' : 'Detailed description...'}
-                />
-            </div>
-
-            {/* Status (editing only) */}
-            {schedule && (
-                <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {isAr ? 'الحالة' : 'Status'}
-                    </Label>
-                    <Select value={status} onValueChange={(v) => setStatus(v as ScheduleStatus)}>
-                        <SelectTrigger className="rounded-xl">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {SCHEDULE_STATUS_CONFIG.map(cfg => (
-                                <SelectItem key={cfg.id} value={cfg.id}>
-                                    {isAr ? cfg.labelAr : cfg.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            )}
-
-            {/* Notes */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {isAr ? 'ملاحظات' : 'Notes'}
-                </Label>
-                <EmojiTextarea
-                    value={notes}
-                    onChange={setNotes}
-                    rows={3}
-                    className="rounded-xl resize-none"
-                    placeholder={isAr ? 'ملاحظات إضافية... يمكنك استخدام الإيموجي 😊' : 'Additional notes... You can use emoji 😊'}
-                />
-            </div>
-
-            {/* Missing Items */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    {isAr ? 'النواقص' : 'Missing Items'}
-                </Label>
-                <EmojiTextarea
-                    value={missingItems}
-                    onChange={(val) => {
-                        setMissingItems(val)
-                        if (val.trim() && missingItemsStatus === 'not_applicable') {
-                            setMissingItemsStatus('pending')
-                        } else if (!val.trim()) {
-                            setMissingItemsStatus('not_applicable')
-                        }
-                    }}
-                    rows={2}
-                    className="rounded-xl resize-none"
-                    placeholder={isAr ? 'مثال: المنيو، الشعار، صور المنتجات...' : 'e.g. Menu, Logo, Product photos...'}
-                />
-                {missingItems.trim() && (
-                    <Select value={missingItemsStatus} onValueChange={(v) => setMissingItemsStatus(v as MissingItemsStatus)}>
-                        <SelectTrigger className="rounded-xl">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {MISSING_ITEMS_STATUS_CONFIG.map(cfg => (
-                                <SelectItem key={cfg.id} value={cfg.id}>
-                                    <span className={cn('flex items-center gap-2', cfg.color)}>
-                                        {isAr ? cfg.labelAr : cfg.label}
-                                    </span>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
-            </div>
-
-            {/* Links */}
-            <LinksInput
-                value={links}
-                onChange={setLinks}
-                maxLinks={10}
-            />
-
-            {/* Images */}
-            <ImageUploader
-                value={images}
-                onChange={setImages}
-                maxImages={10}
-            />
-
-            {/* Submit */}
-            <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full rounded-xl h-11 text-sm font-semibold shadow-lg shadow-primary/20"
-            >
-                {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                ) : schedule ? (
-                    <>
-                        <Edit2 className="h-4 w-4 me-2" />
-                        {isAr ? 'تحديث الجدولة' : 'Update Schedule'}
-                    </>
-                ) : (
-                    <>
-                        <Plus className="h-4 w-4 me-2" />
-                        {isAr ? 'إنشاء الجدولة' : 'Create Schedule'}
-                    </>
-                )}
-            </Button>
-        </form>
-    )
-}
-
-// ============================================
-// Missing Items Form (Standalone)
-// ============================================
-
-interface MissingItemsFormProps {
-    teamLeaderId: string
-    initialDate?: string
-    isLoading: boolean
-    onSubmit: (data: any) => void
-    defaultClientId?: string
-}
-
-function MissingItemsForm({ teamLeaderId, initialDate, isLoading, onSubmit }: MissingItemsFormProps) {
-    const locale = useLocale()
-    const isAr = locale === 'ar'
-
-    const { data: currentUser } = useCurrentUser()
-    const { data: myTasks } = useMyTasks(currentUser?.id || '')
-
-    const [selectedTaskId, setSelectedTaskId] = useState<string>('no-task')
-    const [missingItems, setMissingItems] = useState('')
-    const [missingItemsStatus, setMissingItemsStatus] = useState<MissingItemsStatus>('pending')
-    const [notes, setNotes] = useState('')
-
-    const selectedTask = myTasks?.find(t => t.id === selectedTaskId)
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!missingItems.trim()) return
-
-        const taskLabel = selectedTask?.title || ''
-        const clientLabel = selectedTask?.project?.client
-            ? (selectedTask.project.client.name || selectedTask.project.client.company)
-            : ''
-        const autoTitle = isAr
-            ? `نواقص${taskLabel ? ' - ' + taskLabel : ''}${clientLabel ? ' (' + clientLabel + ')' : ''}`
-            : `Missing Items${taskLabel ? ' - ' + taskLabel : ''}${clientLabel ? ' (' + clientLabel + ')' : ''}`
-
-        onSubmit({
-            title: autoTitle,
-            company_name: clientLabel || autoTitle,
-            scheduled_date: initialDate || format(new Date(), 'yyyy-MM-dd'),
-            start_time: format(new Date(), 'HH:mm'),
-            end_time: null,
-            location: null,
-            description: null,
-            notes: notes || null,
-            status: 'scheduled' as ScheduleStatus,
-            client_id: selectedTask?.project?.client?.id || null,
-            department: currentUser?.department || 'content',
-            assigned_members: [],
-            team_leader_id: teamLeaderId,
-            task_id: selectedTaskId !== 'no-task' ? selectedTaskId : undefined,
-            schedule_type: 'post' as ScheduleType,
-            missing_items: missingItems,
-            missing_items_status: missingItemsStatus,
-            links: [],
-            images: [],
-        })
-    }
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
-            {/* Date (read-only) */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {isAr ? 'التاريخ' : 'Date'}
-                </Label>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border/50 bg-muted/30 text-sm">
-                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <span>
-                        {initialDate
-                            ? format(new Date(initialDate + 'T00:00:00'), 'dd MMM yyyy', { locale: isAr ? ar : enUS })
-                            : format(new Date(), 'dd MMM yyyy', { locale: isAr ? ar : enUS })}
-                    </span>
-                </div>
-            </div>
-
-            {/* Task Selector */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <ClipboardList className="h-3.5 w-3.5" />
-                    {isAr ? 'التاسك' : 'Task'}
-                </Label>
-                <Select value={selectedTaskId} onValueChange={setSelectedTaskId}>
-                    <SelectTrigger className="rounded-xl">
-                        <SelectValue placeholder={isAr ? 'اختر التاسك' : 'Select task'} />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
-                        <SelectItem value="no-task">
-                            <div className="flex items-center gap-2">
-                                <X className="h-4 w-4 text-muted-foreground" />
-                                <span>{isAr ? 'بدون تاسك' : 'No Task'}</span>
-                            </div>
-                        </SelectItem>
-                        {myTasks && myTasks.length > 0 ? (
-                            <>
-                                <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1 pt-2">
-                                    {isAr ? 'التاسكات الخاصة بك' : 'Your Tasks'}
-                                </div>
-                                {myTasks.map(task => {
-                                    const clientName = task.project?.client
-                                        ? (task.project.client.name || task.project.client.company)
-                                        : null
-                                    return (
-                                        <SelectItem key={task.id} value={task.id}>
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="text-sm font-medium truncate max-w-[300px]">
-                                                    {task.title}
-                                                </span>
-                                                <span className="text-[10px] text-muted-foreground truncate">
-                                                    {task.project?.name || ''}
-                                                    {clientName ? ` • ${clientName}` : ''}
-                                                </span>
-                                            </div>
-                                        </SelectItem>
-                                    )
-                                })}
-                            </>
-                        ) : (
-                            <div className="px-3 py-4 text-center">
-                                <p className="text-xs text-muted-foreground">
-                                    {isAr ? 'لا يوجد تاسكات' : 'No tasks found'}
-                                </p>
-                            </div>
-                        )}
-                    </SelectContent>
-                </Select>
-                {selectedTask?.project?.client && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
-                        <Building2 className="h-3 w-3" />
-                        <span>{selectedTask.project.client.name || selectedTask.project.client.company}</span>
-                    </div>
-                )}
-            </div>
-
-            {/* Missing Items */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    {isAr ? 'النواقص' : 'Missing Items'} *
-                </Label>
-                <EmojiTextarea
-                    value={missingItems}
-                    onChange={setMissingItems}
-                    rows={4}
-                    className="rounded-xl resize-none"
-                    placeholder={isAr ? 'اكتب النواقص المطلوبة...\nمثال: المنيو، الشعار، صور المنتجات...' : 'Describe missing items...\ne.g. Menu, Logo, Product photos...'}
-                />
-            </div>
-
-            {/* Missing Items Status */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {isAr ? 'حالة النواقص' : 'Status'}
-                </Label>
-                <Select value={missingItemsStatus} onValueChange={(v) => setMissingItemsStatus(v as MissingItemsStatus)}>
-                    <SelectTrigger className="rounded-xl">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {MISSING_ITEMS_STATUS_CONFIG.map(cfg => (
-                            <SelectItem key={cfg.id} value={cfg.id}>
-                                <span className={cn('flex items-center gap-2', cfg.color)}>
-                                    {isAr ? cfg.labelAr : cfg.label}
-                                </span>
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {isAr ? 'ملاحظات' : 'Notes'}
-                </Label>
-                <EmojiTextarea
-                    value={notes}
-                    onChange={setNotes}
-                    rows={2}
-                    className="rounded-xl resize-none"
-                    placeholder={isAr ? 'ملاحظات إضافية...' : 'Additional notes...'}
-                />
-            </div>
-
-            {/* Submit */}
-            <Button
-                type="submit"
-                disabled={isLoading || !missingItems.trim()}
-                className="w-full rounded-xl h-11 text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20"
-            >
-                {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                    <>
-                        <AlertTriangle className="h-4 w-4 me-2" />
-                        {isAr ? 'إرسال النواقص' : 'Submit Missing Items'}
-                    </>
-                )}
-            </Button>
-        </form>
     )
 }

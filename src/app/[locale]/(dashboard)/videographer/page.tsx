@@ -39,7 +39,7 @@ export default function VideographerDashboard() {
         fetchUser()
     }, [])
 
-    useTasksRealtime(undefined)
+    useTasksRealtime()
 
     const { data: tasks, isLoading } = useMyTasks(userId ?? '')
     const markComplete = useMarkTaskComplete()

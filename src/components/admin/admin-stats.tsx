@@ -1,8 +1,11 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useTreasury, useTransactionSummary, useUsers, useTasks } from '@/hooks'
-import { DollarSign, Users, CheckCircle, TrendingUp, TrendingDown, Loader2, ArrowUp, ArrowDown } from 'lucide-react'
+import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useTreasury, useTransactionSummary, useUsers } from '@/hooks'
+import { DollarSign, Users, TrendingUp, TrendingDown, Loader2, ArrowUp, ArrowDown } from 'lucide-react'
+import { getFormatters } from '@/lib/constants/admin'
 
 interface StatCardProps {
     title: string
@@ -40,49 +43,38 @@ function StatCard({ title, value, change, trend, icon, loading }: StatCardProps)
 }
 
 export function AdminStats() {
+    const t = useTranslations('adminStats')
     const { data: treasury, isLoading: treasuryLoading } = useTreasury()
     const { data: summary, isLoading: summaryLoading } = useTransactionSummary('month')
     const { data: users, isLoading: usersLoading } = useUsers()
-    const { data: tasks, isLoading: tasksLoading } = useTasks()
+
+    const { formatCurrency } = useMemo(() => getFormatters('ar'), [])
 
     const activeUsers = users?.filter(u => u.is_active).length || 0
-    const activeTasks = tasks?.filter(t => !['approved', 'rejected'].includes(t.status)).length || 0
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('ar-EG', {
-            style: 'currency',
-            currency: 'EGP',
-            minimumFractionDigits: 0,
-        }).format(amount)
-    }
 
     return (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
-                title="رصيد الخزنة"
+                title={t('treasuryBalance')}
                 value={formatCurrency(treasury?.current_balance || 0)}
                 icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
                 loading={treasuryLoading}
             />
             <StatCard
-                title="الإيرادات (هذا الشهر)"
+                title={t('revenueThisMonth')}
                 value={formatCurrency(summary?.totalIncome || 0)}
-                change="+20.1%"
-                trend="up"
                 icon={<TrendingUp className="h-4 w-4 text-green-500" />}
                 loading={summaryLoading}
             />
             <StatCard
-                title="المصروفات (هذا الشهر)"
+                title={t('expensesThisMonth')}
                 value={formatCurrency(summary?.totalExpense || 0)}
-                change="-4.5%"
-                trend="down"
                 icon={<TrendingDown className="h-4 w-4 text-red-500" />}
                 loading={summaryLoading}
             />
             <StatCard
-                title="المستخدمين النشطين"
-                value={activeUsers}
+                title={t('activeUsers')}
+                value={`${activeUsers} / ${users?.length || 0}`}
                 icon={<Users className="h-4 w-4 text-muted-foreground" />}
                 loading={usersLoading}
             />

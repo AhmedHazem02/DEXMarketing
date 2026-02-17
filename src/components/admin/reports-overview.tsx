@@ -1,15 +1,19 @@
 'use client'
 
+import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useTreasury, useTransactionSummary, useUsers, useTasks } from '@/hooks'
 import { Loader2, Download, TrendingUp, TrendingDown, Users, CheckCircle, Clock, DollarSign } from 'lucide-react'
 import { useState } from 'react'
+import { getFormatters } from '@/lib/constants/admin'
 
 type Period = 'week' | 'month' | 'year'
 
 export function ReportsOverview() {
+    const t = useTranslations('reportsOverview')
     const [period, setPeriod] = useState<Period>('month')
 
     const { data: treasury, isLoading: treasuryLoading } = useTreasury()
@@ -17,19 +21,9 @@ export function ReportsOverview() {
     const { data: users } = useUsers()
     const { data: tasks } = useTasks()
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('ar-EG', {
-            style: 'currency',
-            currency: 'EGP',
-            minimumFractionDigits: 0,
-        }).format(amount)
-    }
+    const { formatCurrency } = useMemo(() => getFormatters('ar'), [])
 
-    const periodLabels: Record<Period, string> = {
-        week: 'هذا الأسبوع',
-        month: 'هذا الشهر',
-        year: 'هذا العام',
-    }
+    const periodLabel = t(period === 'week' ? 'thisWeek' : period === 'month' ? 'thisMonth' : 'thisYear')
 
     // Calculate stats
     const activeUsers = users?.filter(u => u.is_active).length || 0
@@ -41,30 +35,32 @@ export function ReportsOverview() {
     const handleExport = () => {
         // Create CSV data
         const csvData = [
-            ['التقرير المالي - ' + periodLabels[period]],
+            [t('financialReport') + ' - ' + periodLabel],
             [''],
-            ['البند', 'القيمة'],
-            ['رصيد الخزنة', treasury?.current_balance || 0],
-            ['الإيرادات', summary?.totalIncome || 0],
-            ['المصروفات', summary?.totalExpense || 0],
-            ['صافي الربح', summary?.netBalance || 0],
+            [t('item'), t('value')],
+            [t('treasuryBalance'), treasury?.current_balance || 0],
+            [t('revenue'), summary?.totalIncome || 0],
+            [t('expenses'), summary?.totalExpense || 0],
+            [t('netProfit'), summary?.netBalance || 0],
             [''],
-            ['إحصائيات المستخدمين'],
-            ['إجمالي المستخدمين', totalUsers],
-            ['المستخدمين النشطين', activeUsers],
+            [t('usersStats')],
+            [t('totalUsers'), totalUsers],
+            [t('activeUsers'), activeUsers],
             [''],
-            ['إحصائيات المهام'],
-            ['إجمالي المهام', totalTasks],
-            ['المهام المكتملة', completedTasks],
-            ['المهام قيد التنفيذ', pendingTasks],
+            [t('tasksStats')],
+            [t('totalTasks'), totalTasks],
+            [t('completed'), completedTasks],
+            [t('inProgress'), pendingTasks],
         ]
 
         const csvContent = csvData.map(row => row.join(',')).join('\n')
         const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
         const link = document.createElement('a')
-        link.href = URL.createObjectURL(blob)
+        const url = URL.createObjectURL(blob)
+        link.href = url
         link.download = `report-${period}-${new Date().toISOString().split('T')[0]}.csv`
         link.click()
+        URL.revokeObjectURL(url)
     }
 
     const isLoading = treasuryLoading || summaryLoading
@@ -78,15 +74,15 @@ export function ReportsOverview() {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="week">هذا الأسبوع</SelectItem>
-                        <SelectItem value="month">هذا الشهر</SelectItem>
-                        <SelectItem value="year">هذا العام</SelectItem>
+                        <SelectItem value="week">{t('thisWeek')}</SelectItem>
+                        <SelectItem value="month">{t('thisMonth')}</SelectItem>
+                        <SelectItem value="year">{t('thisYear')}</SelectItem>
                     </SelectContent>
                 </Select>
 
                 <Button onClick={handleExport} variant="outline">
                     <Download className="h-4 w-4 me-2" />
-                    تصدير Excel
+                    {t('exportCSV')}
                 </Button>
             </div>
 
@@ -100,7 +96,7 @@ export function ReportsOverview() {
                     <div className="grid gap-4 md:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">رصيد الخزنة</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('treasuryBalance')}</CardTitle>
                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
@@ -110,33 +106,33 @@ export function ReportsOverview() {
 
                         <Card className="border-green-500/30 bg-green-500/5">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">الإيرادات</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('revenue')}</CardTitle>
                                 <TrendingUp className="h-4 w-4 text-green-500" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-green-500">
                                     {formatCurrency(summary?.totalIncome || 0)}
                                 </div>
-                                <p className="text-xs text-muted-foreground">{periodLabels[period]}</p>
+                                <p className="text-xs text-muted-foreground">{periodLabel}</p>
                             </CardContent>
                         </Card>
 
                         <Card className="border-red-500/30 bg-red-500/5">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">المصروفات</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('expenses')}</CardTitle>
                                 <TrendingDown className="h-4 w-4 text-red-500" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-red-500">
                                     {formatCurrency(summary?.totalExpense || 0)}
                                 </div>
-                                <p className="text-xs text-muted-foreground">{periodLabels[period]}</p>
+                                <p className="text-xs text-muted-foreground">{periodLabel}</p>
                             </CardContent>
                         </Card>
 
                         <Card className={summary?.netBalance && summary.netBalance >= 0 ? 'border-green-500/30' : 'border-red-500/30'}>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">صافي الربح</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('netProfit')}</CardTitle>
                                 {summary?.netBalance && summary.netBalance >= 0 ? (
                                     <TrendingUp className="h-4 w-4 text-green-500" />
                                 ) : (
@@ -147,7 +143,7 @@ export function ReportsOverview() {
                                 <div className={`text-2xl font-bold ${summary?.netBalance && summary.netBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                     {formatCurrency(summary?.netBalance || 0)}
                                 </div>
-                                <p className="text-xs text-muted-foreground">{periodLabels[period]}</p>
+                                <p className="text-xs text-muted-foreground">{periodLabel}</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -159,17 +155,17 @@ export function ReportsOverview() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Users className="h-5 w-5" />
-                                    إحصائيات المستخدمين
+                                    {t('usersStats')}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-muted-foreground">إجمالي المستخدمين</span>
+                                        <span className="text-muted-foreground">{t('totalUsers')}</span>
                                         <span className="text-2xl font-bold">{totalUsers}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-muted-foreground">المستخدمين النشطين</span>
+                                        <span className="text-muted-foreground">{t('activeUsers')}</span>
                                         <span className="text-2xl font-bold text-green-500">{activeUsers}</span>
                                     </div>
                                     <div className="w-full bg-muted rounded-full h-2">
@@ -187,26 +183,26 @@ export function ReportsOverview() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <CheckCircle className="h-5 w-5" />
-                                    إحصائيات المهام
+                                    {t('tasksStats')}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-muted-foreground">إجمالي المهام</span>
+                                        <span className="text-muted-foreground">{t('totalTasks')}</span>
                                         <span className="text-2xl font-bold">{totalTasks}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-muted-foreground flex items-center gap-1">
                                             <CheckCircle className="h-4 w-4 text-green-500" />
-                                            مكتملة
+                                            {t('completed')}
                                         </span>
                                         <span className="text-xl font-bold text-green-500">{completedTasks}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-muted-foreground flex items-center gap-1">
                                             <Clock className="h-4 w-4 text-yellow-500" />
-                                            قيد التنفيذ
+                                            {t('inProgress')}
                                         </span>
                                         <span className="text-xl font-bold text-yellow-500">{pendingTasks}</span>
                                     </div>

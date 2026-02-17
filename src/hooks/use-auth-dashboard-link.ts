@@ -29,10 +29,12 @@ export function useAuthDashboardLink(
   const supabase = createClient()
 
   useEffect(() => {
+    let cancelled = false
+
     // Get initial user if not provided
     if (!initialUser) {
       supabase.auth.getUser().then(({ data: { user } }) => {
-        setUser(user)
+        if (!cancelled) setUser(user)
       })
     }
 
@@ -40,14 +42,20 @@ export function useAuthDashboardLink(
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      if (!cancelled) setUser(session?.user ?? null)
     })
 
-    return () => subscription.unsubscribe()
-  }, [initialUser, supabase])
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialUser])
 
   // Fetch user role if we have a user but no role
   useEffect(() => {
+    let cancelled = false
+
     if (user && !role) {
       supabase
         .from('users')
@@ -55,17 +63,25 @@ export function useAuthDashboardLink(
         .eq('id', user.id)
         .single()
         .then(({ data }) => {
-          const userData = data as any
-          if (userData && userData.role && typeof userData.role === 'string') {
+          if (cancelled) return
+          const userData = data as { role?: string } | null
+          if (userData?.role && typeof userData.role === 'string') {
             setRole(userData.role)
           }
         })
     }
-  }, [user, role, supabase])
+
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, role])
 
   const dashboardLink = role ? ROLE_DASHBOARD_MAP[role] ?? '/profile' : '/profile'
 
   const handleLogout = async () => {
+    // Log activity before signing out (consistent with use-logout.ts)
+    if (user) {
+      await supabase.from('activity_log').insert({ user_id: user.id, action: 'logout' } as never)
+    }
     await supabase.auth.signOut()
     setUser(null)
     setRole(undefined)

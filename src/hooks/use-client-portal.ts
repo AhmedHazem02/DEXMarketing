@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Project, Task, Client, Attachment } from '@/types/database'
 import type { TaskWithRelations, TaskDetails, CreateClientRequestInput, ClientRequestFilters, ClientRequestWithDetails } from '@/types/task'
@@ -302,12 +303,12 @@ export function useCreateClientRequest() {
 export function useClientRequestCounts(clientUserId: string) {
     const { data: requests } = useClientRequests(clientUserId)
 
-    const counts = {
+    const counts = useMemo(() => ({
         total: requests?.length ?? 0,
         pending: requests?.filter(r => r.request_status === 'pending_approval').length ?? 0,
         approved: requests?.filter(r => r.request_status === 'approved').length ?? 0,
         rejected: requests?.filter(r => r.request_status === 'rejected').length ?? 0,
-    }
+    }), [requests])
 
     return counts
 }

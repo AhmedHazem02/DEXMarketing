@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Treasury, Transaction, TransactionType } from '@/types/database'
+import { CLIENT_ACCOUNTS_KEY } from './use-client-accounts'
 
 const TREASURY_KEY = ['treasury']
 const TRANSACTIONS_KEY = ['transactions']
@@ -178,7 +179,7 @@ export function useCreateTransaction() {
             // Invalidate treasury, transactions, and client accounts
             queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
             queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
-            queryClient.invalidateQueries({ queryKey: ['client-accounts'] })
+            queryClient.invalidateQueries({ queryKey: CLIENT_ACCOUNTS_KEY })
         },
     })
 }
@@ -211,7 +212,7 @@ export function useUpdateTransaction() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
             queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
-            queryClient.invalidateQueries({ queryKey: ['client-accounts'] })
+            queryClient.invalidateQueries({ queryKey: CLIENT_ACCOUNTS_KEY })
         },
     })
 }

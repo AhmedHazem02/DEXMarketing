@@ -38,7 +38,7 @@ export default function EditorDashboard() {
         fetchUser()
     }, [])
 
-    useTasksRealtime(undefined)
+    useTasksRealtime()
 
     const { data: tasks, isLoading } = useEditorTasks(userId ?? '')
     const markComplete = useMarkTaskComplete()

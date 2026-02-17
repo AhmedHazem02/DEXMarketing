@@ -26,6 +26,7 @@ interface ProjectWithClient extends Project {
 export function useProjects(filters?: ProjectFilters) {
   return useQuery({
     queryKey: projectKeys.list(filters || {}),
+    staleTime: 2 * 60 * 1000,
     queryFn: async () => {
       const supabase = createClient()
 
@@ -54,6 +55,7 @@ export function useProjects(filters?: ProjectFilters) {
 export function useProject(id: string | undefined) {
   return useQuery({
     queryKey: projectKeys.detail(id || ''),
+    staleTime: 2 * 60 * 1000,
     queryFn: async () => {
       if (!id) return null
 

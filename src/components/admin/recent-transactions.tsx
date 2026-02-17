@@ -1,32 +1,22 @@
 'use client'
 
+import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTransactions } from '@/hooks'
 import { ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react'
+import { getFormatters } from '@/lib/constants/admin'
 
 export function RecentTransactions() {
+    const t = useTranslations('recentTransactions')
     const { data: transactions, isLoading } = useTransactions({ limit: 5 })
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('ar-EG', {
-            style: 'currency',
-            currency: 'EGP',
-            minimumFractionDigits: 0,
-        }).format(amount)
-    }
-
-    const formatDate = (date: string) => {
-        return new Intl.DateTimeFormat('ar-EG', {
-            day: 'numeric',
-            month: 'short',
-        }).format(new Date(date))
-    }
+    const { formatCurrency, formatDate } = useMemo(() => getFormatters('ar'), [])
 
     if (isLoading) {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>آخر المعاملات</CardTitle>
+                    <CardTitle>{t('title')}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center h-40">
                     <Loader2 className="h-6 w-6 animate-spin" />
@@ -38,12 +28,12 @@ export function RecentTransactions() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>آخر المعاملات</CardTitle>
+                <CardTitle>{t('title')}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
                     {transactions?.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-4">لا توجد معاملات بعد</p>
+                        <p className="text-muted-foreground text-center py-4">{t('noTransactions')}</p>
                     ) : (
                         transactions?.map((transaction) => (
                             <div key={transaction.id} className="flex items-center justify-between">
@@ -60,10 +50,10 @@ export function RecentTransactions() {
                                     </div>
                                     <div className="min-w-0 flex-1 px-3">
                                         <p className="font-medium text-sm truncate">
-                                            {transaction.description || (transaction.type === 'income' ? 'إيراد' : 'مصروف')}
+                                            {transaction.description || (transaction.type === 'income' ? t('income') : t('expense'))}
                                         </p>
                                         <p className="text-xs text-muted-foreground truncate">
-                                            {transaction.category || 'عام'} • {formatDate(transaction.created_at)}
+                                            {transaction.category || t('general')} • {formatDate(transaction.created_at)}
                                         </p>
                                     </div>
                                 </div>

@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,11 +22,22 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useUsers, useUpdateUser, useDeleteUser } from '@/hooks'
-import { MoreHorizontal, UserPlus, Shield, UserX, Loader2 } from 'lucide-react'
+import { MoreHorizontal, Shield, UserX, Loader2, Key } from 'lucide-react'
 import { toast } from 'sonner'
 import type { UserRole } from '@/types/database'
 import { AddUserDialog } from '@/components/admin/add-user-dialog'
+import { ChangePasswordDialog } from '@/components/admin/change-password-dialog'
 
 const roleColors: Record<UserRole, string> = {
     admin: 'bg-red-500/20 text-red-400 border-red-500/30',
@@ -39,49 +52,53 @@ const roleColors: Record<UserRole, string> = {
     designer: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
 }
 
-const roleLabels: Record<UserRole, string> = {
-    admin: 'مدير',
-    accountant: 'محاسب',
-    team_leader: 'قائد فريق',
-    creator: 'صانع محتوى',
-    client: 'عميل',
-    videographer: 'مصور فيديو',
-    editor: 'مونتير',
-    photographer: 'مصور فوتوغرافي',
-    account_manager: 'مدير حسابات',
-    designer: 'مصمم',
+const ROLE_I18N_KEYS: Record<UserRole, string> = {
+    admin: 'roleAdmin',
+    accountant: 'roleAccountant',
+    team_leader: 'roleTeamLeader',
+    creator: 'roleCreator',
+    client: 'roleClient',
+    videographer: 'roleVideographer',
+    editor: 'roleEditor',
+    photographer: 'rolePhotographer',
+    account_manager: 'roleAccountManager',
+    designer: 'roleDesigner',
 }
 
 export function UsersTable() {
+    const t = useTranslations('usersTable')
     const { data: users, isLoading, error } = useUsers()
     const updateUser = useUpdateUser()
     const deleteUser = useDeleteUser()
+    const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+    const [passwordChangeTarget, setPasswordChangeTarget] = useState<{ id: string; name: string } | null>(null)
 
     const handleRoleChange = async (userId: string, role: UserRole) => {
         try {
             await updateUser.mutateAsync({ id: userId, role })
-            toast.success('تم تحديث الدور بنجاح')
+            toast.success(t('roleUpdateSuccess'))
         } catch (error) {
-            toast.error('حدث خطأ أثناء تحديث الدور')
+            toast.error(t('roleUpdateError'))
         }
     }
 
     const handleToggleActive = async (userId: string, isActive: boolean) => {
         try {
             await updateUser.mutateAsync({ id: userId, is_active: !isActive })
-            toast.success(isActive ? 'تم تعطيل الحساب' : 'تم تفعيل الحساب')
+            toast.success(isActive ? t('accountDeactivated') : t('accountActivated'))
         } catch (error) {
-            toast.error('حدث خطأ')
+            toast.error(t('genericError'))
         }
     }
 
     const handleDelete = async (userId: string) => {
-        if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) return
         try {
             await deleteUser.mutateAsync(userId)
-            toast.success('تم حذف المستخدم')
+            toast.success(t('userDeleted'))
         } catch (error) {
-            toast.error('حدث خطأ أثناء الحذف')
+            toast.error(t('deleteError'))
+        } finally {
+            setDeleteTarget(null)
         }
     }
 
@@ -97,7 +114,7 @@ export function UsersTable() {
         return (
             <Card className="border-destructive">
                 <CardContent className="p-6 text-center text-destructive">
-                    حدث خطأ أثناء تحميل المستخدمين
+                    {t('loadError')}
                 </CardContent>
             </Card>
         )
@@ -107,9 +124,9 @@ export function UsersTable() {
         <Card>
             <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <CardTitle>إدارة المستخدمين</CardTitle>
+                    <CardTitle>{t('manageUsers')}</CardTitle>
                     <CardDescription>
-                        {users?.length || 0} مستخدم مسجل
+                        {t('registeredUsers', { count: users?.length || 0 })}
                     </CardDescription>
                 </div>
                 <AddUserDialog />
@@ -118,12 +135,12 @@ export function UsersTable() {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-muted/50">
-                            <TableHead>المستخدم</TableHead>
-                            <TableHead className="hidden md:table-cell">البريد الإلكتروني</TableHead>
-                            <TableHead>الدور</TableHead>
-                            <TableHead>الحالة</TableHead>
-                            <TableHead className="hidden md:table-cell">تاريخ التسجيل</TableHead>
-                            <TableHead className="text-left">إجراءات</TableHead>
+                            <TableHead>{t('columnUser')}</TableHead>
+                            <TableHead className="hidden md:table-cell">{t('columnEmail')}</TableHead>
+                            <TableHead>{t('columnRole')}</TableHead>
+                            <TableHead>{t('columnStatus')}</TableHead>
+                            <TableHead className="hidden md:table-cell">{t('columnRegistrationDate')}</TableHead>
+                            <TableHead className="text-left">{t('columnActions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -137,54 +154,62 @@ export function UsersTable() {
                                                 {user.name?.charAt(0) || user.email.charAt(0).toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <span className="font-medium">{user.name || 'بدون اسم'}</span>
+                                        <span className="font-medium">{user.name || t('noName')}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-muted-foreground hidden md:table-cell">{user.email}</TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className={roleColors[user.role]}>
-                                        {roleLabels[user.role]}
+                                        {t(ROLE_I18N_KEYS[user.role])}
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant={user.is_active ? 'default' : 'secondary'}>
-                                        {user.is_active ? 'نشط' : 'معطل'}
+                                        {user.is_active ? t('statusActive') : t('statusInactive')}
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell">
-                                    {new Date(user.created_at).toLocaleDateString()}
+                                    {new Date(user.created_at).toLocaleDateString('ar-EG')}
                                 </TableCell>
                                 <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                            <Button variant="ghost" className="h-8 w-8 p-0" aria-label={t('userOptions')}>
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
+                                            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
                                             <DropdownMenuItem onClick={() => navigator.clipboard.writeText(user.id)}>
-                                                نسخ المعرف
+                                                {t('copyId')}
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem onClick={() => handleToggleActive(user.id, user.is_active)}>
                                                 {user.is_active ? (
-                                                    <><Shield className="mr-2 h-4 w-4" /> تعطيل الحساب</>
+                                                    <><Shield className="mr-2 h-4 w-4" /> {t('deactivateAccount')}</>
                                                 ) : (
-                                                    <><Shield className="mr-2 h-4 w-4" /> تفعيل الحساب</>
+                                                    <><Shield className="mr-2 h-4 w-4" /> {t('activateAccount')}</>
                                                 )}
                                             </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setPasswordChangeTarget({ id: user.id, name: user.name || user.email })}>
+                                                <Key className="mr-2 h-4 w-4" /> {t('changePassword')}
+                                            </DropdownMenuItem>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuLabel>تغيير الدور</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'admin')}>مدير</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'team_leader')}>قائد فريق</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'accountant')}>محاسب</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'creator')}>مصمم</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'client')}>عميل</DropdownMenuItem>
+                                            <DropdownMenuLabel>{t('changeRole')}</DropdownMenuLabel>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'admin')}>{t('roleAdmin')}</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'account_manager')}>{t('roleAccountManager')}</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'team_leader')}>{t('roleTeamLeader')}</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'accountant')}>{t('roleAccountant')}</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'creator')}>{t('roleCreator')}</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'designer')}>{t('roleDesigner')}</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'videographer')}>{t('roleVideographer')}</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'editor')}>{t('roleEditor')}</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'photographer')}>{t('rolePhotographer')}</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'client')}>{t('roleClient')}</DropdownMenuItem>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(user.id)}>
+                                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(user.id)}>
                                                 <UserX className="mr-2 h-4 w-4" />
-                                                حذف المستخدم
+                                                {t('deleteUser')}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -194,6 +219,33 @@ export function UsersTable() {
                     </TableBody>
                 </Table>
             </CardContent>
+
+            <ChangePasswordDialog
+                open={!!passwordChangeTarget}
+                onOpenChange={(open) => !open && setPasswordChangeTarget(null)}
+                userId={passwordChangeTarget?.id || ''}
+                userName={passwordChangeTarget?.name || ''}
+            />
+
+            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('confirmDeleteTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t('confirmDeleteDescription')}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => deleteTarget && handleDelete(deleteTarget)}
+                        >
+                            {t('deleteUser')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Card>
     )
 }

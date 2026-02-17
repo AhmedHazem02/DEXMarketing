@@ -1,49 +1,24 @@
 'use client'
 
+import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useTasks } from '@/hooks'
 import { Loader2, Clock } from 'lucide-react'
-import type { TaskStatus } from '@/types/database'
-
-const statusColors: Record<TaskStatus, string> = {
-    new: 'bg-blue-500/20 text-blue-400',
-    in_progress: 'bg-yellow-500/20 text-yellow-400',
-    review: 'bg-purple-500/20 text-purple-400',
-    client_review: 'bg-indigo-500/20 text-indigo-400',
-    revision: 'bg-orange-500/20 text-orange-400',
-    approved: 'bg-green-500/20 text-green-400',
-    rejected: 'bg-red-500/20 text-red-400',
-}
-
-const statusLabels: Record<TaskStatus, string> = {
-    new: 'جديد',
-    in_progress: 'قيد التنفيذ',
-    review: 'مراجعة',
-    client_review: 'مراجعة العميل',
-    revision: 'تعديل',
-    approved: 'مقبول',
-    rejected: 'مرفوض',
-}
+import { STATUS_CONFIG, getFormatters } from '@/lib/constants/admin'
 
 export function RecentTasks() {
-    const { data: tasks, isLoading } = useTasks()
+    const t = useTranslations('recentTasks')
+    const { data: tasks, isLoading } = useTasks({}, 5)
 
-    const recentTasks = tasks?.slice(0, 5)
-
-    const formatDate = (date: string | null) => {
-        if (!date) return 'بدون موعد'
-        return new Intl.DateTimeFormat('ar-EG', {
-            day: 'numeric',
-            month: 'short',
-        }).format(new Date(date))
-    }
+    const { formatDate } = useMemo(() => getFormatters('ar'), [])
 
     if (isLoading) {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>آخر المهام</CardTitle>
+                    <CardTitle>{t('title')}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center h-40">
                     <Loader2 className="h-6 w-6 animate-spin" />
@@ -55,20 +30,20 @@ export function RecentTasks() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>آخر المهام</CardTitle>
+                <CardTitle>{t('title')}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {recentTasks?.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-4">لا توجد مهام بعد</p>
+                    {tasks?.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-4">{t('noTasks')}</p>
                     ) : (
-                        recentTasks?.map((task) => (
+                        tasks?.map((task) => (
                             <div key={task.id} className="flex items-center justify-between">
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium text-sm truncate">{task.title}</p>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <Badge variant="outline" className={statusColors[task.status]}>
-                                            {statusLabels[task.status]}
+                                        <Badge variant="outline" className={STATUS_CONFIG[task.status]?.style || STATUS_CONFIG.new.style}>
+                                            {STATUS_CONFIG[task.status]?.label || task.status}
                                         </Badge>
                                         {task.deadline && (
                                             <span className="text-xs text-muted-foreground flex items-center gap-1">

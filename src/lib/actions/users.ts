@@ -1,7 +1,73 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+
+// ============================================
+// Input Validation Schemas
+// ============================================
+
+const createUserSchema = z.object({
+    email: z.string().email('Invalid email format'),
+    name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
+    role: z.string().min(1, 'Role is required'),
+    department: z.string().optional(),
+    password: z.string().min(8, 'Password must be at least 8 characters').max(72, 'Password too long'),
+})
+
+const updateProfileSchema = z.object({
+    userId: z.string().uuid('Invalid user ID'),
+    name: z.string().min(2).max(100).optional(),
+    phone: z.string().max(20).optional(),
+    avatar_url: z.string().url().optional(),
+})
+
+const updatePasswordSchema = z.object({
+    userId: z.string().uuid('Invalid user ID'),
+    newPassword: z.string().min(8, 'Password must be at least 8 characters').max(72, 'Password too long'),
+})
+
+// ============================================
+// Authorization Helpers
+// ============================================
+
+async function getCurrentUser() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+    
+    const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+    
+    return { id: user.id, role: (profile as any)?.role as string | undefined }
+}
+
+async function requireAdmin() {
+    const currentUser = await getCurrentUser()
+    if (!currentUser) {
+        throw new Error('Authentication required')
+    }
+    if (currentUser.role !== 'admin') {
+        throw new Error('Admin access required')
+    }
+    return currentUser
+}
+
+async function requireSelfOrAdmin(targetUserId: string) {
+    const currentUser = await getCurrentUser()
+    if (!currentUser) {
+        throw new Error('Authentication required')
+    }
+    if (currentUser.id !== targetUserId && currentUser.role !== 'admin') {
+        throw new Error('You can only modify your own account')
+    }
+    return currentUser
+}
 
 /** Roles that require a department to be set */
 const DEPARTMENT_REQUIRED_ROLES = ['team_leader', 'creator', 'videographer', 'editor', 'photographer'] as const
@@ -19,10 +85,22 @@ export async function createUser(data: {
     name: string
     role: string
     department?: string
-    password?: string
+    password: string
 }) {
+    try {
+        // Authorization: Only admins can create users
+        await requireAdmin()
+    } catch (e: any) {
+        return { success: false, error: e.message || 'Unauthorized' }
+    }
+
+    // Input validation
+    const validation = createUserSchema.safeParse(data)
+    if (!validation.success) {
+        return { success: false, error: validation.error.issues[0]?.message || 'Invalid input' }
+    }
+
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        console.error('Missing SUPABASE_SERVICE_ROLE_KEY')
         return { success: false, error: 'تكوين الخادم (Server Config) غير مكتمل. يرجى إضافة مفتاح الخدمة.' }
     }
 
@@ -38,7 +116,7 @@ export async function createUser(data: {
     // Create user in Supabase Auth
     const { data: user, error } = await supabase.auth.admin.createUser({
         email: data.email,
-        password: data.password || '12345678',
+        password: data.password,
         email_confirm: true,
         user_metadata: {
             name: data.name,
@@ -93,6 +171,19 @@ export async function updateProfile(data: {
     phone?: string
     avatar_url?: string
 }) {
+    // Authorization: Users can only update their own profile, admins can update anyone
+    try {
+        await requireSelfOrAdmin(data.userId)
+    } catch (e: any) {
+        return { success: false, error: e.message || 'Unauthorized' }
+    }
+
+    // Input validation
+    const validation = updateProfileSchema.safeParse(data)
+    if (!validation.success) {
+        return { success: false, error: validation.error.issues[0]?.message || 'Invalid input' }
+    }
+
     const supabase = createAdminClient()
 
     const updateData: Record<string, unknown> = {}
@@ -119,36 +210,29 @@ export async function updateProfile(data: {
 }
 
 /**
- * Update user email (requires admin)
+ * Update user email (DISABLED - Email changes are no longer allowed)
  */
-export async function updateEmail(userId: string, newEmail: string) {
-    const supabase = createAdminClient()
-
-    const { data, error } = await supabase.auth.admin.updateUserById(userId, {
-        email: newEmail,
-        email_confirm: true
-    })
-
-    if (error) {
-        console.error('Update Email Error:', error)
-        return { success: false, error: error.message }
-    }
-
-    // Update in users table too
-    await supabase
-        .from('users')
-        // @ts-ignore - Supabase types don't match our schema yet
-        .update({ email: newEmail })
-        .eq('id', userId)
-
-    revalidatePath('/[locale]/(dashboard)/account')
-    return { success: true, user: data.user }
+export async function updateEmail(_userId: string, _newEmail: string) {
+    return { success: false, error: 'Email changes have been disabled. Please contact an administrator.' }
 }
 
 /**
- * Update user password
+ * Update user password (Admin only)
  */
 export async function updatePassword(userId: string, newPassword: string) {
+    // Authorization: Only admins can update passwords
+    try {
+        await requireAdmin()
+    } catch (e: any) {
+        return { success: false, error: e.message || 'Unauthorized' }
+    }
+
+    // Input validation
+    const validation = updatePasswordSchema.safeParse({ userId, newPassword })
+    if (!validation.success) {
+        return { success: false, error: validation.error?.issues[0]?.message || 'Invalid input' }
+    }
+
     const supabase = createAdminClient()
 
     const { data, error } = await supabase.auth.admin.updateUserById(userId, {
@@ -157,7 +241,7 @@ export async function updatePassword(userId: string, newPassword: string) {
 
     if (error) {
         console.error('Update Password Error:', error)
-        return { success: false, error: error.message }
+        return { success: false, error: error?.message || 'Failed to update password' }
     }
 
     return { success: true }
@@ -167,14 +251,26 @@ export async function updatePassword(userId: string, newPassword: string) {
  * Delete user account
  */
 export async function deleteAccount(userId: string) {
+    // Authorization: Only admins can delete accounts
+    try {
+        await requireAdmin()
+    } catch (e: any) {
+        return { success: false, error: e.message || 'Unauthorized' }
+    }
+
     const supabase = createAdminClient()
 
-    // First, deactivate the user
-    await supabase
+    // First, deactivate the user — check for errors before proceeding
+    const { error: deactivateError } = await supabase
         .from('users')
         // @ts-ignore - Supabase types don't match our schema yet
         .update({ is_active: false })
         .eq('id', userId)
+
+    if (deactivateError) {
+        console.error('Deactivate User Error:', deactivateError)
+        return { success: false, error: 'Failed to deactivate user: ' + deactivateError.message }
+    }
 
     // Then delete from auth
     const { error } = await supabase.auth.admin.deleteUser(userId)

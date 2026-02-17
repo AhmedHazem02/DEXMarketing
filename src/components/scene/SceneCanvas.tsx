@@ -4,7 +4,7 @@ import { useLocale } from 'next-intl'
 
 import { Canvas } from '@react-three/fiber'
 import { Suspense } from 'react'
-import { useDeviceCapabilities } from '@/hooks/useDeviceCapabilities'
+import { useDeviceCapabilities } from '@/hooks/use-device-capabilities'
 import * as THREE from 'three'
 import { SpaceEnvironment } from './SpaceEnvironment'
 import { ParticleField } from './ParticleField'
@@ -23,8 +23,7 @@ export default function SceneCanvas() {
         potato: null,
     }
 
-    // @ts-ignore - Config indexing
-    const settings = config[tier]
+    const settings = config[tier as keyof typeof config]
 
     if (!settings) {
         return null
@@ -53,9 +52,6 @@ export default function SceneCanvas() {
                     {/* Subtle Background Elements */}
                     <SpaceEnvironment starCount={settings.stars} />
                     <ParticleField count={settings.particles} />
-
-                    {/* Main Subject */}
-                    <Astronaut isAr={locale === 'ar'} />
 
                     {/* Post Processing Effects - Cinematic Finish */}
                     {settings.post && (

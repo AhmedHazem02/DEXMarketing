@@ -248,7 +248,7 @@ export default function CreatorDashboard() {
     const updateTask = useUpdateTask()
 
     // Real-time
-    useTasksRealtime(userId ?? undefined)
+    useTasksRealtime()
 
     // Filter tasks
     const { activeTasks, completedTasks } = useMemo(() => {

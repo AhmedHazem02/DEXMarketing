@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { taskKeys } from './use-tasks'
+import { NOTIFICATIONS_KEY } from './use-notifications'
 
 /**
  * Hook to subscribe to real-time updates for a table
@@ -14,9 +16,11 @@ export function useRealtimeSubscription(
 ) {
     const supabase = createClient()
     const queryClient = useQueryClient()
+    const queryKeyRef = useRef(queryKey)
+    queryKeyRef.current = queryKey
 
     useEffect(() => {
-        const channelName = `realtime-${table}-${queryKey.join('-')}`
+        const channelName = `realtime-${table}-${queryKeyRef.current.join('-')}`
 
         const channel = supabase
             .channel(channelName)
@@ -29,7 +33,7 @@ export function useRealtimeSubscription(
                 },
                 () => {
                     // Invalidate the query to refetch
-                    queryClient.invalidateQueries({ queryKey })
+                    queryClient.invalidateQueries({ queryKey: queryKeyRef.current })
                 }
             )
             .subscribe()
@@ -37,8 +41,8 @@ export function useRealtimeSubscription(
         return () => {
             supabase.removeChannel(channel)
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [table])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [table, queryClient])
 }
 
 /**
@@ -63,14 +67,14 @@ export function useNotificationsRealtime(userId: string) {
                 },
                 (payload) => {
                     // Add new notification to cache optimistically
-                    queryClient.setQueryData(['notifications', userId], (old: any[] = []) => {
+                    queryClient.setQueryData([...NOTIFICATIONS_KEY, userId], (old: any[] = []) => {
                         // Prevent duplicates
                         const exists = old.some((n: any) => n.id === payload.new.id)
                         if (exists) return old
                         return [payload.new, ...old].slice(0, 50)
                     })
                     // Also invalidate to ensure fresh data
-                    queryClient.invalidateQueries({ queryKey: ['notifications', userId] })
+                    queryClient.invalidateQueries({ queryKey: [...NOTIFICATIONS_KEY, userId] })
                 }
             )
             .subscribe()
@@ -78,15 +82,15 @@ export function useNotificationsRealtime(userId: string) {
         return () => {
             supabase.removeChannel(channel)
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, queryClient])
 }
 
 /**
  * Hook to subscribe to task updates for a specific user
  * Also listens to comments and attachments changes
  */
-export function useTasksRealtime(userId?: string) {
+export function useTasksRealtime() {
     const supabase = createClient()
     const queryClient = useQueryClient()
 
@@ -97,8 +101,8 @@ export function useTasksRealtime(userId?: string) {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'tasks' },
-                (payload) => {
-                    queryClient.invalidateQueries({ queryKey: ['tasks'] })
+                () => {
+                    queryClient.invalidateQueries({ queryKey: taskKeys.all })
                 }
             )
             .subscribe()
@@ -108,8 +112,8 @@ export function useTasksRealtime(userId?: string) {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'comments' },
-                (payload) => {
-                    queryClient.invalidateQueries({ queryKey: ['tasks'] })
+                () => {
+                    queryClient.invalidateQueries({ queryKey: taskKeys.all })
                 }
             )
             .subscribe()
@@ -119,8 +123,8 @@ export function useTasksRealtime(userId?: string) {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'attachments' },
-                (payload) => {
-                    queryClient.invalidateQueries({ queryKey: ['tasks'] })
+                () => {
+                    queryClient.invalidateQueries({ queryKey: taskKeys.all })
                 }
             )
             .subscribe()
@@ -130,5 +134,6 @@ export function useTasksRealtime(userId?: string) {
             supabase.removeChannel(commentsChannel)
             supabase.removeChannel(attachmentsChannel)
         }
-    }, []) // Empty dependency - only subscribe once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [queryClient])
 }

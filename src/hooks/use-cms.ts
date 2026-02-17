@@ -20,6 +20,7 @@ export function useSiteSettings() {
 
     return useQuery({
         queryKey: SETTINGS_KEY,
+        staleTime: 5 * 60 * 1000,
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('site_settings')
@@ -87,7 +88,6 @@ export function usePage(slug: string) {
                 .from('pages')
                 .select('*')
                 .eq('slug', slug)
-                .select('*')
                 .maybeSingle()
 
             if (error) throw error
@@ -107,7 +107,6 @@ export function useCreatePage() {
                 .from('pages')
                 // @ts-ignore
                 .insert(page)
-                .select()
                 .select('*')
                 .maybeSingle()
 
@@ -163,7 +162,7 @@ export function useDeletePage() {
 // Team Members Hooks
 // ============================================
 
-export function useTeamMembers() {
+export function useCMSTeamMembers() {
     const supabase = createClient()
 
     return useQuery({
@@ -190,7 +189,6 @@ export function useCreateTeamMember() {
                 .from('team_members')
                 // @ts-ignore
                 .insert(member)
-                .select()
                 .select('*')
                 .maybeSingle()
 
@@ -273,7 +271,6 @@ export function useCreatePortfolioItem() {
                 .from('portfolio')
                 // @ts-ignore
                 .insert(item)
-                .select()
                 .select('*')
                 .maybeSingle()
 
@@ -318,7 +315,6 @@ export function useStorageSettings() {
             const { data, error } = await supabase
                 .from('storage_settings')
                 .select('*')
-                .select('*')
                 .maybeSingle()
 
             if (error) throw error
@@ -337,7 +333,6 @@ export function useUpdateStorageSettings() {
             const { data: current } = await supabase
                 .from('storage_settings')
                 .select('id')
-                .select('*')
                 .maybeSingle()
 
             const currentId = (current as unknown as { id: string } | null)?.id
@@ -375,6 +370,31 @@ export function useActivityLog(limit = 50) {
 
             if (error) throw error
             return data as unknown as (ActivityLog & { user: { id: string; name: string; email: string } | null })[]
+        },
+    })
+}
+
+export function useUpdateMultipleSiteSettings() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (settings: Record<string, any>) => {
+            const results = await Promise.all(
+                Object.entries(settings).map(([key, value]) =>
+                    supabase
+                        .from('site_settings')
+                        // @ts-ignore
+                        .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+                )
+            )
+            const failed = results.filter(r => r.error)
+            if (failed.length > 0) {
+                throw new Error(`Failed to save ${failed.length} setting(s)`)
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: SETTINGS_KEY })
         },
     })
 }

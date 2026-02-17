@@ -25,8 +25,6 @@ import { ar, enUS } from 'date-fns/locale'
 import { useState } from 'react'
 
 // Dialog imports
-import { EmailDialog } from '@/app/[locale]/(dashboard)/account/email-dialog'
-import { PasswordDialog } from '@/app/[locale]/(dashboard)/account/password-dialog'
 import { DeleteAccountDialog } from '@/app/[locale]/(dashboard)/account/delete-account-dialog'
 
 export function AccountClient() {
@@ -38,8 +36,6 @@ export function AccountClient() {
     const dateLocale = isAr ? ar : enUS
 
     const { data: user, isLoading } = useCurrentUser()
-    const [emailDialogOpen, setEmailDialogOpen] = useState(false)
-    const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
     if (isLoading) {
@@ -163,23 +159,17 @@ export function AccountClient() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        <Button 
-                            variant="outline" 
-                            className="w-full justify-start"
-                            onClick={() => setEmailDialogOpen(true)}
-                        >
-                            <Mail className="h-4 w-4 mr-2" />
-                            {t('changeEmail')}
-                        </Button>
-
-                        <Button 
-                            variant="outline" 
-                            className="w-full justify-start"
-                            onClick={() => setPasswordDialogOpen(true)}
-                        >
-                            <KeyRound className="h-4 w-4 mr-2" />
-                            {t('changePassword')}
-                        </Button>
+                        <div className="rounded-lg border border-muted bg-muted/30 p-4 mb-4">
+                            <div className="flex items-start gap-3">
+                                <Shield className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                    <h4 className="font-semibold text-sm mb-1">إدارة بيانات الحساب</h4>
+                                    <p className="text-xs text-muted-foreground">
+                                        لتغيير كلمة المرور أو البريد الإلكتروني، يرجى التواصل مع مدير النظام.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
 
                         <Separator className="my-4" />
 
@@ -208,17 +198,6 @@ export function AccountClient() {
             </div>
 
             {/* Dialogs */}
-            <EmailDialog 
-                open={emailDialogOpen}
-                onOpenChange={setEmailDialogOpen}
-                currentEmail={user.email}
-                userId={user.id}
-            />
-            <PasswordDialog 
-                open={passwordDialogOpen}
-                onOpenChange={setPasswordDialogOpen}
-                userId={user.id}
-            />
             <DeleteAccountDialog 
                 open={deleteDialogOpen}
                 onOpenChange={setDeleteDialogOpen}

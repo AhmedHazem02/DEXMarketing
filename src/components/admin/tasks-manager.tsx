@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { useAdminTasks, useAdminTasksStats, useAdminTasksExport } from '@/hooks/use-tasks'
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import { useDebounce } from '@/hooks'
@@ -48,7 +49,7 @@ import {
     PRIORITY_OPTIONS,
     TASK_TYPE_OPTIONS,
     STATUS_CONFIG,
-    PRIORITY_CONFIG,
+    PRIORITY_STYLE_CONFIG,
     DEPARTMENT_BADGE_CONFIG,
 } from '@/lib/constants/admin'
 
@@ -92,6 +93,7 @@ function useMediaQuery(query: string): boolean {
 const ROWS_PER_PAGE = 15
 
 export function TasksManager() {
+    const t = useTranslations('tasksManager')
     // Real-time subscription for live task updates
     useTasksRealtime()
 
@@ -212,7 +214,7 @@ export function TasksManager() {
     }
 
     if (error) {
-        return <div className="text-red-500 p-3 md:p-4 border border-red-200 rounded-lg bg-red-50 text-sm">حدث خطأ أثناء تحميل البيانات.</div>
+        return <div className="text-red-500 p-3 md:p-4 border border-red-200 rounded-lg bg-red-50 text-sm">{t('errorLoadingData')}</div>
     }
 
     // Type-safe tasks data
@@ -223,10 +225,10 @@ export function TasksManager() {
             <CardContent className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
                 {/* Summary Stats — from lightweight stats query */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-                    <TaskStatCard value={stats?.total ?? 0} label="إجمالي المهام" colorClass="bg-blue-100 dark:bg-blue-500/20 text-blue-700" />
-                    <TaskStatCard value={stats?.in_progress ?? 0} label="قيد التنفيذ" colorClass="bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700" />
-                    <TaskStatCard value={stats?.review ?? 0} label="مراجعة" colorClass="bg-purple-100 dark:bg-purple-500/20 text-purple-700" />
-                    <TaskStatCard value={stats?.approved ?? 0} label="معتمد" colorClass="bg-green-100 dark:bg-green-500/20 text-green-700" />
+                    <TaskStatCard value={stats?.total ?? 0} label={t('totalTasks')} colorClass="bg-blue-100 dark:bg-blue-500/20 text-blue-700" />
+                    <TaskStatCard value={stats?.in_progress ?? 0} label={t('inProgress')} colorClass="bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700" />
+                    <TaskStatCard value={stats?.review ?? 0} label={t('review')} colorClass="bg-purple-100 dark:bg-purple-500/20 text-purple-700" />
+                    <TaskStatCard value={stats?.approved ?? 0} label={t('approved')} colorClass="bg-green-100 dark:bg-green-500/20 text-green-700" />
                 </div>
 
                 {/* Search + Filter Toggle (Mobile) + Export */}
@@ -235,7 +237,7 @@ export function TasksManager() {
                         <div className="relative flex-1">
                             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                             <Input
-                                placeholder="بحث عن مهمة..."
+                                placeholder={t('searchPlaceholder')}
                                 value={search}
                                 onChange={handleSearchChange}
                                 className="pr-9"
@@ -263,7 +265,7 @@ export function TasksManager() {
                                     size="icon"
                                     className="md:hidden shrink-0"
                                     disabled={totalCount === 0 || isExporting !== null}
-                                    title="تصدير"
+                                    title={t('export')}
                                 >
                                     <Download className="w-4 h-4" />
                                 </Button>
@@ -324,7 +326,7 @@ export function TasksManager() {
                             <Select value={departmentFilter} onValueChange={handleDepartmentChange}>
                                 <SelectTrigger className="w-full">
                                     <Building2 className="w-4 h-4 ml-1 shrink-0 text-muted-foreground" />
-                                    <SelectValue placeholder="القسم" />
+                                    <SelectValue placeholder={t('department')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {DEPARTMENT_OPTIONS.map(opt => (
@@ -335,7 +337,7 @@ export function TasksManager() {
 
                             <Select value={statusFilter} onValueChange={handleStatusChange}>
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="الحالة" />
+                                    <SelectValue placeholder={t('status')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {STATUS_OPTIONS.map(opt => (
@@ -346,7 +348,7 @@ export function TasksManager() {
 
                             <Select value={priorityFilter} onValueChange={handlePriorityChange}>
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="الأولوية" />
+                                    <SelectValue placeholder={t('priority')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {PRIORITY_OPTIONS.map(opt => (
@@ -357,7 +359,7 @@ export function TasksManager() {
 
                             <Select value={taskTypeFilter} onValueChange={handleTaskTypeChange}>
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="النوع" />
+                                    <SelectValue placeholder={t('type')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {TASK_TYPE_OPTIONS.map(opt => (
@@ -389,7 +391,7 @@ export function TasksManager() {
                                                 format(date.from, "LLL dd, y")
                                             )
                                         ) : (
-                                            <span>اختر التاريخ</span>
+                                            <span>{t('selectDate')}</span>
                                         )}
                                     </Button>
                                 </PopoverTrigger>
@@ -405,7 +407,7 @@ export function TasksManager() {
                                 </PopoverContent>
                             </Popover>
                             {date && (
-                                <Button variant="ghost" size="icon" onClick={() => handleDateChange(undefined)} title="حذف التاريخ">
+                                <Button variant="ghost" size="icon" onClick={() => handleDateChange(undefined)} title={t('removeDate')}>
                                     <X className="h-4 w-4" />
                                 </Button>
                             )}
@@ -413,7 +415,7 @@ export function TasksManager() {
                             {activeFilterCount > 0 && (
                                 <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-red-500 hover:text-red-600 hover:bg-red-50">
                                     <X className="w-4 h-4 ml-1" />
-                                    مسح الكل ({activeFilterCount})
+                                    {t('clearAll', { count: activeFilterCount })}
                                 </Button>
                             )}
                         </div>
@@ -451,7 +453,7 @@ export function TasksManager() {
                     )}
                     {typedTasks.length === 0 ? (
                         <div className="text-center py-10 text-muted-foreground text-sm">
-                            لا توجد مهام مطابقة
+                            {t('noMatchingTasks')}
                         </div>
                     ) : (
                         typedTasks.map((task) => (
@@ -470,21 +472,21 @@ export function TasksManager() {
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-muted/50">
-                                <TableHead className="text-right">عنوان المهمة</TableHead>
-                                <TableHead className="text-right">العميل</TableHead>
-                                <TableHead className="text-right hidden lg:table-cell">التيم ليدر</TableHead>
-                                <TableHead className="text-right hidden lg:table-cell">المصمم</TableHead>
-                                <TableHead className="text-center">الحالة</TableHead>
-                                <TableHead className="text-center hidden lg:table-cell">الأولوية</TableHead>
-                                <TableHead className="text-center hidden xl:table-cell">التاريخ</TableHead>
-                                <TableHead className="text-left">إجراءات</TableHead>
+                                <TableHead className="text-right">{t('taskTitle')}</TableHead>
+                                <TableHead className="text-right">{t('client')}</TableHead>
+                                <TableHead className="text-right hidden lg:table-cell">{t('teamLeader')}</TableHead>
+                                <TableHead className="text-right hidden lg:table-cell">{t('designer')}</TableHead>
+                                <TableHead className="text-center">{t('status')}</TableHead>
+                                <TableHead className="text-center hidden lg:table-cell">{t('priority')}</TableHead>
+                                <TableHead className="text-center hidden xl:table-cell">{t('date')}</TableHead>
+                                <TableHead className="text-left">{t('actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {typedTasks.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
-                                        لا توجد مهام مطابقة
+                                        {t('noMatchingTasks')}
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -518,7 +520,7 @@ export function TasksManager() {
                                                     <span>{task.assigned_user.name}</span>
                                                 </div>
                                             ) : (
-                                                <Badge variant="outline" className="opacity-50">غير معين</Badge>
+                                                <Badge variant="outline" className="opacity-50">{t('unassigned')}</Badge>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-center">
@@ -552,15 +554,15 @@ export function TasksManager() {
                         {totalCount > 0 ? (
                             <>
                                 <span className="hidden sm:inline">
-                                    عرض {((currentPage - 1) * ROWS_PER_PAGE) + 1} - {Math.min(currentPage * ROWS_PER_PAGE, totalCount)} من {totalCount} مهمة
-                                    {' '}(صفحة {currentPage} من {totalPages})
+                                    {t('showingRange', { from: ((currentPage - 1) * ROWS_PER_PAGE) + 1, to: Math.min(currentPage * ROWS_PER_PAGE, totalCount), total: totalCount })}
+                                    {' '}{t('pageOf', { current: currentPage, total: totalPages })}
                                 </span>
                                 <span className="sm:hidden">
                                     {currentPage}/{totalPages}
                                 </span>
                             </>
                         ) : (
-                            'لا توجد نتائج'
+                            t('noResults')
                         )}
                     </div>
                     <div className="flex items-center gap-1 sm:gap-2">
@@ -627,28 +629,29 @@ const TaskFeedbackDialog = memo(function TaskFeedbackDialog({
     taskTitle: string
     variant?: 'desktop' | 'mobile'
 }) {
+    const t = useTranslations('tasksManager')
     return (
         <Dialog>
             <DialogTrigger asChild>
                 {variant === 'desktop' ? (
                     <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50">
                         <FileText className="w-4 h-4 ml-1" />
-                        <span className="hidden lg:inline">ملاحظات</span>
+                        <span className="hidden lg:inline">{t('feedback')}</span>
                     </Button>
                 ) : (
                     <Button variant="ghost" size="sm" className="h-7 text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50 px-2">
                         <FileText className="w-3.5 h-3.5 ml-1" />
-                        ملاحظات
+                        {t('feedback')}
                     </Button>
                 )}
             </DialogTrigger>
             <DialogContent className={variant === 'desktop' ? "max-w-[90vw] sm:max-w-lg" : "max-w-[92vw] sm:max-w-lg"}>
                 <DialogHeader>
                     <DialogTitle className={variant === 'mobile' ? "text-base" : undefined}>
-                        ملاحظات التعديل{variant === 'desktop' ? ' من العميل' : ''}
+                        {t('feedbackTitle')}{variant === 'desktop' ? ` ${t('fromClient')}` : ''}
                     </DialogTitle>
                     <DialogDescription className={variant === 'mobile' ? "text-xs" : undefined}>
-                        {variant === 'desktop' ? 'الخاصة بمهمة: ' : 'مهمة: '}{taskTitle}
+                        {variant === 'desktop' ? `${t('forTask')} ` : `${t('task')} `}{taskTitle}
                     </DialogDescription>
                 </DialogHeader>
                 <div className={cn(
@@ -687,6 +690,7 @@ const TaskStatCard = memo(function TaskStatCard({
 // ============================================
 
 const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: TaskWithRelations }) {
+    const t = useTranslations('tasksManager')
     return (
         <div className="border rounded-lg p-3 space-y-2.5 bg-card">
             {/* Header: Title + Status */}
@@ -704,26 +708,26 @@ const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: TaskWithRe
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
                 {/* Department */}
                 <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground">القسم:</span>
+                    <span className="text-muted-foreground">{t('departmentLabel')}</span>
                     <DepartmentBadge department={task.department} />
                 </div>
                 {/* Priority */}
                 <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground">الأولوية:</span>
+                    <span className="text-muted-foreground">{t('priorityLabel')}</span>
                     <PriorityBadge priority={task.priority} />
                 </div>
                 <div className="flex items-center gap-1.5 col-span-2">
-                    <span className="text-muted-foreground shrink-0">العميل:</span>
+                    <span className="text-muted-foreground shrink-0">{t('clientLabel')}</span>
                     <span className="truncate font-medium">{task.client?.name || task.client?.company || task.project?.client?.name || task.project?.client?.company || task.company_name || '-'}</span>
                 </div>
                 {/* Assigned */}
                 <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground">المصمم:</span>
-                    <span className="truncate">{task.assigned_user?.name || 'غير معين'}</span>
+                    <span className="text-muted-foreground">{t('designerLabel')}</span>
+                    <span className="truncate">{task.assigned_user?.name || t('unassigned')}</span>
                 </div>
                 {/* Date */}
                 <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground">التاريخ:</span>
+                    <span className="text-muted-foreground">{t('dateLabel')}</span>
                     <span>{formatTaskDate(task.created_at)}</span>
                 </div>
             </div>
@@ -762,7 +766,7 @@ const StatusBadge = memo(function StatusBadge({ status }: { status: string }) {
 })
 
 const PriorityBadge = memo(function PriorityBadge({ priority }: { priority: string }) {
-    const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG['medium']
+    const config = PRIORITY_STYLE_CONFIG[priority] || PRIORITY_STYLE_CONFIG['medium']
     return (
         <Badge variant="outline" className={`${config.style} whitespace-nowrap text-[10px] sm:text-xs`}>
             {config.label}

@@ -31,7 +31,7 @@ export default function AccountManagerDashboard() {
         fetchUser()
     }, [])
 
-    useTasksRealtime(undefined)
+    useTasksRealtime()
 
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)

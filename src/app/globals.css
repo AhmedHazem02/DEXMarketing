@@ -184,57 +184,143 @@
 
 /* ───── Floating Shape Animations ───── */
 @keyframes float-slow {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-25px) rotate(3deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-25px) rotate(3deg);
+  }
 }
 
 @keyframes float-reverse {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(20px) rotate(-3deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(20px) rotate(-3deg);
+  }
 }
 
 @keyframes orbit {
-  from { transform: rotate(0deg) translateX(var(--orbit-radius, 120px)) rotate(0deg); }
-  to { transform: rotate(360deg) translateX(var(--orbit-radius, 120px)) rotate(-360deg); }
+  from {
+    transform: rotate(0deg) translateX(var(--orbit-radius, 120px)) rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg) translateX(var(--orbit-radius, 120px)) rotate(-360deg);
+  }
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes morph {
-  0%, 100% {
+
+  0%,
+  100% {
     border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
   }
+
   50% {
     border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
   }
 }
 
 @keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.05); }
+
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
 }
 
 @keyframes scan-line {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100vh);
+  }
 }
 
-.animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
-.animate-float-reverse { animation: float-reverse 10s ease-in-out infinite; }
-.animate-orbit { animation: orbit var(--orbit-duration, 20s) linear infinite; }
-.animate-spin-slow { animation: spin-slow 25s linear infinite; }
-.animate-morph { animation: morph 12s ease-in-out infinite; }
-.animate-gradient { animation: gradient 4s linear infinite; background-size: 200% auto; }
-.animate-glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+.animate-float-slow {
+  animation: float-slow 8s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 10s ease-in-out infinite;
+}
+
+.animate-orbit {
+  animation: orbit var(--orbit-duration, 20s) linear infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 25s linear infinite;
+}
+
+.animate-morph {
+  animation: morph 12s ease-in-out infinite;
+}
+
+.animate-gradient {
+  animation: gradient 4s linear infinite;
+  background-size: 200% auto;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes float-up-down {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: float-up-down 6s ease-in-out infinite;
+}
 
 /* ───── Decorative Shapes ───── */
 .hexagon {
@@ -261,6 +347,7 @@
 .noise {
   position: relative;
 }
+
 .noise::before {
   content: '';
   position: absolute;

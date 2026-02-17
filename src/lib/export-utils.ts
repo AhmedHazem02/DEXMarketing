@@ -68,63 +68,11 @@ export async function exportToPDF(
     if (!transactions.length) return
 
     try {
-        console.log('Starting PDF generation...')
-
-        // Dynamic import with robust handling
-        const jsPDFModule = await import('jspdf')
-        const jsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF
-
-        if (!jsPDF) {
-            throw new Error('Failed to load jsPDF module')
-        }
-
-        const autoTableModule = await import('jspdf-autotable')
-        const autoTable = autoTableModule.default
-
-        console.log('Modules loaded. Creating PDF document...')
-
-        const doc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
-        }) as any
-
-        // Default to helvetica
-        let fontName = 'helvetica'
-        let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'bold'
-
-        // Load Arabic font
-        try {
-            console.log('Fetching Arabic font...')
-            const fontUrl = '/fonts/Amiri-Regular.ttf'
-            const response = await fetch(fontUrl)
-
-            if (response.ok) {
-                const fontBytes = await response.arrayBuffer()
-                const fontBase64 = arrayBufferToBase64(fontBytes)
-
-                // Add font to VFS
-                doc.addFileToVFS('Amiri-Regular.ttf', fontBase64)
-                doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal')
-
-                fontName = 'Amiri'
-                fontStyle = 'normal'
-                console.log('Arabic font loaded successfully.')
-            } else {
-                console.warn('Failed to fetch Arabic font:', response.status, response.statusText)
-            }
-        } catch (error) {
-            console.error('Error loading Arabic font:', error)
-            // Continue with default font
-        }
-
-        // Set font
-        doc.setFont(fontName)
+        const { doc, autoTable, fontName, fontStyle, pageWidth } = await createPDFDocument()
         doc.setFontSize(16)
 
         // Title
         const title = isAr ? 'تقرير المعاملات المالية' : 'Financial Transactions Report'
-        const pageWidth = doc.internal.pageSize.getWidth()
 
         if (isAr) {
             doc.text(title, pageWidth - 15, 20, { align: 'right', lang: 'ar' })
@@ -221,30 +169,11 @@ export async function exportToPDF(
             }) as any
         }
 
-        // Generate table using doc.autoTable or autotable(doc)
-        if (typeof doc.autoTable === 'function') {
-            doc.autoTable(tableOptions)
-        } else if (typeof autoTable === 'function') {
-            autoTable(doc, tableOptions)
-        } else {
-            console.error('autoTable function not found')
-            throw new Error('PDF Table generation failed: autoTable not found')
-        }
-
-        // Footer
-        const pageCount = doc.getNumberOfPages()
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i)
-            doc.setFontSize(8)
-            doc.setTextColor(128)
-            const footer = isAr ? `صفحة ${i} من ${pageCount}` : `Page ${i} of ${pageCount}`
-            doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center', lang: isAr ? 'ar' : 'en' })
-        }
+        runAutoTable(doc, autoTable, tableOptions)
+        addPDFFooter(doc, pageWidth, isAr)
 
         // Save PDF
-        console.log('Saving PDF...')
         doc.save(filename)
-        console.log('PDF saved successfully.')
 
     } catch (error) {
         console.error('Export PDF Error:', error)
@@ -260,6 +189,89 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
         binary += String.fromCharCode(bytes[i])
     }
     return window.btoa(binary)
+}
+
+// ============================================
+// Shared PDF Helpers
+// ============================================
+
+interface PDFDocumentResult {
+    doc: any
+    autoTable: any
+    fontName: string
+    fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic'
+    pageWidth: number
+}
+
+/**
+ * Creates a jsPDF document with Arabic font support.
+ * Handles dynamic module loading, font fetching, and font registration.
+ */
+async function createPDFDocument(options?: {
+    orientation?: 'portrait' | 'landscape'
+    defaultFontStyle?: 'normal' | 'bold' | 'italic' | 'bolditalic'
+}): Promise<PDFDocumentResult> {
+    const { orientation = 'portrait', defaultFontStyle = 'bold' } = options || {}
+
+    const jsPDFModule = await import('jspdf')
+    const jsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF
+    if (!jsPDF) throw new Error('Failed to load jsPDF module')
+
+    const autoTableModule = await import('jspdf-autotable')
+    const autoTable = autoTableModule.default
+
+    const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' }) as any
+
+    let fontName = 'helvetica'
+    let fontStyle = defaultFontStyle
+
+    try {
+        const response = await fetch('/fonts/Amiri-Regular.ttf')
+        if (response.ok) {
+            const fontBytes = await response.arrayBuffer()
+            const fontBase64 = arrayBufferToBase64(fontBytes)
+            doc.addFileToVFS('Amiri-Regular.ttf', fontBase64)
+            doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal')
+            fontName = 'Amiri'
+            fontStyle = 'normal'
+        }
+    } catch (error) {
+        console.error('Failed to load Arabic font:', error)
+    }
+
+    doc.setFont(fontName)
+
+    return { doc, autoTable, fontName, fontStyle, pageWidth: doc.internal.pageSize.getWidth() }
+}
+
+/**
+ * Invokes autoTable on the document, handling both plugin and standalone modes.
+ */
+function runAutoTable(doc: any, autoTable: any, options: any): void {
+    if (typeof doc.autoTable === 'function') {
+        doc.autoTable(options)
+    } else if (typeof autoTable === 'function') {
+        autoTable(doc, options)
+    } else {
+        throw new Error('PDF Table generation failed: autoTable not found')
+    }
+}
+
+/**
+ * Adds page number footers to all pages of the PDF document.
+ */
+function addPDFFooter(doc: any, pageWidth: number, isAr = true): void {
+    const pageCount = doc.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.setFontSize(8)
+        doc.setTextColor(128)
+        const footer = isAr ? `صفحة ${i} من ${pageCount}` : `Page ${i} of ${pageCount}`
+        doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, {
+            align: 'center',
+            lang: isAr ? 'ar' : 'en'
+        })
+    }
 }
 
 // ============================================
@@ -335,53 +347,11 @@ export async function exportClientAccountsToPDF(
     if (!accounts.length) return
 
     try {
-        // Load modules
-        const jsPDFModule = await import('jspdf')
-        const jsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF
-
-        if (!jsPDF) {
-            throw new Error('Failed to load jsPDF module')
-        }
-
-        const autoTableModule = await import('jspdf-autotable')
-        const autoTable = autoTableModule.default
-
-        const doc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
-        }) as any
-
-        // Font settings
-        let fontName = 'helvetica'
-        let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'bold'
-
-        // Load Arabic font
-        try {
-            const fontUrl = '/fonts/Amiri-Regular.ttf'
-            const response = await fetch(fontUrl)
-
-            if (response.ok) {
-                const fontBytes = await response.arrayBuffer()
-                const fontBase64 = arrayBufferToBase64(fontBytes)
-
-                doc.addFileToVFS('Amiri-Regular.ttf', fontBase64)
-                doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal')
-
-                fontName = 'Amiri'
-                fontStyle = 'normal'
-            }
-        } catch (error) {
-            console.error('Failed to load Arabic font:', error)
-        }
-
-        // Set font
-        doc.setFont(fontName)
+        const { doc, autoTable, fontName, fontStyle, pageWidth } = await createPDFDocument()
         doc.setFontSize(16)
 
         // Title
         const title = isAr ? 'تقرير حسابات العملاء' : 'Client Accounts Report'
-        const pageWidth = doc.internal.pageSize.getWidth()
 
         if (isAr) {
             doc.text(title, pageWidth - 15, 20, { align: 'right', lang: 'ar' })
@@ -456,22 +426,8 @@ export async function exportClientAccountsToPDF(
             }) as any
         }
 
-        // Generate table
-        if (typeof doc.autoTable === 'function') {
-            doc.autoTable(tableOptions)
-        } else if (typeof autoTable === 'function') {
-            autoTable(doc, tableOptions)
-        }
-
-        // Footer
-        const pageCount = doc.getNumberOfPages()
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i)
-            doc.setFontSize(8)
-            doc.setTextColor(128)
-            const footer = isAr ? `صفحة ${i} من ${pageCount}` : `Page ${i} of ${pageCount}`
-            doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center', lang: isAr ? 'ar' : 'en' })
-        }
+        runAutoTable(doc, autoTable, tableOptions)
+        addPDFFooter(doc, pageWidth, isAr)
 
         // Save PDF
         doc.save(filename)
@@ -486,6 +442,7 @@ export async function exportClientAccountsToPDF(
  * Helper function to trigger file download
  */
 function downloadFile(blob: Blob, filename: string): void {
+    if (typeof window === 'undefined') return
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -658,54 +615,14 @@ export async function exportTasksToPDF(
     if (!tasks.length) return
 
     try {
-        console.log('Starting Tasks PDF generation...')
-        // Robust module loading
-        const jsPDFModule = await import('jspdf')
-        const jsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF
-
-        if (!jsPDF) {
-            throw new Error('Failed to load jsPDF module')
-        }
-
-        const autoTableModule = await import('jspdf-autotable')
-        const autoTable = autoTableModule.default
-
-        const doc = new jsPDF({
+        const { doc, autoTable, fontName, fontStyle, pageWidth } = await createPDFDocument({
             orientation: 'landscape',
-            unit: 'mm',
-            format: 'a4'
-        }) as any
-
-        // Default to helvetica
-        let fontName = 'helvetica'
-        let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal'
-
-        // Load Arabic font
-        try {
-            const fontUrl = '/fonts/Amiri-Regular.ttf'
-            const response = await fetch(fontUrl)
-
-            if (response.ok) {
-                const fontBytes = await response.arrayBuffer()
-                const fontBase64 = arrayBufferToBase64(fontBytes)
-
-                doc.addFileToVFS('Amiri-Regular.ttf', fontBase64)
-                doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal')
-
-                fontName = 'Amiri'
-                // fontStyle remains normal
-            }
-        } catch (error) {
-            console.error('Failed to load Arabic font:', error)
-        }
-
-        // Set font
-        doc.setFont(fontName)
+            defaultFontStyle: 'normal'
+        })
         doc.setFontSize(18)
 
         // Title
         const title = 'تقرير المهام الشامل'
-        const pageWidth = doc.internal.pageSize.getWidth()
         doc.text(title, pageWidth - 15, 20, { align: 'right', lang: 'ar' })
 
         // Date and subtitle
@@ -804,30 +721,12 @@ export async function exportTasksToPDF(
             }
         }
 
-        // Generate table
-        if (typeof doc.autoTable === 'function') {
-            doc.autoTable(tableOptions)
-        } else if (typeof autoTable === 'function') {
-            autoTable(doc, tableOptions)
-        } else {
-            console.error('autoTable function not found')
-            throw new Error('PDF Table generation failed: autoTable not found')
-        }
-
-        // Footer
-        const pageCount = doc.getNumberOfPages()
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i)
-            doc.setFontSize(8)
-            doc.setTextColor(128)
-            const footer = `صفحة ${i} من ${pageCount}`
-            doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center', lang: 'ar' })
-        }
+        runAutoTable(doc, autoTable, tableOptions)
+        addPDFFooter(doc, pageWidth)
 
         // Save PDF
         const defaultFilename = `tasks_report_${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`
         doc.save(filename || defaultFilename)
-        console.log('Tasks PDF saved successfully')
 
     } catch (error) {
         console.error('Export Tasks PDF Error:', error)

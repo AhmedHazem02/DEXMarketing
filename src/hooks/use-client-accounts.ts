@@ -3,10 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { ClientAccount, Client, Package, ClientAccountWithRelations } from '@/types/database'
+import { useCurrentUser } from './use-users'
 import { toast } from 'sonner'
 
 // Query keys
-const CLIENT_ACCOUNTS_KEY = ['client-accounts'] as const
+export const CLIENT_ACCOUNTS_KEY = ['client-accounts'] as const
 
 /**
  * Hook to fetch all client accounts with filters
@@ -124,23 +125,23 @@ export function useClientAccountsByClientId(clientId: string | undefined) {
 
 /**
  * Hook to fetch client accounts for the current logged-in user (client role)
- * Resolves user_id -> client.id -> client_accounts
+ * Uses useCurrentUser (cached) instead of calling getUser() per query
  */
 export function useMyClientAccounts() {
     const supabase = createClient()
+    const { data: currentUser } = useCurrentUser()
+    const userId = currentUser?.id
 
     return useQuery({
-        queryKey: [...CLIENT_ACCOUNTS_KEY, 'my-accounts'],
+        queryKey: [...CLIENT_ACCOUNTS_KEY, 'my-accounts', userId],
         queryFn: async () => {
-            // First get the current user's auth id
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return []
+            if (!userId) return []
 
             // Find the client record linked to this user
             const { data: clientData, error: clientError } = await supabase
                 .from('clients')
                 .select('id')
-                .eq('user_id', user.id)
+                .eq('user_id', userId)
                 .single()
 
             if (clientError || !clientData) return []
@@ -162,6 +163,7 @@ export function useMyClientAccounts() {
             if (error) throw error
             return data as unknown as ClientAccountWithRelations[]
         },
+        enabled: !!userId,
         staleTime: 60 * 1000,
     })
 }

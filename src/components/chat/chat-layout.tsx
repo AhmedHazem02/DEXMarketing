@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { useLocale } from 'next-intl'
 import { format, isToday, isYesterday } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     MessageSquare, Send, Paperclip, Search, ArrowLeft,
-    Loader2, Check, CheckCheck, User as UserIcon, ImageIcon
+    Loader2, Check, CheckCheck, User as UserIcon
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -117,7 +117,7 @@ interface ConversationItemProps {
     onClick: () => void
 }
 
-function ConversationItem({ conversation, userId, isActive, onClick }: ConversationItemProps) {
+const ConversationItem = memo(function ConversationItem({ conversation, userId, isActive, onClick }: ConversationItemProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
 
@@ -171,7 +171,7 @@ function ConversationItem({ conversation, userId, isActive, onClick }: Conversat
             </div>
         </button>
     )
-}
+})
 
 // ============================================
 // Chat Window
@@ -194,6 +194,8 @@ export function ChatWindow({ conversationId, userId, userName, onBack }: ChatWin
     const { data: messagePages, isLoading, fetchNextPage, hasNextPage } = useMessages(conversationId)
     const sendMessage = useSendMessage()
     const markRead = useMarkMessagesRead()
+    const markReadRef = useRef(markRead)
+    markReadRef.current = markRead
     const { data: conversations } = useConversations(userId)
 
     // Real-time subscription
@@ -225,9 +227,9 @@ export function ChatWindow({ conversationId, userId, userName, onBack }: ChatWin
     // Mark messages as read when viewing
     useEffect(() => {
         if (conversationId && userId) {
-            markRead.mutate({ conversationId, userId })
+            markReadRef.current.mutate({ conversationId, userId })
         }
-    }, [conversationId, userId]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [conversationId, userId])
 
     const handleSend = async () => {
         const trimmed = message.trim()
@@ -387,7 +389,7 @@ interface MessageBubbleProps {
     isAr: boolean
 }
 
-function MessageBubble({ message, isMine, isAr }: MessageBubbleProps) {
+const MessageBubble = memo(function MessageBubble({ message, isMine, isAr }: MessageBubbleProps) {
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -449,7 +451,7 @@ function MessageBubble({ message, isMine, isAr }: MessageBubbleProps) {
             </div>
         </motion.div>
     )
-}
+})
 
 // ============================================
 // Empty Chat State

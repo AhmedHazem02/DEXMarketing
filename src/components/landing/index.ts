@@ -1,6 +1,7 @@
 export { Navbar } from './navbar'
 export { Footer } from './footer'
 export { HeroSection } from './hero-section'
+export { HelmetEffects } from './helmet-effects'
 export { AboutSection } from './about-section'
 export { ServicesSection } from './services-section'
 export { PortfolioSection } from './portfolio-section'

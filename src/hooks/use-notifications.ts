@@ -4,13 +4,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Notification } from '@/types/database'
 
-const NOTIFICATIONS_KEY = ['notifications']
+export const NOTIFICATIONS_KEY = ['notifications']
 
 export function useNotifications(userId?: string) {
     const supabase = createClient()
 
     return useQuery({
         queryKey: [...NOTIFICATIONS_KEY, userId],
+        staleTime: 30 * 1000,
         queryFn: async () => {
             if (!userId) return []
 

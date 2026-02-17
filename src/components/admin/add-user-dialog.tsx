@@ -124,7 +124,7 @@ export function AddUserDialog() {
                                 <FormItem>
                                     <FormLabel>كلمة المرور</FormLabel>
                                     <FormControl>
-                                        <Input type="text" placeholder="******" {...field} />
+                                        <Input type="password" placeholder="******" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

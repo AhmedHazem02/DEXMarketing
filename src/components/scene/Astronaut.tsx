@@ -18,7 +18,7 @@ function AstronautModel({ isAr = false }: AstronautProps) {
     const fillLight = useRef<THREE.PointLight>(null)
 
     const { scene } = useGLTF('/models/astronaut.glb')
-    useThree()
+    const { viewport } = useThree()
 
     // Smooth movement targets (Lerping)
     const targetLightPos = useRef({ x: 0, y: 0 })
@@ -68,6 +68,8 @@ function AstronautModel({ isAr = false }: AstronautProps) {
 
         const mouseX = state.pointer.x
         const mouseY = state.pointer.y
+        const { width, height } = state.viewport
+        const isPortrait = width < height
 
         // --- 1. Light Interaction (Smooth Lerp) ---
         const targetKeyX = mouseX * 8
@@ -96,24 +98,26 @@ function AstronautModel({ isAr = false }: AstronautProps) {
 
         // --- 3. Enhanced Floating Animation ---
         const time = state.clock.elapsedTime
-        const baseY = -3.5
+        const baseY = isPortrait ? -2.5 : -3.5
+        const baseX = isPortrait ? 0 : (isAr ? -1.2 : 1.2)
+
         const floatY = Math.sin(time * 0.35) * 0.12
         const floatX = Math.sin(time * 0.2) * 0.03
         const breathRot = Math.sin(time * 0.5) * 0.008
         group.current.position.y = baseY + floatY
         // Flip X position based on locale
-        group.current.position.x = (isAr ? -1.2 : 1.2) + floatX
+        group.current.position.x = baseX + floatX
         group.current.rotation.z = breathRot
     })
 
-    // Responsive positioning
-    const { viewport } = useThree()
+    // Responsive positioning (for initial render)
     const isPortrait = viewport.width < viewport.height
 
     // Adjust for mobile/portrait
-    const responsiveScale = isPortrait ? 2.6 : 3.2
-    const responsiveX = isPortrait ? 0 : (isAr ? -1.2 : 1.2)
-    const responsiveY = isPortrait ? -2.5 : -3.5
+    // Lowered Y further (-6.5/-5.0) to center the head and upper body
+    const responsiveScale = isPortrait ? 2.1 : 2.5
+    const responsiveX = isPortrait ? 0 : (isAr ? -1.6 : 1.6)
+    const responsiveY = isPortrait ? -5.0 : -6.5
 
     return (
         <group ref={group} position={[responsiveX, responsiveY, -0.5]} rotation={[0, isAr ? -0.2 : 0.2, 0]}>

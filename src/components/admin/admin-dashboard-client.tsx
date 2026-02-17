@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, memo } from 'react'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -37,7 +37,7 @@ import {
     DASHBOARD_DEPARTMENT_OPTIONS,
     PERIOD_OPTIONS,
     STATUS_CONFIG,
-    PRIORITY_CONFIG,
+    PRIORITY_STYLE_CONFIG,
     getFormatters,
     type Period,
 } from '@/lib/constants/admin'
@@ -78,6 +78,7 @@ function DashboardSkeleton() {
 
 export function AdminDashboardClient() {
     const locale = useLocale()
+    const t = useTranslations('adminDashboard')
     const { formatCurrency, formatDate } = useMemo(() => getFormatters(locale), [locale])
     const [period, setPeriod] = useState<Period>('month')
     const [departmentFilter, setDepartmentFilter] = useState('all')
@@ -208,9 +209,9 @@ export function AdminDashboardClient() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">لوحة التحكم</h1>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{t('title')}</h1>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                        نظرة عامة على النظام وأداء الفريق
+                        {t('subtitle')}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -244,31 +245,31 @@ export function AdminDashboardClient() {
             {/* ============================================ */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                 <StatCard
-                    title="رصيد الخزنة"
+                    title={t('treasuryBalance')}
                     value={formatCurrency(treasury?.current_balance || 0)}
                     icon={<DollarSign className="h-4 w-4" />}
                     iconBg="bg-emerald-500/10 text-emerald-600"
                 />
                 <StatCard
-                    title={`الإيرادات (${periodLabel})`}
+                    title={t('revenue', { period: periodLabel })}
                     value={formatCurrency(summary?.totalIncome || 0)}
                     icon={<TrendingUp className="h-4 w-4" />}
                     iconBg="bg-green-500/10 text-green-600"
-                    subtitle={summary?.totalIncome ? `صافي: ${formatCurrency(summary.netBalance)}` : undefined}
+                    subtitle={summary?.totalIncome ? t('netAmount', { amount: formatCurrency(summary.netBalance) }) : undefined}
                     subtitleColor={summary && summary.netBalance >= 0 ? 'text-green-600' : 'text-red-500'}
                 />
                 <StatCard
-                    title={`المصروفات (${periodLabel})`}
+                    title={t('expenses', { period: periodLabel })}
                     value={formatCurrency(summary?.totalExpense || 0)}
                     icon={<TrendingDown className="h-4 w-4" />}
                     iconBg="bg-red-500/10 text-red-600"
                 />
                 <StatCard
-                    title="المستخدمين النشطين"
+                    title={t('activeUsers')}
                     value={userStats?.active ?? 0}
                     icon={<Users className="h-4 w-4" />}
                     iconBg="bg-blue-500/10 text-blue-600"
-                    subtitle={`من ${userStats?.total ?? 0} إجمالي`}
+                    subtitle={t('ofTotal', { total: String(userStats?.total ?? 0) })}
                 />
             </div>
 
@@ -276,14 +277,14 @@ export function AdminDashboardClient() {
             {/* Task Stats - Status Breakdown */}
             {/* ============================================ */}
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-                <MiniStatCard label="جديدة" value={taskStats?.new ?? 0} color="bg-blue-500" />
-                <MiniStatCard label="قيد التنفيذ" value={taskStats?.inProgress ?? 0} color="bg-yellow-500" />
-                <MiniStatCard label="مراجعة" value={taskStats?.review ?? 0} color="bg-purple-500" />
-                <MiniStatCard label="تعديل" value={taskStats?.revision ?? 0} color="bg-orange-500" />
-                <MiniStatCard label="معتمد" value={taskStats?.approved ?? 0} color="bg-green-500" />
-                <MiniStatCard label="مرفوض" value={taskStats?.rejected ?? 0} color="bg-red-500" />
+                <MiniStatCard label={t('statusNew')} value={taskStats?.new ?? 0} color="bg-blue-500" />
+                <MiniStatCard label={t('statusInProgress')} value={taskStats?.inProgress ?? 0} color="bg-yellow-500" />
+                <MiniStatCard label={t('statusReview')} value={taskStats?.review ?? 0} color="bg-purple-500" />
+                <MiniStatCard label={t('statusRevision')} value={taskStats?.revision ?? 0} color="bg-orange-500" />
+                <MiniStatCard label={t('statusApproved')} value={taskStats?.approved ?? 0} color="bg-green-500" />
+                <MiniStatCard label={t('statusRejected')} value={taskStats?.rejected ?? 0} color="bg-red-500" />
                 <MiniStatCard
-                    label="متأخرة"
+                    label={t('statusOverdue')}
                     value={taskStats?.overdue ?? 0}
                     color="bg-red-600"
                     alert={taskStats ? taskStats.overdue > 0 : false}
@@ -299,30 +300,30 @@ export function AdminDashboardClient() {
                     <CardHeader className="pb-3 px-3 sm:px-6 pt-4">
                         <CardTitle className="text-sm font-semibold flex items-center gap-2">
                             <Building2 className="w-4 h-4 text-muted-foreground" />
-                            توزيع المهام حسب القسم
+                            {t('tasksByDepartment')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="px-3 sm:px-6 pb-4 space-y-3">
                         <DeptBar
-                            label="المحتوى (Content)"
+                            label={t('deptContent')}
                             count={taskStats?.contentDept ?? 0}
                             total={taskStats?.total ?? 1}
                             color="bg-indigo-500"
                         />
                         <DeptBar
-                            label="التصوير (Photography)"
+                            label={t('deptPhotography')}
                             count={taskStats?.photoDept ?? 0}
                             total={taskStats?.total ?? 1}
                             color="bg-cyan-500"
                         />
                         <DeptBar
-                            label="بدون قسم"
+                            label={t('deptNone')}
                             count={taskStats?.noDept ?? 0}
                             total={taskStats?.total ?? 1}
                             color="bg-gray-400"
                         />
                         <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
-                            <span>إجمالي المهام</span>
+                            <span>{t('totalTasks')}</span>
                             <span className="font-bold text-foreground">{taskStats?.total ?? 0}</span>
                         </div>
                     </CardContent>
@@ -333,19 +334,19 @@ export function AdminDashboardClient() {
                     <CardHeader className="pb-3 px-3 sm:px-6 pt-4">
                         <CardTitle className="text-sm font-semibold flex items-center gap-2">
                             <Users className="w-4 h-4 text-muted-foreground" />
-                            الفريق
+                            {t('team')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="px-3 sm:px-6 pb-4">
                         <div className="grid grid-cols-2 gap-2">
-                            <RoleStat label="أدمن" count={userStats?.admins ?? 0} icon="🛡️" />
-                            <RoleStat label="تيم ليدر" count={userStats?.teamLeaders ?? 0} icon="👑" />
-                            <RoleStat label="كريتور" count={userStats?.creators ?? 0} icon="✍️" />
-                            <RoleStat label="مصور فيديو" count={userStats?.videographers ?? 0} icon="🎬" />
-                            <RoleStat label="محرر" count={userStats?.editors ?? 0} icon="🎞️" />
-                            <RoleStat label="مصور فوتو" count={userStats?.photographers ?? 0} icon="📷" />
-                            <RoleStat label="عملاء" count={userStats?.clients ?? 0} icon="👤" />
-                            <RoleStat label="إجمالي" count={userStats?.total ?? 0} icon="📊" highlight />
+                            <RoleStat label={t('roleAdmin')} count={userStats?.admins ?? 0} icon="🛡️" />
+                            <RoleStat label={t('roleTeamLeader')} count={userStats?.teamLeaders ?? 0} icon="👑" />
+                            <RoleStat label={t('roleCreator')} count={userStats?.creators ?? 0} icon="✍️" />
+                            <RoleStat label={t('roleVideographer')} count={userStats?.videographers ?? 0} icon="🎬" />
+                            <RoleStat label={t('roleEditor')} count={userStats?.editors ?? 0} icon="🎞️" />
+                            <RoleStat label={t('rolePhotographer')} count={userStats?.photographers ?? 0} icon="📷" />
+                            <RoleStat label={t('roleClients')} count={userStats?.clients ?? 0} icon="👤" />
+                            <RoleStat label={t('total')} count={userStats?.total ?? 0} icon="📊" highlight />
                         </div>
                     </CardContent>
                 </Card>
@@ -355,7 +356,7 @@ export function AdminDashboardClient() {
                     <CardHeader className="pb-3 px-3 sm:px-6 pt-4">
                         <CardTitle className="text-sm font-semibold flex items-center gap-2">
                             <AlertTriangle className="w-4 h-4 text-muted-foreground" />
-                            تنبيهات مهمة
+                            {t('importantAlerts')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="px-3 sm:px-6 pb-4 space-y-3">
@@ -365,8 +366,8 @@ export function AdminDashboardClient() {
                                     <Clock className="w-4 h-4 text-red-600" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-red-700 dark:text-red-400">{taskStats?.overdue} مهمة متأخرة</p>
-                                    <p className="text-[10px] text-red-500">تجاوزت الموعد النهائي</p>
+                                    <p className="text-sm font-medium text-red-700 dark:text-red-400">{t('overdueTasksAlert', { count: taskStats?.overdue ?? 0 })}</p>
+                                    <p className="text-[10px] text-red-500">{t('pastDeadline')}</p>
                                 </div>
                             </div>
                         )}
@@ -376,8 +377,8 @@ export function AdminDashboardClient() {
                                     <AlertTriangle className="w-4 h-4 text-orange-600" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-orange-700 dark:text-orange-400">{taskStats?.urgent} مهمة عاجلة</p>
-                                    <p className="text-[10px] text-orange-500">تحتاج اهتمام فوري</p>
+                                    <p className="text-sm font-medium text-orange-700 dark:text-orange-400">{t('urgentTasksAlert', { count: taskStats?.urgent ?? 0 })}</p>
+                                    <p className="text-[10px] text-orange-500">{t('needsImmediateAttention')}</p>
                                 </div>
                             </div>
                         )}
@@ -387,8 +388,8 @@ export function AdminDashboardClient() {
                                     <ArrowUp className="w-4 h-4 text-amber-600" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">{taskStats?.high} مهمة أولوية عالية</p>
-                                    <p className="text-[10px] text-amber-500">تحتاج متابعة</p>
+                                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">{t('highPriorityAlert', { count: taskStats?.high ?? 0 })}</p>
+                                    <p className="text-[10px] text-amber-500">{t('needsFollowUp')}</p>
                                 </div>
                             </div>
                         )}
@@ -398,15 +399,15 @@ export function AdminDashboardClient() {
                                     <RotateCcw className="w-4 h-4 text-purple-600" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-purple-700 dark:text-purple-400">{taskStats?.revision} مهمة تعديل</p>
-                                    <p className="text-[10px] text-purple-500">تحتاج تعديلات</p>
+                                    <p className="text-sm font-medium text-purple-700 dark:text-purple-400">{t('revisionTasksAlert', { count: taskStats?.revision ?? 0 })}</p>
+                                    <p className="text-[10px] text-purple-500">{t('needsRevisions')}</p>
                                 </div>
                             </div>
                         )}
                         {(taskStats?.overdue ?? 0) === 0 && (taskStats?.urgent ?? 0) === 0 && (taskStats?.high ?? 0) === 0 && (taskStats?.revision ?? 0) === 0 && (
                             <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-500/10">
                                 <CheckCircle2 className="w-5 h-5 text-green-600" />
-                                <p className="text-sm text-green-700 dark:text-green-400">لا توجد تنبيهات - كل شيء تمام!</p>
+                                <p className="text-sm text-green-700 dark:text-green-400">{t('noAlerts')}</p>
                             </div>
                         )}
                     </CardContent>
@@ -423,20 +424,20 @@ export function AdminDashboardClient() {
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-sm font-semibold flex items-center gap-2">
                                 <ListTodo className="w-4 h-4 text-muted-foreground" />
-                                آخر المهام
+                                {t('recentTasks')}
                                 {departmentFilter !== 'all' && (
                                     <Badge variant="secondary" className="text-[10px] px-1.5">
-                                        {departmentFilter === 'content' ? 'محتوى' : 'تصوير'}
+                                        {departmentFilter === 'content' ? t('content') : t('photography')}
                                     </Badge>
                                 )}
                             </CardTitle>
-                            <span className="text-xs text-muted-foreground">{taskStats?.total ?? 0} مهمة</span>
+                            <span className="text-xs text-muted-foreground">{t('taskCount', { count: taskStats?.total ?? 0 })}</span>
                         </div>
                     </CardHeader>
                     <CardContent className="px-3 sm:px-6 pb-4">
                         <div className="space-y-2.5">
                             {recentTasks.length === 0 ? (
-                                <p className="text-muted-foreground text-center py-6 text-sm">لا توجد مهام</p>
+                                <p className="text-muted-foreground text-center py-6 text-sm">{t('noTasks')}</p>
                             ) : (
                                 recentTasks.map((task) => (
                                     <div key={task.id} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors">
@@ -448,7 +449,7 @@ export function AdminDashboardClient() {
                                                 <TaskStatusBadge status={task.status} />
                                                 {task.department && (
                                                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                                        {task.department === 'content' ? 'محتوى' : 'تصوير'}
+                                                        {task.department === 'content' ? t('content') : t('photography')}
                                                     </Badge>
                                                 )}
                                                 <PriorityDot priority={task.priority} />
@@ -464,7 +465,7 @@ export function AdminDashboardClient() {
                                             {task.assigned_user ? (
                                                 <div className="flex items-center gap-1.5">
                                                     {task.assigned_user.avatar_url ? (
-                                                        <img src={task.assigned_user.avatar_url} alt="" className="w-5 h-5 rounded-full" />
+                                                        <img src={task.assigned_user.avatar_url} alt={task.assigned_user.name || 'User avatar'} className="w-5 h-5 rounded-full" />
                                                     ) : (
                                                         <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px]">
                                                             {task.assigned_user.name?.[0]}
@@ -473,7 +474,7 @@ export function AdminDashboardClient() {
                                                     <span className="text-xs text-muted-foreground hidden sm:inline">{task.assigned_user.name}</span>
                                                 </div>
                                             ) : (
-                                                <span className="text-[10px] text-muted-foreground">غير معين</span>
+                                                <span className="text-[10px] text-muted-foreground">{t('unassigned')}</span>
                                             )}
                                         </div>
                                     </div>
@@ -489,11 +490,11 @@ export function AdminDashboardClient() {
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-sm font-semibold flex items-center gap-2">
                                 <Activity className="w-4 h-4 text-muted-foreground" />
-                                آخر المعاملات المالية
+                                {t('recentTransactions')}
                             </CardTitle>
                             {summary && (
                                 <Badge variant={summary.netBalance >= 0 ? 'default' : 'destructive'} className="text-[10px]">
-                                    صافي: {formatCurrency(summary.netBalance)}
+                                    {t('netAmount', { amount: formatCurrency(summary.netBalance) })}
                                 </Badge>
                             )}
                         </div>
@@ -501,7 +502,7 @@ export function AdminDashboardClient() {
                     <CardContent className="px-3 sm:px-6 pb-4">
                         <div className="space-y-2.5">
                             {!transactions || transactions.length === 0 ? (
-                                <p className="text-muted-foreground text-center py-6 text-sm">لا توجد معاملات</p>
+                                <p className="text-muted-foreground text-center py-6 text-sm">{t('noTransactions')}</p>
                             ) : (
                                 (transactions as Transaction[]).map((tx) => (
                                     <div key={tx.id} className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-colors">
@@ -518,10 +519,10 @@ export function AdminDashboardClient() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium text-sm truncate">
-                                                {tx.description || (tx.type === 'income' ? 'إيراد' : 'مصروف')}
+                                                {tx.description || (tx.type === 'income' ? t('income') : t('expense'))}
                                             </p>
                                             <p className="text-[10px] text-muted-foreground">
-                                                {tx.category || 'عام'} • {formatDate(tx.created_at)}
+                                                {tx.category || t('general')} • {formatDate(tx.created_at)}
                                             </p>
                                         </div>
                                         <span className={`font-bold text-sm whitespace-nowrap ${
@@ -668,7 +669,7 @@ const TaskStatusBadge = memo(function TaskStatusBadge({ status }: { status: Task
 })
 
 const PriorityDot = memo(function PriorityDot({ priority }: { priority: string }) {
-    const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.medium
+    const config = PRIORITY_STYLE_CONFIG[priority] || PRIORITY_STYLE_CONFIG.medium
     return (
         <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground" title={config.label}>
             <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />

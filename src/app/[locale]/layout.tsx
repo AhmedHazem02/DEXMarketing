@@ -5,9 +5,6 @@ import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { locales } from '@/i18n/config';
 import { QueryProvider, ToastProvider } from '@/components/providers';
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import "../globals.css";
 
 const tajawal = Tajawal({
@@ -49,35 +46,8 @@ export default async function RootLayout({
   const { locale } = await params;
 
   // Security Check: Active User Status
-  // We use headers to check the pathname to avoid infinite loops on /blocked
-  const headersList = await headers();
-  const pathname = headersList.get('x-pathname') || '';
-
-  if (!pathname.includes('/blocked') && !pathname.includes('/contact')) {
-    try {
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user) {
-        const { data } = await supabase
-          .from('users')
-          .select('is_active')
-          .eq('id', user.id)
-          .single();
-
-        const profile = data as { is_active: boolean | null } | null;
-
-        if (profile && profile.is_active === false) {
-          redirect(`/${locale}/blocked`);
-        }
-      }
-    } catch (e: any) {
-      // Re-throw Next.js redirect (it uses a special thrown error)
-      if (e?.digest?.startsWith?.('NEXT_REDIRECT')) throw e
-      // Supabase temporarily unreachable — skip active-user check.
-      // The dashboard layout will independently verify auth.
-    }
-  }
+  // Moved to dashboard layout to avoid latency on public pages.
+  // The dashboard layout independently verifies auth & active status.
 
   // Validate that the incoming `locale` parameter is valid
   if (!locales.includes(locale as any)) {

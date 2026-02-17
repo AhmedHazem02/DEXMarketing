@@ -1,5 +1,10 @@
-import { TasksManager } from '@/components/admin/tasks-manager'
+import nextDynamic from 'next/dynamic'
 import { PageHeader } from '@/components/admin/page-header'
+
+const TasksManager = nextDynamic(
+    () => import('@/components/admin/tasks-manager').then(mod => ({ default: mod.TasksManager })),
+    { loading: () => <div className="animate-pulse space-y-4"><div className="h-10 bg-muted rounded" /><div className="h-96 bg-muted rounded" /></div> }
+)
 
 export const dynamic = 'force-dynamic'
 

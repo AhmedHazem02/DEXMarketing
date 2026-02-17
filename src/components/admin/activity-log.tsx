@@ -5,7 +5,10 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useActivityLog } from '@/hooks/use-cms'
+import { useTranslations } from 'next-intl'
 import { Loader2, Activity, User, Settings, FileText, DollarSign, CheckSquare } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
+import { ar } from 'date-fns/locale'
 
 const actionIcons: Record<string, React.ReactNode> = {
     login: <User className="h-4 w-4" />,
@@ -17,45 +20,14 @@ const actionIcons: Record<string, React.ReactNode> = {
     task_update: <CheckSquare className="h-4 w-4" />,
 }
 
-const actionLabels: Record<string, string> = {
-    login: 'تسجيل دخول',
-    logout: 'تسجيل خروج',
-    settings_update: 'تحديث إعدادات',
-    page_update: 'تحديث صفحة',
-    transaction_create: 'معاملة جديدة',
-    task_create: 'مهمة جديدة',
-    task_update: 'تحديث مهمة',
-    user_update: 'تحديث مستخدم',
-    user_delete: 'حذف مستخدم',
-}
+const ACTION_KEYS = ['login', 'logout', 'settings_update', 'page_update', 'transaction_create', 'task_create', 'task_update', 'user_update', 'user_delete'] as const
 
 export function ActivityLogViewer() {
+    const t = useTranslations('activityLog')
     const { data: logs, isLoading } = useActivityLog(50)
 
     const formatDate = (date: string) => {
-        const d = new Date(date)
-        const now = new Date()
-        const diff = now.getTime() - d.getTime()
-
-        // Less than 1 hour
-        if (diff < 3600000) {
-            const minutes = Math.floor(diff / 60000)
-            return `منذ ${minutes} دقيقة`
-        }
-
-        // Less than 24 hours
-        if (diff < 86400000) {
-            const hours = Math.floor(diff / 3600000)
-            return `منذ ${hours} ساعة`
-        }
-
-        // More than 24 hours
-        return d.toLocaleDateString('ar-EG', {
-            day: 'numeric',
-            month: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-        })
+        return formatDistanceToNow(new Date(date), { addSuffix: true, locale: ar })
     }
 
     if (isLoading) {
@@ -73,10 +45,10 @@ export function ActivityLogViewer() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Activity className="h-5 w-5" />
-                    سجل النشاط
+                    {t('title')}
                 </CardTitle>
                 <CardDescription>
-                    آخر 50 نشاط في النظام
+                    {t('description')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -102,11 +74,11 @@ export function ActivityLogViewer() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <span className="font-medium">
-                                                {log.user?.name || log.user?.email || 'مستخدم غير معروف'}
+                                                {log.user?.name || log.user?.email || t('unknownUser')}
                                             </span>
                                             <Badge variant="outline" className="text-xs">
                                                 {actionIcons[log.action] || <Activity className="h-3 w-3" />}
-                                                <span className="ms-1">{actionLabels[log.action] || log.action}</span>
+                                                <span className="ms-1">{t(`actions.${log.action}` as any) || log.action}</span>
                                             </Badge>
                                         </div>
 

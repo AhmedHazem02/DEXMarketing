@@ -44,7 +44,7 @@ export default function TeamLeaderDashboard() {
     }, [])
 
     // Enable realtime updates for tasks, comments, and attachments
-    useTasksRealtime(undefined)
+    useTasksRealtime()
 
     // State for modals
     const [isFormOpen, setIsFormOpen] = useState(false)

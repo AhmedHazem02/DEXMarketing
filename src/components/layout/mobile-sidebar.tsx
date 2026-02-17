@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { LogOut, Home, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
 import { getRoutes } from '@/lib/routes'
 import type { Department } from '@/types/database'
 import {
@@ -16,25 +15,16 @@ import {
     SheetTitle,
     SheetDescription,
 } from '@/components/ui/sheet'
+import { useLogout } from '@/hooks/use-logout'
 
 export function MobileSidebar({ role, department }: { role?: string; department?: Department | null }) {
     const pathname = usePathname()
-    const router = useRouter()
     const [open, setOpen] = useState(false)
 
     const isAr = pathname.startsWith('/ar')
     const routes = getRoutes(role || 'guest', isAr, department)
 
-    const handleLogout = useCallback(async () => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-            await supabase.from('activity_log').insert({ user_id: user.id, action: 'logout' } as never)
-        }
-        await supabase.auth.signOut()
-        router.refresh()
-        router.push('/login')
-    }, [router])
+    const handleLogout = useLogout()
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>

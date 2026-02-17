@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
-import { motion, AnimatePresence, Reorder } from 'framer-motion'
+import { useState, useMemo, useCallback, memo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useLocale } from 'next-intl'
 import {
     Plus, Clock, Eye, RotateCcw, Check, X,
@@ -74,7 +74,7 @@ interface TaskCardProps {
     isDragging?: boolean
 }
 
-function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
+const TaskCard = memo(function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const priorityConfig = getPriorityConfig(task.priority)
@@ -120,6 +120,7 @@ function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
                             size="icon"
                             className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={(e) => e.stopPropagation()}
+                            aria-label={isAr ? 'خيارات المهمة' : 'Task options'}
                         >
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -208,7 +209,7 @@ function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
             </div>
         </motion.div>
     )
-}
+})
 
 // ============================================
 // Kanban Column Component
@@ -269,6 +270,7 @@ function KanbanColumn({ column, tasks, readOnly, onTaskClick, onCreateTask, onDr
                     size="icon"
                     className={cn("h-7 w-7", readOnly && "hidden")}
                     onClick={onCreateTask}
+                    aria-label={isAr ? 'إضافة مهمة' : 'Add task'}
                 >
                     <Plus className="w-4 h-4" />
                 </Button>
