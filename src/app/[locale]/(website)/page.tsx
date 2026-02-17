@@ -24,13 +24,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     return (
         <>
             <HeroSection />
+            <StatsSection />
             <AboutSection />
             <ServicesSection />
-            <StatsSection />
             <PortfolioSection />
             <TestimonialsSection />
-            <ContactSection />
             <CTASection />
+            <ContactSection />
         </>
     )
 }
