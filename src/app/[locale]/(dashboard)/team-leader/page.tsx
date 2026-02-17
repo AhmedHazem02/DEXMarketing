@@ -11,17 +11,25 @@ import {
     type TaskWithRelations
 } from '@/components/tasks'
 import { PendingRequests } from '@/components/tasks/pending-requests'
-import type { TaskStatus } from '@/types/database'
+import type { TaskStatus, Department } from '@/types/database'
 import { Loader2, LayoutGrid, Table2 } from 'lucide-react'
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCurrentUser } from '@/hooks/use-users'
 
 export default function TeamLeaderDashboard() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const [userId, setUserId] = useState<string | null>(null)
+    const { data: currentUser } = useCurrentUser()
+    const myDepartment = currentUser?.department as Department | undefined
+    const otherDepartment: Department | undefined = myDepartment === 'photography' ? 'content' : myDepartment === 'content' ? 'photography' : undefined
+
+    // Department filter: 'mine' = my department, 'other' = the other department
+    const [deptFilter, setDeptFilter] = useState<'mine' | 'other'>('mine')
+    const activeDepartment = deptFilter === 'mine' ? myDepartment : otherDepartment
 
     // Fetch current user
     useEffect(() => {
@@ -44,6 +52,9 @@ export default function TeamLeaderDashboard() {
     const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
     const [defaultStatus, setDefaultStatus] = useState<TaskStatus>('new')
     const [viewMode, setViewMode] = useState<'kanban' | 'table'>('table')
+
+    // Read-only when viewing the other department
+    const isOtherDept = deptFilter === 'other'
 
     // Handlers
     const handleTaskClick = useCallback((task: TaskWithRelations) => {
@@ -92,19 +103,41 @@ export default function TeamLeaderDashboard() {
                     </p>
                 </div>
                 
-                {/* View Toggle */}
-                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'kanban' | 'table')}>
-                    <TabsList>
-                        <TabsTrigger value="table" className="gap-2">
-                            <Table2 className="h-4 w-4" />
-                            {isAr ? 'جدول' : 'Table'}
-                        </TabsTrigger>
-                        <TabsTrigger value="kanban" className="gap-2">
-                            <LayoutGrid className="h-4 w-4" />
-                            {isAr ? 'كانبان' : 'Kanban'}
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <div className="flex items-center gap-3">
+                    {/* Department Filter */}
+                    {myDepartment && otherDepartment && (
+                        <Tabs value={deptFilter} onValueChange={(v) => setDeptFilter(v as 'mine' | 'other')}>
+                            <TabsList>
+                                <TabsTrigger value="mine" className="gap-2">
+                                    {isAr
+                                        ? myDepartment === 'photography' ? '📸 التصوير' : '✍️ المحتوى'
+                                        : myDepartment === 'photography' ? '📸 Photography' : '✍️ Content'
+                                    }
+                                </TabsTrigger>
+                                <TabsTrigger value="other" className="gap-2">
+                                    {isAr
+                                        ? otherDepartment === 'photography' ? '📸 التصوير' : '✍️ المحتوى'
+                                        : otherDepartment === 'photography' ? '📸 Photography' : '✍️ Content'
+                                    }
+                                </TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    )}
+
+                    {/* View Toggle */}
+                    <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'kanban' | 'table')}>
+                        <TabsList>
+                            <TabsTrigger value="table" className="gap-2">
+                                <Table2 className="h-4 w-4" />
+                                {isAr ? 'جدول' : 'Table'}
+                            </TabsTrigger>
+                            <TabsTrigger value="kanban" className="gap-2">
+                                <LayoutGrid className="h-4 w-4" />
+                                {isAr ? 'كانبان' : 'Kanban'}
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
             </div>
 
             {/* Client Requests Section */}
@@ -116,14 +149,18 @@ export default function TeamLeaderDashboard() {
             {viewMode === 'table' ? (
                 <TasksTable
                     projectId={undefined}
+                    department={activeDepartment}
+                    readOnly={isOtherDept}
                     onTaskClick={handleTaskClick}
-                    onCreateTask={() => handleCreateTask()}
+                    onCreateTask={isOtherDept ? undefined : () => handleCreateTask()}
                 />
             ) : (
                 <KanbanBoard
                     projectId={undefined}
+                    department={activeDepartment}
+                    readOnly={isOtherDept}
                     onTaskClick={handleTaskClick}
-                    onCreateTask={handleCreateTask}
+                    onCreateTask={isOtherDept ? undefined : handleCreateTask}
                 />
             )}
 
@@ -143,8 +180,8 @@ export default function TeamLeaderDashboard() {
                 onOpenChange={setIsDetailsOpen}
                 taskId={selectedTask?.id ?? null}
                 currentUserId={userId}
-                onEdit={handleEditTask}
-                canReturn={true}
+                onEdit={isOtherDept ? undefined : handleEditTask}
+                canReturn={!isOtherDept}
             />
         </div>
     )

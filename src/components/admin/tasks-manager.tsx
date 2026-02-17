@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react'
 import { useAdminTasks, useAdminTasksStats, useAdminTasksExport } from '@/hooks/use-tasks'
+import { useTasksRealtime } from '@/hooks/use-realtime'
 import { useDebounce } from '@/hooks'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
@@ -75,10 +76,10 @@ function formatTaskDate(dateString: string | null | undefined, formatStr: string
 
 function useMediaQuery(query: string): boolean {
     const [matches, setMatches] = useState(false)
-    
+
     useEffect(() => {
         if (typeof window === 'undefined') return
-        
+
         const mql = window.matchMedia(query)
         setMatches(mql.matches)
         const handler = (e: MediaQueryListEvent) => setMatches(e.matches)
@@ -91,6 +92,9 @@ function useMediaQuery(query: string): boolean {
 const ROWS_PER_PAGE = 15
 
 export function TasksManager() {
+    // Real-time subscription for live task updates
+    useTasksRealtime()
+
     const [search, setSearch] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
     const [departmentFilter, setDepartmentFilter] = useState('all')
@@ -465,7 +469,7 @@ export function TasksManager() {
                     )}
                     <Table>
                         <TableHeader>
-                            <TableRow>
+                            <TableRow className="bg-muted/50">
                                 <TableHead className="text-right">عنوان المهمة</TableHead>
                                 <TableHead className="text-right">العميل</TableHead>
                                 <TableHead className="text-right hidden lg:table-cell">التيم ليدر</TableHead>
@@ -528,10 +532,10 @@ export function TasksManager() {
                                         </TableCell>
                                         <TableCell>
                                             {task.client_feedback && (
-                                                <TaskFeedbackDialog 
-                                                    feedback={task.client_feedback} 
-                                                    taskTitle={task.title} 
-                                                    variant="desktop" 
+                                                <TaskFeedbackDialog
+                                                    feedback={task.client_feedback}
+                                                    taskTitle={task.title}
+                                                    variant="desktop"
                                                 />
                                             )}
                                         </TableCell>
@@ -614,11 +618,11 @@ export function TasksManager() {
 /**
  * Reusable dialog for displaying client feedback
  */
-const TaskFeedbackDialog = memo(function TaskFeedbackDialog({ 
-    feedback, 
-    taskTitle, 
-    variant = 'desktop' 
-}: { 
+const TaskFeedbackDialog = memo(function TaskFeedbackDialog({
+    feedback,
+    taskTitle,
+    variant = 'desktop'
+}: {
     feedback: string
     taskTitle: string
     variant?: 'desktop' | 'mobile'
@@ -661,11 +665,11 @@ const TaskFeedbackDialog = memo(function TaskFeedbackDialog({
 /**
  * Reusable stat card for task metrics
  */
-const TaskStatCard = memo(function TaskStatCard({ 
-    value, 
-    label, 
-    colorClass 
-}: { 
+const TaskStatCard = memo(function TaskStatCard({
+    value,
+    label,
+    colorClass
+}: {
     value: number
     label: string
     colorClass: string
@@ -733,10 +737,10 @@ const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: TaskWithRe
                     <span>{task.creator?.name || 'System'}</span>
                 </div>
                 {task.client_feedback && (
-                    <TaskFeedbackDialog 
-                        feedback={task.client_feedback} 
-                        taskTitle={task.title} 
-                        variant="mobile" 
+                    <TaskFeedbackDialog
+                        feedback={task.client_feedback}
+                        taskTitle={task.title}
+                        variant="mobile"
                     />
                 )}
             </div>

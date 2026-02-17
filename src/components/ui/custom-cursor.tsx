@@ -43,7 +43,7 @@ export function CustomCursor() {
                 style={{
                     left: cursorXSpring,
                     top: cursorYSpring,
-                    background: 'radial-gradient(circle, rgba(251,191,36,0.15) 0%, transparent 70%)',
+                    background: 'radial-gradient(circle, rgba(242,203,5,0.15) 0%, transparent 70%)',
                     willChange: 'transform',
                 }}
             />
@@ -59,7 +59,7 @@ export function CustomCursor() {
                     scale: isPointer ? 1.5 : 1,
                 }}
             >
-                <div className="h-3 w-3 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.8)]" />
+                <div className="h-3 w-3 rounded-full bg-[#F2CB05] shadow-[0_0_10px_rgba(242,203,5,0.8)]" />
             </motion.div>
         </div>
     )

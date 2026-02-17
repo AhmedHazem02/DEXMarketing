@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Tajawal } from "next/font/google";
+import { Tajawal, Playfair_Display, Space_Mono } from "next/font/google";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -14,6 +14,19 @@ const tajawal = Tajawal({
   subsets: ["arabic", "latin"],
   weight: ["200", "300", "400", "500", "700", "800", "900"],
   variable: '--font-tajawal',
+  display: 'swap',
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: '--font-playfair',
+  display: 'swap',
+});
+
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: '--font-space-mono',
   display: 'swap',
 });
 
@@ -41,21 +54,28 @@ export default async function RootLayout({
   const pathname = headersList.get('x-pathname') || '';
 
   if (!pathname.includes('/blocked') && !pathname.includes('/contact')) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
 
-    if (user) {
-      const { data } = await supabase
-        .from('users')
-        .select('is_active')
-        .eq('id', user.id)
-        .single();
+      if (user) {
+        const { data } = await supabase
+          .from('users')
+          .select('is_active')
+          .eq('id', user.id)
+          .single();
 
-      const profile = data as { is_active: boolean | null } | null;
+        const profile = data as { is_active: boolean | null } | null;
 
-      if (profile && profile.is_active === false) {
-        redirect(`/${locale}/blocked`);
+        if (profile && profile.is_active === false) {
+          redirect(`/${locale}/blocked`);
+        }
       }
+    } catch (e: any) {
+      // Re-throw Next.js redirect (it uses a special thrown error)
+      if (e?.digest?.startsWith?.('NEXT_REDIRECT')) throw e
+      // Supabase temporarily unreachable — skip active-user check.
+      // The dashboard layout will independently verify auth.
     }
   }
 
@@ -73,7 +93,7 @@ export default async function RootLayout({
   // Use both fonts variables to allow switching
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
-      <body className={`${tajawal.variable} ${tajawal.className} antialiased min-h-screen bg-background text-foreground`}>
+      <body className={`${tajawal.variable} ${playfair.variable} ${spaceMono.variable} ${tajawal.className} antialiased min-h-screen bg-background text-foreground`}>
         <QueryProvider>
           <NextIntlClientProvider messages={messages}>
             {children}

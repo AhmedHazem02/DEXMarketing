@@ -57,7 +57,7 @@ export function useSchedules(filters: ScheduleFilters = {}) {
                 query = query.eq('client_id', filters.client_id)
             }
             if (filters.search) {
-                query = query.or(`title.ilike.%${filters.search}%,company_name.ilike.%${filters.search}%`)
+                query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
             }
 
             const { data, error } = await query
@@ -226,16 +226,31 @@ export function useCreateSchedule() {
 
     return useMutation({
         mutationFn: async (input: CreateScheduleInput & { team_leader_id: string; task_id?: string; assigned_members?: string[] }) => {
+            // Debug: Check auth state
+            const { data: { user: authUser } } = await supabase.auth.getUser()
+            console.log('🔑 [useCreateSchedule] Auth user:', authUser?.id, authUser?.email)
+
+            // Debug: Check user role in DB
+            const { data: dbUser } = await supabase.from('users').select('id, role, department').eq('id', authUser?.id || '').single()
+            console.log('👤 [useCreateSchedule] DB user:', dbUser)
+
+            const insertPayload = {
+                ...input,
+                assigned_members: input.assigned_members || [],
+            }
+            console.log('📦 [useCreateSchedule] Insert payload:', JSON.stringify(insertPayload, null, 2))
+
             const { data: schedule, error } = await (supabase
                 .from('schedules') as any)
-                .insert({
-                    ...input,
-                    assigned_members: input.assigned_members || [],
-                })
+                .insert(insertPayload)
                 .select()
                 .single()
 
-            if (error) throw error
+            if (error) {
+                console.error('💥 [useCreateSchedule] Supabase error:', { code: error.code, message: error.message, details: error.details, hint: error.hint })
+                throw error
+            }
+            console.log('✅ [useCreateSchedule] Created:', schedule)
             return schedule
         },
         onSuccess: () => {
@@ -308,6 +323,109 @@ export function useUpdateScheduleStatus() {
             const { data, error } = await (supabase
                 .from('schedules') as any)
                 .update({ status, updated_at: new Date().toISOString() })
+                .eq('id', id)
+                .select()
+                .single()
+
+            if (error) throw error
+            return data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: scheduleKeys.all })
+        },
+    })
+}
+
+// ============================================
+// Content department schedules (for account_manager & team_leader read-only)
+// ============================================
+
+export function useContentSchedules(year: number, month: number) {
+    const supabase = createClient()
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+    const endDate = month === 12
+        ? `${year + 1}-01-01`
+        : `${year}-${String(month + 1).padStart(2, '0')}-01`
+
+    return useQuery({
+        queryKey: [...scheduleKeys.all, 'content', `${year}-${month}`],
+        queryFn: async () => {
+            const { data, error } = await (supabase
+                .from('schedules') as any)
+                .select(`
+                    *,
+                    team_leader:users!schedules_team_leader_id_fkey(id, name, avatar_url),
+                    client:clients!schedules_client_id_fkey(id, name, company),
+                    project:projects!schedules_project_id_fkey(id, name),
+                    task:tasks!schedules_task_id_fkey(id, title)
+                `)
+                .eq('department', 'content')
+                .gte('scheduled_date', startDate)
+                .lt('scheduled_date', endDate)
+                .order('scheduled_date', { ascending: true })
+                .order('start_time', { ascending: true })
+
+            if (error) throw error
+            return (data ?? []) as ScheduleWithRelations[]
+        },
+    })
+}
+
+// ============================================
+// Update schedule approval (account_manager)
+// ============================================
+
+export function useUpdateScheduleApproval() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({ id, approval_status, manager_notes }: {
+            id: string
+            approval_status: 'approved' | 'rejected'
+            manager_notes?: string
+        }) => {
+            const { data, error } = await (supabase
+                .from('schedules') as any)
+                .update({
+                    approval_status,
+                    manager_notes: manager_notes || null,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', id)
+                .select()
+                .single()
+
+            if (error) throw error
+            return data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: scheduleKeys.all })
+        },
+    })
+}
+
+// ============================================
+// Update missing items status
+// ============================================
+
+export function useUpdateMissingItems() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({ id, missing_items, missing_items_status }: {
+            id: string
+            missing_items?: string
+            missing_items_status?: 'pending' | 'resolved' | 'not_applicable'
+        }) => {
+            const { data, error } = await (supabase
+                .from('schedules') as any)
+                .update({
+                    missing_items: missing_items ?? null,
+                    missing_items_status: missing_items_status ?? 'not_applicable',
+                    updated_at: new Date().toISOString(),
+                })
                 .eq('id', id)
                 .select()
                 .single()

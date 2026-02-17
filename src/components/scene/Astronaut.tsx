@@ -1,50 +1,61 @@
 'use client'
 
-import React, { useRef, useState, useEffect, useMemo } from 'react'
+import React, { useRef, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useDeviceCapabilities } from '@/hooks/useDeviceCapabilities'
-import { ErrorBoundary } from '@/components/common/ErrorBoundary'
-import { Flag } from './Flag'
-import { useIntroStore } from '@/store/intro-store'
 
-// 2. The Actual Model Component
-function AstronautModel() {
-    const group = useRef<THREE.Group>(null) // Main group for Position (Flight)
-    const astronautGroup = useRef<THREE.Group>(null) // Inner group for Rotation (Look at mouse)
+interface AstronautProps {
+    isAr?: boolean
+}
 
-    // Material Refs for high-performance animation
-    const shockwaveMat = useRef<THREE.MeshBasicMaterial>(null)
-    const dustMat = useRef<THREE.MeshBasicMaterial>(null)
-    const shockwaveVisuals = useRef<THREE.Group>(null)
+function AstronautModel({ isAr = false }: AstronautProps) {
+    const group = useRef<THREE.Group>(null)
+    const headGroup = useRef<THREE.Group>(null)
+
+    // Interactive Lights
+    const keyLight = useRef<THREE.PointLight>(null)
+    const fillLight = useRef<THREE.PointLight>(null)
 
     const { scene } = useGLTF('/models/astronaut.glb')
-    const { isMobile } = useDeviceCapabilities()
-    const { viewport } = useThree()
+    useThree()
 
-    // Intro State
-    const { isIntroComplete, setIntroComplete } = useIntroStore()
+    // Smooth movement targets (Lerping)
+    const targetLightPos = useRef({ x: 0, y: 0 })
 
-    // Ensure we start landed if intro is already done
-    const [hasLanded, setHasLanded] = useState(isIntroComplete)
-
-    // Additional responsive checks
-    const isTablet = viewport.width < 10 && viewport.width > 5
-
-    // Enhanced Materials: Boost visual quality with direct lighting
-    useEffect(() => {
+    // Enhance Materials for the "Bust" look
+    useMemo(() => {
         scene.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
                 const mesh = child as THREE.Mesh
+                mesh.castShadow = true
+                mesh.receiveShadow = true
+
+                // Ensure smooth shading
+                if (mesh.geometry) {
+                    mesh.geometry.computeVertexNormals()
+                    // If low poly, we might need to merge vertices to smooth normals
+                    // but we can't easily access BufferGeometryUtils in this context without extra import
+                    // so we rely on computeVertexNormals + material smoothness
+                }
+
                 if (mesh.material instanceof THREE.MeshStandardMaterial) {
-                    // Enhance metallic and emissive properties for premium look
-                    mesh.material.metalness = Math.min(mesh.material.metalness + 0.2, 1.0)
-                    mesh.material.roughness = Math.max(mesh.material.roughness - 0.1, 0.0)
-                    // Add subtle emissive glow to white materials
-                    if (mesh.material.color.r > 0.8 && mesh.material.color.g > 0.8 && mesh.material.color.b > 0.8) {
-                        mesh.material.emissive = new THREE.Color(0x38bdf8)
-                        mesh.material.emissiveIntensity = 0.05
+                    // Visor Material - The "Star" of the show
+                    if (mesh.name.toLowerCase().includes('visor') || mesh.name.toLowerCase().includes('glass') || mesh.material.name.toLowerCase().includes('glass')) {
+                        mesh.material = new THREE.MeshPhysicalMaterial({
+                            color: new THREE.Color(0x050510),
+                            roughness: 0.0,
+                            metalness: 1.0,
+                            clearcoat: 1.0,
+                            clearcoatRoughness: 0.0,
+                            envMapIntensity: 3.5,
+                            emissive: new THREE.Color('#F2CB05'),
+                            emissiveIntensity: 0.15,
+                        })
+                    } else {
+                        // Suit Fabric - Matte & Dark
+                        mesh.material.roughness = 0.85
+                        mesh.material.metalness = 0.2
                     }
                     mesh.material.needsUpdate = true
                 }
@@ -52,248 +63,111 @@ function AstronautModel() {
         })
     }, [scene])
 
-    // Clone to allow multiple instances
-    const clonedScene = scene.clone()
+    useFrame((state) => {
+        if (!group.current || !keyLight.current || !fillLight.current) return
 
-    // Animation Limits
-    const shockwaveOpacity = useRef(0)
+        const mouseX = state.pointer.x
+        const mouseY = state.pointer.y
 
-    // Cinematic Entrance Logic
-    useFrame((state, delta) => {
-        if (!group.current) return
+        // --- 1. Light Interaction (Smooth Lerp) ---
+        const targetKeyX = mouseX * 8
+        const targetKeyY = mouseY * 6 + 4
 
+        const targetFillX = -mouseX * 8
+        const targetFillY = -mouseY * 6 - 2
+
+        const lerpFactor = 0.06
+
+        targetLightPos.current.x = THREE.MathUtils.lerp(targetLightPos.current.x, mouseX, lerpFactor)
+        targetLightPos.current.y = THREE.MathUtils.lerp(targetLightPos.current.y, mouseY, lerpFactor)
+
+        keyLight.current.position.x = THREE.MathUtils.lerp(keyLight.current.position.x, targetKeyX, lerpFactor)
+        keyLight.current.position.y = THREE.MathUtils.lerp(keyLight.current.position.y, targetKeyY, lerpFactor)
+
+        fillLight.current.position.x = THREE.MathUtils.lerp(fillLight.current.position.x, targetFillX, lerpFactor)
+        fillLight.current.position.y = THREE.MathUtils.lerp(fillLight.current.position.y, targetFillY, lerpFactor)
+
+        // --- 2. Head/Body Rotation (Subtle) ---
+        if (headGroup.current) {
+            const limit = 0.15
+            headGroup.current.rotation.y = THREE.MathUtils.lerp(headGroup.current.rotation.y, mouseX * limit, 0.04)
+            headGroup.current.rotation.x = THREE.MathUtils.lerp(headGroup.current.rotation.x, -mouseY * limit * 0.4, 0.04)
+        }
+
+        // --- 3. Enhanced Floating Animation ---
         const time = state.clock.elapsedTime
-        const mouse = state.pointer
-
-        // --- Target Position Calculation ---
-        // Desktop: Bottom-right corner, sitting on MoonBase
-        // MoonBase Center: (3.5, -5.8, 1), Radius: 4.2
-        // Surface Y calculation ensures precise contact: Y = sqrt(R^2 - dX^2 - dZ^2) + Cy
-
-        let baseTargetX = 2.8
-        let baseTargetZ = 0.5
-        let surfaceY = -1.69 // Default fallback
-
-        if (isMobile) {
-            baseTargetX = 0
-            baseTargetZ = 1.2
-            // Mobile "fake" landing height to keep visible
-            surfaceY = -2.0
-        } else if (isTablet) {
-            baseTargetX = 2.4
-            baseTargetZ = 0.2
-            // Recalculate surface for tablet x/z if needed, -1.75 is approx correct
-            surfaceY = -1.75
-        } else {
-            // Desktop Precise Calculation
-            const moonCenter = { x: 3.5, y: -5.8, z: 1 }
-            const dx = baseTargetX - moonCenter.x
-            const dz = baseTargetZ - moonCenter.z
-            const distSq = dx * dx + dz * dz
-            const radius = 4.2
-            // Sqrt(r^2 - dist^2) + center_y
-            // 4.2^2 = 17.64. If distSq is small enough.
-            if (distSq < 17) {
-                const heightFromCenter = Math.sqrt(17.64 - distSq)
-                surfaceY = heightFromCenter + moonCenter.y
-            }
-        }
-
-        const baseTargetY = surfaceY + (isMobile ? 0 : 0.05) // Add tiny offset for center-of-mass vs feet
-
-        const currentPos = group.current.position
-
-        // 1. Entrance (Fly-in)
-        // Check distance to "landing zone"
-        const dist = currentPos.distanceTo(new THREE.Vector3(baseTargetX, baseTargetY, baseTargetZ))
-        const verticalDist = Math.abs(currentPos.y - baseTargetY)
-
-        // Refined Landing Condition: Must be very close closer
-        // We use a small threshold for "physical contact"
-        const isTouchingDown = dist < 0.15
-
-        if (isTouchingDown && !hasLanded) {
-            setHasLanded(true)
-            setTimeout(() => setIntroComplete(true), 1200) // Delay text slightly more for dramatic effect
-
-            // Trigger shockwave
-            if (!isIntroComplete) {
-                shockwaveOpacity.current = 1
-                if (shockwaveVisuals.current) shockwaveVisuals.current.visible = true
-            }
-        }
-
-        // --- Physics & Movement ---
-        // Use a critical damped spring feel: Fast approach, very smooth stop
-        // Flight Phase: 0.05 lerp (Standard)
-        // Landing Phase: 0.1 lerp (Firmer lock)
-        const approachSpeed = hasLanded ? 0.1 : 0.04
-
-        group.current.position.x = THREE.MathUtils.lerp(currentPos.x, baseTargetX, approachSpeed)
-        group.current.position.z = THREE.MathUtils.lerp(currentPos.z, baseTargetZ, approachSpeed)
-
-        // Vertical Movement with "Cushioning"
-        let targetY = baseTargetY
-
-        // Impact Cushion Effect: When just landed, dip slightly then recover
-        if (hasLanded && shockwaveOpacity.current > 0.5) {
-            // Simulate knees bending: Dip down by 0.15 units quickly, then recover
-            // shockwaveOpacity goes 1 -> 0. Use it as a timing curve.
-            // normalizedTime 0 -> 1 (start of land -> end of land)
-            const landProgress = 1 - shockwaveOpacity.current
-            // Sine wave dip: sin(0..PI)
-            const dip = -Math.sin(landProgress * Math.PI) * 0.15
-            targetY += dip
-        }
-
-        // Idle Breathing (only after settled)
-        if (hasLanded && shockwaveOpacity.current <= 0.1) {
-            const breathing = Math.sin(time * 1.5) * 0.002 // Very subtle
-            targetY += breathing
-        }
-
-        group.current.position.y = THREE.MathUtils.lerp(currentPos.y, targetY, approachSpeed)
-
-
-        // --- Rotation Logic ---
-        // 1. Far out: Banking (Flight Mode)
-        // 2. Approach (< 2.0 dist): Uprighting (Preparing to land)
-        // 3. Landed: Mouse Look
-        if (astronautGroup.current) {
-            let targetRotX = 0
-            let targetRotY = 0
-            let targetRotZ = 0
-
-            if (hasLanded) {
-                // Ground Phase: Look at cursor
-                targetRotY = -0.6 + (mouse.x * 0.3)
-                targetRotX = -0.1 + (-mouse.y * 0.1)
-                targetRotZ = 0
-            } else {
-                // Air Phase
-                if (dist > 3.0) {
-                    // High Altitude Flight: Strong Banking
-                    targetRotY = -0.2
-                    targetRotZ = -0.6 // Deep bank
-                    targetRotX = 0.4
-                } else if (dist > 0.5) {
-                    // Final Approach: Uprighting
-                    // Smoothly transition from Bank (-0.6) to Upright (0)
-                    // dist goes 3.0 -> 0.5. Normalize this 0..1
-                    const t = (dist - 0.5) / 2.5 // 0 near ground, 1 high up
-
-                    targetRotY = THREE.MathUtils.lerp(-0.2, -0.6, 1 - t) // Turn body to face camera/landing spot
-                    targetRotZ = THREE.MathUtils.lerp(0, -0.6, t) // Un-bank
-                    targetRotX = THREE.MathUtils.lerp(0, 0.4, t) // Level out pitch
-                } else {
-                    // Pre-Touchdown: Bracing
-                    targetRotY = -0.6
-                    targetRotZ = 0 // Feet flat
-                    targetRotX = 0.1 // Slight forward lean ready for impact
-                }
-            }
-
-            // Apply smooth rotation Interp
-            astronautGroup.current.rotation.x = THREE.MathUtils.lerp(astronautGroup.current.rotation.x, targetRotX, 0.08)
-            astronautGroup.current.rotation.y = THREE.MathUtils.lerp(astronautGroup.current.rotation.y, targetRotY, 0.08)
-            astronautGroup.current.rotation.z = THREE.MathUtils.lerp(astronautGroup.current.rotation.z, targetRotZ, 0.08)
-        }
-
-        // --- Shockwave Animation ---
-        if (shockwaveOpacity.current > 0) {
-            shockwaveOpacity.current = Math.max(0, shockwaveOpacity.current - delta * 1.8) // Faster fade
-
-            if (shockwaveMat.current) shockwaveMat.current.opacity = shockwaveOpacity.current * 0.4
-            if (dustMat.current) dustMat.current.opacity = shockwaveOpacity.current * 0.6
-
-            // Expand ring
-            if (shockwaveVisuals.current) {
-                // More dramatic expansion: 1x -> 2.5x size
-                const expansion = 1 + (1 - shockwaveOpacity.current) * 1.5
-                shockwaveVisuals.current.scale.setScalar(expansion)
-            }
-
-            if (shockwaveOpacity.current <= 0 && shockwaveVisuals.current) {
-                shockwaveVisuals.current.visible = false
-            }
-        }
+        const baseY = -3.5
+        const floatY = Math.sin(time * 0.35) * 0.12
+        const floatX = Math.sin(time * 0.2) * 0.03
+        const breathRot = Math.sin(time * 0.5) * 0.008
+        group.current.position.y = baseY + floatY
+        // Flip X position based on locale
+        group.current.position.x = (isAr ? -1.2 : 1.2) + floatX
+        group.current.rotation.z = breathRot
     })
 
-    // Avoid "Flash" by setting initial position immediately
-    const initialPos = useMemo(() => {
-        if (!isIntroComplete) return [12, 6, -30] as [number, number, number]
-        return [2.8, -1.65, 0.5] as [number, number, number]
-    }, [])
+    // Responsive positioning
+    const { viewport } = useThree()
+    const isPortrait = viewport.width < viewport.height
 
-    const scale = isMobile ? 1.4 : (isTablet ? 1.1 : 1.3)
+    // Adjust for mobile/portrait
+    const responsiveScale = isPortrait ? 2.6 : 3.2
+    const responsiveX = isPortrait ? 0 : (isAr ? -1.2 : 1.2)
+    const responsiveY = isPortrait ? -2.5 : -3.5
 
     return (
-        <group ref={group} position={initialPos}>
-            {/* Astronaut Mesh Holder - Rotates independently */}
-            <group ref={astronautGroup}>
+        <group ref={group} position={[responsiveX, responsiveY, -0.5]} rotation={[0, isAr ? -0.2 : 0.2, 0]}>
+            <pointLight
+                ref={keyLight}
+                position={[-4, 5, 6]}
+                intensity={180}
+                color="#e0f2fe"
+                distance={22}
+                decay={2}
+            />
+            <pointLight
+                ref={fillLight}
+                position={[4, -1, 5]}
+                intensity={120}
+                color="#d946ef"
+                distance={22}
+                decay={2}
+            />
+            {/* Visor accent glow */}
+            <pointLight
+                position={[0, 0.8, 2]}
+                intensity={30}
+                color="#F2CB05"
+                distance={6}
+                decay={2}
+            />
+
+            <group ref={headGroup}>
                 <primitive
-                    object={clonedScene}
-                    scale={scale}
-                    rotation={[0, -0.2, 0]}
+                    object={scene}
+                    scale={responsiveScale}
                     dispose={null}
                 />
             </group>
-
-            {/* The Flag - Plants when landed - STATIC rotation relative to ground, DOES NOT follow mouse */}
-            <group position={[-0.7, 0, 0.5]} rotation={[0, 0.3, 0]}>
-                <Flag isLanded={hasLanded} />
-            </group>
-
-            {/* Shockwave Visuals Group */}
-            <group ref={shockwaveVisuals} visible={false}>
-                {/* Dust/Sparkles at base of flag */}
-                <mesh position={[-0.7, 0.1, 0.5]} rotation={[-Math.PI / 2, 0, 0]}>
-                    <ringGeometry args={[0.2, 1.5, 32]} />
-                    <meshBasicMaterial
-                        ref={dustMat}
-                        color="#fdba74"
-                        transparent
-                        opacity={0}
-                        side={THREE.DoubleSide}
-                    />
-                </mesh>
-
-                {/* Main Landing Shockwave (Under Astronaut) */}
-                <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                    <ringGeometry args={[0.5, 2.5, 32]} />
-                    <meshBasicMaterial
-                        ref={shockwaveMat}
-                        color="#ffffff"
-                        transparent
-                        opacity={0}
-                    />
-                </mesh>
-            </group>
-
-            {/* Rim Light for Cinematic Effect */}
-            <spotLight
-                position={[-2, 5, 2]}
-                intensity={8}
-                color="#38bdf8"
-                distance={15}
-                angle={0.6}
-                penumbra={1}
-            />
         </group>
     )
 }
 
-// 3. Wrapper Component
-export function Astronaut() {
+export function Astronaut({ isAr = false }: AstronautProps) {
     return (
-        <React.Suspense fallback={null}>
-            {/* Lighting Setup - No shader warnings, premium look */}
-            <ambientLight intensity={0.6} color="#ffffff" />
-            <directionalLight position={[5, 5, 5]} intensity={1.2} color="#ffffff" />
-            <directionalLight position={[-5, 3, -5]} intensity={0.4} color="#38bdf8" />
-            <hemisphereLight args={['#38bdf8', '#1e293b', 0.5]} />
-            <AstronautModel />
-        </React.Suspense>
+        <>
+            <ambientLight intensity={0.35} color="#ffffff" />
+            {/* Rim Light - Gold for separation from dark bg */}
+            <spotLight
+                position={[-1, 3, -5]}
+                intensity={60}
+                color="#F2CB05"
+                angle={0.8}
+                penumbra={1}
+                distance={22}
+            />
+            <AstronautModel isAr={isAr} />
+        </>
     )
 }
 

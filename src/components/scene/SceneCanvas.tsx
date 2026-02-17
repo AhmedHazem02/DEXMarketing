@@ -1,24 +1,25 @@
 'use client'
 
+import { useLocale } from 'next-intl'
+
 import { Canvas } from '@react-three/fiber'
 import { Suspense } from 'react'
 import { useDeviceCapabilities } from '@/hooks/useDeviceCapabilities'
+import * as THREE from 'three'
 import { SpaceEnvironment } from './SpaceEnvironment'
 import { ParticleField } from './ParticleField'
 import { Astronaut } from './Astronaut'
-import { CameraRig } from './CameraRig'
-import { OrbitingLogo } from './OrbitingLogo'
-import { MoonBase } from './MoonBase'
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
+import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing'
 
 export default function SceneCanvas() {
+    const locale = useLocale()
     const { tier } = useDeviceCapabilities()
 
-    // Reduced star/particle counts for a softer, cleaner look
+    // Configuration for performance tiers
     const config = {
-        high: { stars: 2000, particles: 800, dpr: [1, 2], antialias: false, post: true },
-        mid: { stars: 1200, particles: 500, dpr: [1, 1.5], antialias: false, post: true },
-        low: { stars: 600, particles: 300, dpr: [1, 1], antialias: true, post: false },
+        high: { stars: 1500, particles: 400, dpr: [1, 2], antialias: true, post: true },
+        mid: { stars: 800, particles: 200, dpr: [1, 1.5], antialias: false, post: true },
+        low: { stars: 300, particles: 100, dpr: [1, 1], antialias: false, post: false },
         potato: null,
     }
 
@@ -30,37 +31,43 @@ export default function SceneCanvas() {
     }
 
     return (
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 bg-black">
             <Canvas
                 dpr={settings.dpr as [min: number, max: number]}
                 gl={{
                     antialias: settings.antialias,
                     powerPreference: 'high-performance',
-                    alpha: true,
+                    alpha: false,
+                    stencil: false,
+                    depth: true,
+                    toneMapping: THREE.ACESFilmicToneMapping,
+                    toneMappingExposure: 1.2
                 }}
-                camera={{ position: [0, 0, 5], fov: 75 }}
+                // Camera positioned for right-side astronaut composition
+                camera={{ position: [0, 0.3, 4.0], fov: 40 }}
                 resize={{ scroll: false, debounce: { scroll: 50, resize: 50 } }}
             >
                 <Suspense fallback={null}>
-                    <color attach="background" args={['#003E44']} />
+                    <color attach="background" args={['#000000']} />
 
+                    {/* Subtle Background Elements */}
                     <SpaceEnvironment starCount={settings.stars} />
                     <ParticleField count={settings.particles} />
-                    <MoonBase />
-                    <Astronaut />
-                    <CameraRig />
-                    <OrbitingLogo />
+
+                    {/* Main Subject */}
+                    <Astronaut isAr={locale === 'ar'} />
 
                     {/* Post Processing Effects - Cinematic Finish */}
                     {settings.post && (
-                        <EffectComposer enabled={true}>
+                        <EffectComposer>
                             <Bloom
-                                luminanceThreshold={0.9}
+                                luminanceThreshold={0.15}
                                 mipmapBlur
-                                intensity={1.0}
-                                radius={0.4}
+                                intensity={0.7}
+                                radius={0.5}
                             />
-                            <Vignette eskil={false} offset={0.1} darkness={1.1} />
+                            <Noise opacity={0.05} />
+                            <Vignette eskil={false} offset={0.3} darkness={0.6} />
                         </EffectComposer>
                     )}
                 </Suspense>

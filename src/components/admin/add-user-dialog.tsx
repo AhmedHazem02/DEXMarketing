@@ -14,13 +14,13 @@ import { toast } from 'sonner'
 import { createUser } from '@/lib/actions/users'
 import { useQueryClient } from '@tanstack/react-query'
 
-const DEPARTMENT_REQUIRED_ROLES = ['team_leader', 'videographer', 'editor', 'photographer', 'creator'] as const
+const DEPARTMENT_REQUIRED_ROLES = ['team_leader', 'account_manager', 'videographer', 'editor', 'photographer', 'creator', 'designer'] as const
 
 const formSchema = z.object({
     name: z.string().min(2, 'الاسم يجب أن يكون حرفين على الأقل'),
     email: z.string().email('بريد إلكتروني غير صالح'),
     password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
-    role: z.enum(['admin', 'accountant', 'team_leader', 'creator', 'client', 'videographer', 'editor', 'photographer']),
+    role: z.enum(['admin', 'accountant', 'team_leader', 'account_manager', 'creator', 'designer', 'client', 'videographer', 'editor', 'photographer']),
     department: z.enum(['photography', 'content']).nullable().optional(),
 })
 
@@ -49,6 +49,8 @@ export function AddUserDialog() {
         editor: 'photography',
         photographer: 'photography',
         creator: 'content',
+        designer: 'content',
+        account_manager: 'content',
     }
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -142,9 +144,11 @@ export function AddUserDialog() {
                                         </FormControl>
                                         <SelectContent>
                                             <SelectItem value="admin">مدير (Admin)</SelectItem>
-                                            <SelectItem value="team_leader">قائد فريق</SelectItem>
+                                            <SelectItem value="account_manager">مدير حسابات (Account Manager)</SelectItem>
+                                            <SelectItem value="team_leader">قائد فريق (تصوير)</SelectItem>
                                             <SelectItem value="accountant">محاسب</SelectItem>
                                             <SelectItem value="creator">صانع محتوى</SelectItem>
+                                            <SelectItem value="designer">مصمم</SelectItem>
                                             <SelectItem value="videographer">مصور فيديو</SelectItem>
                                             <SelectItem value="editor">مونتير</SelectItem>
                                             <SelectItem value="photographer">مصور فوتوغرافي</SelectItem>

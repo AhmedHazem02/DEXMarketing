@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { format } from 'date-fns'
@@ -78,10 +78,11 @@ export default function ClientTasksPage() {
     const isLoading = isUserLoading || isProfileLoading || !userId || !clientId
 
     // Redirect non-client users
-    if (currentUser && currentUser.role !== 'client') {
-        router.push('/')
-        return null
-    }
+    useEffect(() => {
+        if (currentUser && currentUser.role !== 'client') {
+            router.push('/')
+        }
+    }, [currentUser, router])
 
     if (isLoading) {
         return (
@@ -267,7 +268,7 @@ export default function ClientTasksPage() {
                             <div className="rounded-md border">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow>
+                                        <TableRow className="bg-muted/50">
                                             <TableHead>{isAr ? 'العنوان' : 'Title'}</TableHead>
                                             <TableHead>{isAr ? 'المشروع' : 'Project'}</TableHead>
                                             <TableHead>{isAr ? 'الحالة' : 'Status'}</TableHead>

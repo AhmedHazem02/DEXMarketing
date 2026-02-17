@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocale } from 'next-intl'
-import { Bell, Check, Info, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import { Bell, Check, Info, AlertTriangle, CheckCircle, XCircle, MessageSquare, ClipboardList, DollarSign } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
+import { useRouter } from 'next/navigation'
 
 import {
     Popover,
@@ -14,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '@/hooks/use-notifications'
+import { useNotificationsRealtime } from '@/hooks/use-realtime'
 import { useCurrentUser } from '@/hooks/use-users'
 import { Badge } from '@/components/ui/badge'
 
@@ -21,9 +23,14 @@ export function NotificationsPopover() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const [open, setOpen] = useState(false)
+    const router = useRouter()
+    const prevUnreadRef = useRef(0)
 
     const { data: currentUser } = useCurrentUser()
     const userId = currentUser?.id || ''
+
+    // Enable realtime notifications
+    useNotificationsRealtime(userId)
 
     const { data: notifications, isLoading } = useNotifications(userId)
     const markRead = useMarkNotificationRead()
@@ -31,20 +38,50 @@ export function NotificationsPopover() {
 
     const unreadCount = notifications?.filter(n => !n.is_read).length || 0
 
+    // Play notification sound when new unread arrives
+    useEffect(() => {
+        if (unreadCount > prevUnreadRef.current && prevUnreadRef.current !== 0) {
+            // Browser notification if permitted
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                const latest = notifications?.find(n => !n.is_read)
+                if (latest) {
+                    new Notification(latest.title, { body: latest.message || '' })
+                }
+            }
+        }
+        prevUnreadRef.current = unreadCount
+    }, [unreadCount, notifications])
+
+    // Request browser notification permission
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission()
+        }
+    }, [])
+
     const handleMarkAllRead = () => {
         markAllRead.mutate(userId)
     }
 
-    const handleNotificationClick = (id: string, isRead: boolean) => {
+    const handleNotificationClick = (id: string, isRead: boolean, link?: string | null) => {
         if (!isRead) markRead.mutate(id)
-        // Navigate if needed?
+        if (link) {
+            // Prepend locale to the link if it doesn't already have it
+            const normalizedLink = link.startsWith(`/${locale}`) ? link : `/${locale}${link}`
+            setOpen(false)
+            router.push(normalizedLink)
+        }
     }
 
     const getIcon = (title: string) => {
         const lowerTitle = title.toLowerCase()
-        if (lowerTitle.includes('error') || lowerTitle.includes('failed') || lowerTitle.includes('rejected')) return <XCircle className="h-4 w-4 text-red-500" />
-        if (lowerTitle.includes('success') || lowerTitle.includes('approved') || lowerTitle.includes('completed')) return <CheckCircle className="h-4 w-4 text-green-500" />
-        if (lowerTitle.includes('warning') || lowerTitle.includes('alert')) return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+        // Arabic keywords
+        if (lowerTitle.includes('رفض') || lowerTitle.includes('rejected') || lowerTitle.includes('error') || lowerTitle.includes('failed')) return <XCircle className="h-4 w-4 text-red-500" />
+        if (lowerTitle.includes('موافق') || lowerTitle.includes('approved') || lowerTitle.includes('success') || lowerTitle.includes('completed') || lowerTitle.includes('تمت')) return <CheckCircle className="h-4 w-4 text-green-500" />
+        if (lowerTitle.includes('تعديل') || lowerTitle.includes('revision') || lowerTitle.includes('warning') || lowerTitle.includes('alert')) return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+        if (lowerTitle.includes('رسالة') || lowerTitle.includes('message') || lowerTitle.includes('chat')) return <MessageSquare className="h-4 w-4 text-purple-500" />
+        if (lowerTitle.includes('مهمة') || lowerTitle.includes('task') || lowerTitle.includes('طلب')) return <ClipboardList className="h-4 w-4 text-orange-500" />
+        if (lowerTitle.includes('مصروف') || lowerTitle.includes('إيراد') || lowerTitle.includes('treasury') || lowerTitle.includes('transaction')) return <DollarSign className="h-4 w-4 text-emerald-500" />
         return <Info className="h-4 w-4 text-blue-500" />
     }
 
@@ -90,7 +127,7 @@ export function NotificationsPopover() {
                                 <button
                                     key={notification.id}
                                     className={`flex items-start gap-3 p-4 text-start hover:bg-muted/50 transition-colors border-b last:border-0 ${notification.is_read ? '' : 'bg-muted/20'}`}
-                                    onClick={() => handleNotificationClick(notification.id, notification.is_read || false)}
+                                    onClick={() => handleNotificationClick(notification.id, notification.is_read || false, notification.link)}
                                 >
                                     <div className="mt-1">
                                         {getIcon(notification.title)}

@@ -18,6 +18,9 @@ import {
     Video,
     Film,
     ImageIcon,
+    Package,
+    ScrollText,
+    UserCircle,
 } from 'lucide-react'
 
 import type { Department } from '@/types/database'
@@ -41,6 +44,9 @@ export const getRoutes = (
                 { name: t('Overview', 'نظرة عامة'), href: '/admin', icon: LayoutDashboard },
                 { name: t('Users', 'المستخدمين'), href: '/admin/users', icon: Users },
                 { name: t('Treasury', 'الخزينة'), href: '/admin/treasury', icon: Wallet },
+                { name: t('Packages', 'الباقات'), href: '/admin/treasury/packages', icon: Package },
+                { name: t('Client Accounts', 'حسابات العملاء'), href: '/admin/treasury/client-accounts', icon: UserCircle },
+                { name: t('Treasury Logs', 'سجل الخزينة'), href: '/admin/treasury/logs', icon: ScrollText },
                 { name: t('Tasks', 'المهام'), href: '/admin/tasks', icon: CheckSquare },
                 { name: t('Schedule', 'الجداول'), href: '/admin/schedule', icon: CalendarDays },
                 { name: t('Content (CMS)', 'المحتوى'), href: '/admin/pages', icon: FileText },
@@ -52,6 +58,7 @@ export const getRoutes = (
         case 'client':
             return [
                 { name: t('Dashboard', 'الرئيسية'), href: '/client', icon: LayoutDashboard },
+                { name: t('My Account', 'حسابي'), href: '/client/account', icon: Wallet },
                 { name: t('Tasks', 'المهام'), href: '/client/tasks', icon: CheckSquare },
                 { name: t('Schedule', 'الجدول'), href: '/client/schedule', icon: Calendar },
                 { name: t('Messages', 'المراسلات'), href: '/client/chat', icon: MessageSquare },
@@ -62,20 +69,31 @@ export const getRoutes = (
                 { name: t('Tasks Board', 'لوحة المهام'), href: '/team-leader', icon: LayoutDashboard },
                 { name: t('Revisions Hub', 'المراجعات'), href: '/team-leader/revisions', icon: FileText },
                 { name: t('Schedule', 'جدول المواعيد'), href: '/team-leader/schedule', icon: Calendar },
-                // Only Photography TL gets client chat  
+                { name: t('Activity Log', 'سجل النشاط'), href: '/team-leader/logs', icon: ScrollText },
                 ...(department === 'photography' ? [
                     { name: t('Client Chat', 'مراسلة العملاء'), href: '/team-leader/chat', icon: MessageSquare },
                 ] : []),
             ]
 
+        case 'account_manager':
+            return [
+                { name: t('Tasks Board', 'لوحة المهام'), href: '/account-manager', icon: LayoutDashboard },
+                { name: t('Schedule', 'جدول المواعيد'), href: '/account-manager/schedule', icon: Calendar },
+                { name: t('Activity Log', 'سجل النشاط'), href: '/account-manager/logs', icon: ScrollText },
+                { name: t('Client Chat', 'مراسلة العملاء'), href: '/account-manager/chat', icon: MessageSquare },
+            ]
+
         case 'creator':
+        case 'designer':
             return [
                 { name: t('My Tasks', 'مهامي'), href: '/creator', icon: CheckSquare },
+                { name: t('Schedule', 'الجدول'), href: '/creator/schedule', icon: Calendar },
             ]
 
         case 'accountant':
             return [
                 { name: t('Treasury', 'الخزينة'), href: '/accountant', icon: Wallet },
+                { name: t('Client Accounts', 'حسابات العملاء'), href: '/accountant/client-accounts', icon: UserCircle },
                 { name: t('Reports', 'التقارير'), href: '/accountant/reports', icon: BarChart3 },
             ]
 
@@ -88,6 +106,7 @@ export const getRoutes = (
         case 'editor':
             return [
                 { name: t('Editing Tasks', 'مهام المونتاج'), href: '/editor', icon: Film },
+                { name: t('Schedule', 'الجدول'), href: '/editor/schedule', icon: Calendar },
             ]
 
         case 'photographer':

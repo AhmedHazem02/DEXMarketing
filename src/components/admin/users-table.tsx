@@ -35,6 +35,8 @@ const roleColors: Record<UserRole, string> = {
     videographer: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
     editor: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
     photographer: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+    account_manager: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
+    designer: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
 }
 
 const roleLabels: Record<UserRole, string> = {
@@ -46,6 +48,8 @@ const roleLabels: Record<UserRole, string> = {
     videographer: 'مصور فيديو',
     editor: 'مونتير',
     photographer: 'مصور فوتوغرافي',
+    account_manager: 'مدير حسابات',
+    designer: 'مصمم',
 }
 
 export function UsersTable() {
@@ -113,7 +117,7 @@ export function UsersTable() {
             <CardContent>
                 <Table>
                     <TableHeader>
-                        <TableRow>
+                        <TableRow className="bg-muted/50">
                             <TableHead>المستخدم</TableHead>
                             <TableHead className="hidden md:table-cell">البريد الإلكتروني</TableHead>
                             <TableHead>الدور</TableHead>

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useLocale } from 'next-intl'
 import { Menu, Search, User, UserCircle } from 'lucide-react'
 
@@ -25,9 +26,18 @@ export function Header({ user, role, department }: { user?: any, role?: string, 
     const locale = useLocale()
     const isAr = locale === 'ar'
     const router = useRouter()
+    // Defer Radix UI components (Sheet, Popover, DropdownMenu) until after
+    // hydration. Their internal useId() generates different IDs on server vs
+    // client, causing harmless but noisy hydration-mismatch warnings.
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => { setMounted(true) }, [])
 
     const handleLogout = async () => {
         const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            await supabase.from('activity_log').insert({ user_id: user.id, action: 'logout' } as never)
+        }
         await supabase.auth.signOut()
         router.refresh()
         router.push('/login')
@@ -42,8 +52,14 @@ export function Header({ user, role, department }: { user?: any, role?: string, 
     }
 
     return (
-        <header className="flex h-16 items-center border-b bg-background px-6">
-            <MobileSidebar role={role} department={department} />
+        <header className="flex h-16 items-center border-b bg-background px-6" suppressHydrationWarning>
+            {mounted ? (
+                <MobileSidebar role={role} department={department} />
+            ) : (
+                <Button variant="ghost" size="icon" className="md:hidden me-4" aria-hidden>
+                    <Menu className="h-5 w-5" />
+                </Button>
+            )}
 
             <div className="flex flex-1 items-center gap-4">
                 <div className="relative w-full max-w-sm hidden md:flex">
@@ -57,34 +73,43 @@ export function Header({ user, role, department }: { user?: any, role?: string, 
             </div>
 
             <div className="flex items-center gap-4">
-                <NotificationsPopover />
+                {mounted && <NotificationsPopover />}
 
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                            <Avatar className="h-8 w-8">
-                                <AvatarImage src={user?.user_metadata?.avatar_url || ''} alt={user?.email || ''} />
-                                <AvatarFallback>{user?.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-                            </Avatar>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{isAr ? 'حسابي' : 'My Account'}</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={navigateToAccount} className="cursor-pointer">
-                            <UserCircle className="mr-2 h-4 w-4" />
-                            {isAr ? 'حسابي' : 'Account'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={navigateToProfile} className="cursor-pointer">
-                            <User className="mr-2 h-4 w-4" />
-                            {isAr ? 'الملف الشخصي' : 'Profile'}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
-                            {isAr ? 'تسجيل الخروج' : 'Log out'}
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                {mounted ? (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={user?.user_metadata?.avatar_url || ''} alt={user?.email || ''} />
+                                    <AvatarFallback>{user?.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                                </Avatar>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>{isAr ? 'حسابي' : 'My Account'}</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={navigateToAccount} className="cursor-pointer">
+                                <UserCircle className="mr-2 h-4 w-4" />
+                                {isAr ? 'حسابي' : 'Account'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={navigateToProfile} className="cursor-pointer">
+                                <User className="mr-2 h-4 w-4" />
+                                {isAr ? 'الملف الشخصي' : 'Profile'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
+                                {isAr ? 'تسجيل الخروج' : 'Log out'}
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                ) : (
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full" aria-hidden>
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={user?.user_metadata?.avatar_url || ''} alt={user?.email || ''} />
+                            <AvatarFallback>{user?.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                        </Avatar>
+                    </Button>
+                )}
             </div>
         </header>
     )

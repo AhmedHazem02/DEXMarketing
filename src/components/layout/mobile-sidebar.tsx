@@ -27,6 +27,10 @@ export function MobileSidebar({ role, department }: { role?: string; department?
 
     const handleLogout = useCallback(async () => {
         const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            await supabase.from('activity_log').insert({ user_id: user.id, action: 'logout' } as never)
+        }
         await supabase.auth.signOut()
         router.refresh()
         router.push('/login')

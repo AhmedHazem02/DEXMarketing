@@ -1,42 +1,28 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useRef } from 'react'
 
 /**
- * Custom hook to throttle a callback function
- * Ensures the callback is called at most once per specified delay
+ * Throttle hook for performance optimization
+ * Limits how often a function can be called
  * 
  * @param callback - The function to throttle
- * @param delay - The minimum time in milliseconds between calls
+ * @param delay - Minimum time between calls in milliseconds
+ * @returns Throttled function
  */
-export function useThrottle<T extends (...args: any[]) => void>(
-    callback: T,
-    delay: number
+export function useThrottle<T extends (...args: any[]) => any>(
+  callback: T,
+  delay: number = 150
 ): T {
-    const lastRun = useRef(Date.now())
-    const timeout = useRef<NodeJS.Timeout | undefined>(undefined)
+  const lastRan = useRef<number>(Date.now())
 
-    useEffect(() => {
-        return () => {
-            if (timeout.current) {
-                clearTimeout(timeout.current)
-            }
-        }
-    }, [])
-
-    return ((...args) => {
-        const now = Date.now()
-        const timeSinceLastRun = now - lastRun.current
-
-        if (timeSinceLastRun >= delay) {
-            callback(...args)
-            lastRun.current = now
-        } else {
-            if (timeout.current) {
-                clearTimeout(timeout.current)
-            }
-            timeout.current = setTimeout(() => {
-                callback(...args)
-                lastRun.current = Date.now()
-            }, delay - timeSinceLastRun)
-        }
-    }) as T
+  return useCallback(
+    ((...args: Parameters<T>) => {
+      const now = Date.now()
+      
+      if (now - lastRan.current >= delay) {
+        callback(...args)
+        lastRan.current = now
+      }
+    }) as T,
+    [callback, delay]
+  )
 }

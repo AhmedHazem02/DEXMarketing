@@ -31,19 +31,19 @@ export function exportToCSV(
             : (tx.type === 'income' ? 'Income' : 'Expense'),
         tx.category || 'General',
         tx.amount.toFixed(2),
-        format(new Date(tx.created_at), 'PPP', { locale: isAr ? ar : enUS })
+        `"=""${format(new Date(tx.created_at), 'dd/MM/yyyy')}"""`
     ])
 
     // Build CSV content
     const csvContent = [
-        headers.join(','),
+        headers.join(';'),
         ...rows.map(row =>
             row.map(cell =>
-                // Escape cells with commas, quotes, or newlines
-                typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))
+                // Escape cells with semicolons, quotes, or newlines
+                typeof cell === 'string' && (cell.includes(';') || cell.includes('"') || cell.includes('\n'))
                     ? `"${cell.replace(/"/g, '""')}"`
                     : cell
-            ).join(',')
+            ).join(';')
         )
     ].join('\n')
 
@@ -67,134 +67,419 @@ export async function exportToPDF(
 ): Promise<void> {
     if (!transactions.length) return
 
-    // Dynamic import to reduce bundle size
-    const jsPDFModule = await import('jspdf')
-    const jsPDF = jsPDFModule.default
-    await import('jspdf-autotable')
+    try {
+        console.log('Starting PDF generation...')
 
-    const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-    }) as any // Using any to bypass incomplete type definitions
+        // Dynamic import with robust handling
+        const jsPDFModule = await import('jspdf')
+        const jsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF
 
-    // Set font for Arabic support (fallback to built-in fonts)
-    doc.setFont('helvetica')
-    doc.setFontSize(16)
+        if (!jsPDF) {
+            throw new Error('Failed to load jsPDF module')
+        }
 
-    // Title
-    const title = isAr ? 'تقرير المعاملات المالية' : 'Financial Transactions Report'
-    const pageWidth = doc.internal.pageSize.getWidth()
-    
-    if (isAr) {
-        // Right-align for Arabic
-        doc.text(title, pageWidth - 15, 20, { align: 'right' })
-    } else {
-        doc.text(title, 15, 20)
-    }
+        const autoTableModule = await import('jspdf-autotable')
+        const autoTable = autoTableModule.default
 
-    // Date range and stats
-    doc.setFontSize(10)
-    const dateStr = format(new Date(), 'PPP', { locale: isAr ? ar : enUS })
-    const dateLabel = isAr ? `التاريخ: ${dateStr}` : `Date: ${dateStr}`
-    
-    if (isAr) {
-        doc.text(dateLabel, pageWidth - 15, 30, { align: 'right' })
-    } else {
-        doc.text(dateLabel, 15, 30)
-    }
+        console.log('Modules loaded. Creating PDF document...')
 
-    let yPos = 40
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        }) as any
 
-    // Add statistics if provided
-    if (stats) {
-        doc.setFontSize(11)
-        const statsLines = [
-            isAr
-                ? `إجمالي الإيرادات: $${stats.totalIncome.toLocaleString()}`
-                : `Total Income: $${stats.totalIncome.toLocaleString()}`,
-            isAr
-                ? `إجمالي المصروفات: $${stats.totalExpense.toLocaleString()}`
-                : `Total Expenses: $${stats.totalExpense.toLocaleString()}`,
-            isAr
-                ? `الرصيد الصافي: $${stats.balance.toLocaleString()}`
-                : `Net Balance: $${stats.balance.toLocaleString()}`
-        ]
+        // Default to helvetica
+        let fontName = 'helvetica'
+        let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'bold'
 
-        statsLines.forEach((line, i) => {
-            if (isAr) {
-                doc.text(line, pageWidth - 15, yPos + (i * 7), { align: 'right' })
+        // Load Arabic font
+        try {
+            console.log('Fetching Arabic font...')
+            const fontUrl = '/fonts/Amiri-Regular.ttf'
+            const response = await fetch(fontUrl)
+
+            if (response.ok) {
+                const fontBytes = await response.arrayBuffer()
+                const fontBase64 = arrayBufferToBase64(fontBytes)
+
+                // Add font to VFS
+                doc.addFileToVFS('Amiri-Regular.ttf', fontBase64)
+                doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal')
+
+                fontName = 'Amiri'
+                fontStyle = 'normal'
+                console.log('Arabic font loaded successfully.')
             } else {
-                doc.text(line, 15, yPos + (i * 7))
+                console.warn('Failed to fetch Arabic font:', response.status, response.statusText)
             }
+        } catch (error) {
+            console.error('Error loading Arabic font:', error)
+            // Continue with default font
+        }
+
+        // Set font
+        doc.setFont(fontName)
+        doc.setFontSize(16)
+
+        // Title
+        const title = isAr ? 'تقرير المعاملات المالية' : 'Financial Transactions Report'
+        const pageWidth = doc.internal.pageSize.getWidth()
+
+        if (isAr) {
+            doc.text(title, pageWidth - 15, 20, { align: 'right', lang: 'ar' })
+        } else {
+            doc.text(title, 15, 20)
+        }
+
+        // Date range and stats
+        doc.setFontSize(10)
+        const dateStr = format(new Date(), 'PPP', { locale: isAr ? ar : enUS })
+        const dateLabel = isAr ? `التاريخ: ${dateStr}` : `Date: ${dateStr}`
+
+        if (isAr) {
+            doc.text(dateLabel, pageWidth - 15, 30, { align: 'right', lang: 'ar' })
+        } else {
+            doc.text(dateLabel, 15, 30)
+        }
+
+        let yPos = 40
+
+        // Add statistics
+        if (stats) {
+            doc.setFontSize(11)
+            const statsLines = [
+                isAr
+                    ? `إجمالي الإيرادات: ${stats.totalIncome.toLocaleString()} ج.م`
+                    : `Total Income: ${stats.totalIncome.toLocaleString()} EGP`,
+                isAr
+                    ? `إجمالي المصروفات: ${stats.totalExpense.toLocaleString()} ج.م`
+                    : `Total Expenses: ${stats.totalExpense.toLocaleString()} EGP`,
+                isAr
+                    ? `الرصيد الصافي: ${stats.balance.toLocaleString()} ج.م`
+                    : `Net Balance: ${stats.balance.toLocaleString()} EGP`
+            ]
+
+            statsLines.forEach((line, i) => {
+                if (isAr) {
+                    doc.text(line, pageWidth - 15, yPos + (i * 7), { align: 'right', lang: 'ar' })
+                } else {
+                    doc.text(line, 15, yPos + (i * 7))
+                }
+            })
+
+            yPos += 25
+        }
+
+        // Prepare table data
+        const headers = isAr
+            ? ['الوصف', 'النوع', 'الفئة', 'المبلغ', 'التاريخ']
+            : ['Description', 'Type', 'Category', 'Amount', 'Date']
+
+        const tableData = transactions.map(tx => {
+            const row = [
+                tx.description || '',
+                isAr
+                    ? (tx.type === 'income' ? 'إيراد' : 'مصروف')
+                    : (tx.type === 'income' ? 'Income' : 'Expense'),
+                tx.category || 'General',
+                `${tx.amount.toLocaleString()}`,
+                format(new Date(tx.created_at), 'dd/MM/yyyy')
+            ]
+            return row
         })
 
-        yPos += 25
-    }
-
-    // Prepare table data
-    const headers = isAr
-        ? ['التاريخ', 'المبلغ', 'الفئة', 'النوع', 'الوصف']
-        : ['Description', 'Type', 'Category', 'Amount', 'Date']
-
-    const tableData = transactions.map(tx => {
-        const row = [
-            tx.description || '',
-            isAr
-                ? (tx.type === 'income' ? 'إيراد' : 'مصروف')
-                : (tx.type === 'income' ? 'Income' : 'Expense'),
-            tx.category || 'General',
-            `$${tx.amount.toLocaleString()}`,
-            format(new Date(tx.created_at), 'PP', { locale: isAr ? ar : enUS })
-        ]
-        return isAr ? row.reverse() : row
-    })
-
-    // autoTable is added via plugin and available on the doc instance
-    doc.autoTable({
-        head: [isAr ? headers.reverse() : headers],
-        body: tableData,
-        startY: yPos,
-        margin: { left: 15, right: 15 },
-        styles: {
-            font: 'helvetica',
-            fontSize: 9,
-            cellPadding: 3,
-            halign: isAr ? 'right' : 'left'
-        },
-        headStyles: {
-            fillColor: [71, 85, 105], // slate-600
-            textColor: [255, 255, 255],
-            fontStyle: 'bold',
-            halign: isAr ? 'right' : 'left'
-        },
-        alternateRowStyles: {
-            fillColor: [248, 250, 252] // slate-50
-        },
-        columnStyles: isAr ? {
-            0: { halign: 'right' }, // Date
-            1: { halign: 'right' }, // Amount
-            2: { halign: 'right' }, // Category
-            3: { halign: 'right' }, // Type
-            4: { halign: 'right' }  // Description
-        } : {
-            3: { halign: 'right' }, // Amount
-            4: { halign: 'right' }  // Date
+        const tableOptions = {
+            head: [headers],
+            body: tableData,
+            startY: yPos,
+            margin: { left: 15, right: 15 },
+            styles: {
+                font: fontName,
+                fontSize: 9,
+                cellPadding: 3,
+                halign: (isAr ? 'right' : 'left') as 'right' | 'left'
+            },
+            headStyles: {
+                fillColor: [71, 85, 105] as [number, number, number],
+                textColor: [255, 255, 255] as [number, number, number],
+                fontStyle: fontStyle,
+                halign: (isAr ? 'right' : 'left') as 'right' | 'left'
+            },
+            alternateRowStyles: {
+                fillColor: [248, 250, 252] as [number, number, number]
+            },
+            columnStyles: (isAr ? {
+                0: { halign: 'right' as 'right' },
+                1: { halign: 'right' as 'right' },
+                2: { halign: 'right' as 'right' },
+                3: { halign: 'right' as 'right' },
+                4: { halign: 'right' as 'right' }
+            } : {
+                3: { halign: 'right' as 'right' },
+                4: { halign: 'right' as 'right' }
+            }) as any
         }
+
+        // Generate table using doc.autoTable or autotable(doc)
+        if (typeof doc.autoTable === 'function') {
+            doc.autoTable(tableOptions)
+        } else if (typeof autoTable === 'function') {
+            autoTable(doc, tableOptions)
+        } else {
+            console.error('autoTable function not found')
+            throw new Error('PDF Table generation failed: autoTable not found')
+        }
+
+        // Footer
+        const pageCount = doc.getNumberOfPages()
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i)
+            doc.setFontSize(8)
+            doc.setTextColor(128)
+            const footer = isAr ? `صفحة ${i} من ${pageCount}` : `Page ${i} of ${pageCount}`
+            doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center', lang: isAr ? 'ar' : 'en' })
+        }
+
+        // Save PDF
+        console.log('Saving PDF...')
+        doc.save(filename)
+        console.log('PDF saved successfully.')
+
+    } catch (error) {
+        console.error('Export PDF Error:', error)
+        throw error // Re-throw to trigger toast
+    }
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+    let binary = ''
+    const bytes = new Uint8Array(buffer)
+    const len = bytes.byteLength
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i])
+    }
+    return window.btoa(binary)
+}
+
+// ============================================
+// Client Accounts Export Functions
+// ============================================
+
+export interface ClientAccountExportData {
+    id: string
+    client: {
+        user?: { name: string | null }
+        company?: string | null
+        name?: string | null
+    } | null
+    package_name: string | null
+    package_name_ar?: string | null
+    package_price: number | null
+    remaining_balance: number | null
+    created_at: string
+}
+
+/**
+ * Export client accounts to CSV
+ */
+export function exportClientAccountsToCSV(
+    accounts: ClientAccountExportData[],
+    filename: string,
+    isAr: boolean
+): void {
+    if (!accounts.length) return
+
+    // CSV Headers with BOM
+    const BOM = '\uFEFF'
+    const headers = isAr
+        ? ['العميل', 'الباقة', 'سعر الباقة', 'الرصيد المتبقي', 'تاريخ الإنشاء']
+        : ['Client', 'Package', 'Package Price', 'Remaining Balance', 'Created At']
+
+    // Map rows
+    const rows = accounts.map(account => {
+        const userName = account.client?.user?.name
+        const clientName = userName || account.client?.company || account.client?.name || 'N/A'
+        const packageName = isAr
+            ? (account.package_name_ar || account.package_name)
+            : account.package_name
+
+        return [
+            `"${(clientName || '').replace(/"/g, '""')}"`,
+            `"${(packageName || '').replace(/"/g, '""')}"`,
+            (account.package_price || 0).toString(),
+            (account.remaining_balance || 0).toString(),
+            `"=""${format(new Date(account.created_at), 'dd/MM/yyyy')}"""`
+        ]
     })
 
-    // Footer with page numbers
-    const pageCount = doc.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i)
-        doc.setFontSize(8)
-        doc.setTextColor(128)
-        const footer = isAr ? `صفحة ${i} من ${pageCount}` : `Page ${i} of ${pageCount}`
-        doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' })
-    }
+    // Build CSV content
+    const csvContent = [
+        headers.join(';'),
+        ...rows.map(row => row.join(';'))
+    ].join('\n')
 
-    // Save PDF
-    doc.save(filename)
+    // Create and download file
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
+    downloadFile(blob, filename)
+}
+
+/**
+ * Export client accounts to PDF
+ */
+export async function exportClientAccountsToPDF(
+    accounts: ClientAccountExportData[],
+    filename: string,
+    isAr: boolean
+): Promise<void> {
+    if (!accounts.length) return
+
+    try {
+        // Load modules
+        const jsPDFModule = await import('jspdf')
+        const jsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF
+
+        if (!jsPDF) {
+            throw new Error('Failed to load jsPDF module')
+        }
+
+        const autoTableModule = await import('jspdf-autotable')
+        const autoTable = autoTableModule.default
+
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        }) as any
+
+        // Font settings
+        let fontName = 'helvetica'
+        let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'bold'
+
+        // Load Arabic font
+        try {
+            const fontUrl = '/fonts/Amiri-Regular.ttf'
+            const response = await fetch(fontUrl)
+
+            if (response.ok) {
+                const fontBytes = await response.arrayBuffer()
+                const fontBase64 = arrayBufferToBase64(fontBytes)
+
+                doc.addFileToVFS('Amiri-Regular.ttf', fontBase64)
+                doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal')
+
+                fontName = 'Amiri'
+                fontStyle = 'normal'
+            }
+        } catch (error) {
+            console.error('Failed to load Arabic font:', error)
+        }
+
+        // Set font
+        doc.setFont(fontName)
+        doc.setFontSize(16)
+
+        // Title
+        const title = isAr ? 'تقرير حسابات العملاء' : 'Client Accounts Report'
+        const pageWidth = doc.internal.pageSize.getWidth()
+
+        if (isAr) {
+            doc.text(title, pageWidth - 15, 20, { align: 'right', lang: 'ar' })
+        } else {
+            doc.text(title, 15, 20)
+        }
+
+        // Date
+        doc.setFontSize(10)
+        const dateStr = format(new Date(), 'PPP', { locale: isAr ? ar : enUS })
+        const dateLabel = isAr ? `التاريخ: ${dateStr}` : `Date: ${dateStr}`
+
+        if (isAr) {
+            doc.text(dateLabel, pageWidth - 15, 30, { align: 'right', lang: 'ar' })
+        } else {
+            doc.text(dateLabel, 15, 30)
+        }
+
+        let yPos = 40
+
+        // Prepare table data
+        const headers = isAr
+            ? ['العميل', 'الباقة', 'سعر الباقة', 'الرصيد المتبقي', 'تاريخ الإنشاء']
+            : ['Client', 'Package', 'Package Price', 'Remaining Balance', 'Created At']
+
+        const tableData = accounts.map(account => {
+            const userName = account.client?.user?.name
+            const clientName = userName || account.client?.company || account.client?.name || 'N/A'
+            const packageName = isAr
+                ? (account.package_name_ar || account.package_name)
+                : account.package_name
+
+            const row = [
+                clientName,
+                packageName || '-',
+                `${(account.package_price || 0).toLocaleString()} ${isAr ? 'ج.م' : 'EGP'}`,
+                `${(account.remaining_balance || 0).toLocaleString()} ${isAr ? 'ج.م' : 'EGP'}`,
+                format(new Date(account.created_at), 'dd/MM/yyyy')
+            ]
+            return row
+        })
+
+        const tableOptions = {
+            head: [headers],
+            body: tableData,
+            startY: yPos,
+            margin: { left: 15, right: 15 },
+            styles: {
+                font: fontName,
+                fontSize: 9,
+                cellPadding: 3,
+                halign: (isAr ? 'right' : 'left') as 'right' | 'left'
+            },
+            headStyles: {
+                fillColor: [71, 85, 105] as [number, number, number],
+                textColor: [255, 255, 255] as [number, number, number],
+                fontStyle: fontStyle,
+                halign: (isAr ? 'right' : 'left') as 'right' | 'left'
+            },
+            alternateRowStyles: {
+                fillColor: [248, 250, 252] as [number, number, number]
+            },
+            columnStyles: (isAr ? {
+                0: { halign: 'right' as 'right' },
+                1: { halign: 'right' as 'right' },
+                2: { halign: 'right' as 'right' },
+                3: { halign: 'right' as 'right' },
+                4: { halign: 'right' as 'right' }
+            } : {
+                2: { halign: 'right' as 'right' }, // Price
+                3: { halign: 'right' as 'right' }  // Balance
+            }) as any
+        }
+
+        // Generate table
+        if (typeof doc.autoTable === 'function') {
+            doc.autoTable(tableOptions)
+        } else if (typeof autoTable === 'function') {
+            autoTable(doc, tableOptions)
+        }
+
+        // Footer
+        const pageCount = doc.getNumberOfPages()
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i)
+            doc.setFontSize(8)
+            doc.setTextColor(128)
+            const footer = isAr ? `صفحة ${i} من ${pageCount}` : `Page ${i} of ${pageCount}`
+            doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center', lang: isAr ? 'ar' : 'en' })
+        }
+
+        // Save PDF
+        doc.save(filename)
+
+    } catch (error) {
+        console.error('Export Client Accounts PDF Error:', error)
+        throw error
+    }
 }
 
 /**
@@ -329,7 +614,7 @@ export function exportTasksToCSV(
         const statusLabel = statusLabels[task.status] || task.status
         const priorityLabel = priorityLabels[task.priority] || task.priority
         const taskTypeLabel = task.task_type ? (taskTypeLabels[task.task_type] || task.task_type) : 'عام'
-        
+
         return [
             `"${(task.title || '').replace(/"/g, '""')}"`,
             `"${deptLabel}"`,
@@ -340,15 +625,15 @@ export function exportTasksToCSV(
             `"${statusLabel}"`,
             `"${priorityLabel}"`,
             `"${taskTypeLabel}"`,
-            format(new Date(task.created_at), 'yyyy-MM-dd'),
+            `"=""${format(new Date(task.created_at), 'dd/MM/yyyy')}"""`,
             `"${(task.client_feedback || '').replace(/"/g, '""')}"`
         ]
     })
 
     // Build CSV content
     const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.join(','))
+        headers.join(';'),
+        ...rows.map(row => row.join(';'))
     ].join('\n')
 
     // Create and download file
@@ -372,137 +657,180 @@ export async function exportTasksToPDF(
 ): Promise<void> {
     if (!tasks.length) return
 
-    // Dynamic import to reduce bundle size
-    const jsPDFModule = await import('jspdf')
-    const jsPDF = jsPDFModule.default
-    await import('jspdf-autotable')
+    try {
+        console.log('Starting Tasks PDF generation...')
+        // Robust module loading
+        const jsPDFModule = await import('jspdf')
+        const jsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF
 
-    const doc = new jsPDF({
-        orientation: 'landscape', // Landscape for more columns
-        unit: 'mm',
-        format: 'a4'
-    }) as any
+        if (!jsPDF) {
+            throw new Error('Failed to load jsPDF module')
+        }
 
-    // Set font
-    doc.setFont('helvetica')
-    doc.setFontSize(18)
+        const autoTableModule = await import('jspdf-autotable')
+        const autoTable = autoTableModule.default
 
-    // Title
-    const title = 'تقرير المهام الشامل'
-    const pageWidth = doc.internal.pageSize.getWidth()
-    doc.text(title, pageWidth - 15, 20, { align: 'right' })
+        const doc = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4'
+        }) as any
 
-    // Date and subtitle
-    doc.setFontSize(10)
-    const dateStr = format(new Date(), 'PPP', { locale: ar })
-    doc.text(`التاريخ: ${dateStr}`, pageWidth - 15, 28, { align: 'right' })
+        // Default to helvetica
+        let fontName = 'helvetica'
+        let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal'
 
-    let yPos = 38
+        // Load Arabic font
+        try {
+            const fontUrl = '/fonts/Amiri-Regular.ttf'
+            const response = await fetch(fontUrl)
 
-    // Add statistics if provided
-    if (stats) {
-        doc.setFontSize(11)
-        const statsLines = [
-            `إجمالي المهام: ${stats.total}`,
-            `قيد التنفيذ: ${stats.in_progress}`,
-            `مراجعة: ${stats.review}`,
-            `معتمد: ${stats.approved}`
-        ]
+            if (response.ok) {
+                const fontBytes = await response.arrayBuffer()
+                const fontBase64 = arrayBufferToBase64(fontBytes)
 
-        statsLines.forEach((line, i) => {
-            doc.text(line, pageWidth - 15, yPos + (i * 6), { align: 'right' })
+                doc.addFileToVFS('Amiri-Regular.ttf', fontBase64)
+                doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal')
+
+                fontName = 'Amiri'
+                // fontStyle remains normal
+            }
+        } catch (error) {
+            console.error('Failed to load Arabic font:', error)
+        }
+
+        // Set font
+        doc.setFont(fontName)
+        doc.setFontSize(18)
+
+        // Title
+        const title = 'تقرير المهام الشامل'
+        const pageWidth = doc.internal.pageSize.getWidth()
+        doc.text(title, pageWidth - 15, 20, { align: 'right', lang: 'ar' })
+
+        // Date and subtitle
+        doc.setFontSize(10)
+        const dateStr = format(new Date(), 'PPP', { locale: ar })
+        doc.text(`التاريخ: ${dateStr}`, pageWidth - 15, 28, { align: 'right', lang: 'ar' })
+
+        let yPos = 38
+
+        // Add statistics
+        if (stats) {
+            doc.setFontSize(11)
+            const statsLines = [
+                `إجمالي المهام: ${stats.total}`,
+                `قيد التنفيذ: ${stats.in_progress}`,
+                `مراجعة: ${stats.review}`,
+                `معتمد: ${stats.approved}`
+            ]
+
+            statsLines.forEach((line, i) => {
+                doc.text(line, pageWidth - 15, yPos + (i * 6), { align: 'right', lang: 'ar' })
+            })
+
+            yPos += 28
+        }
+
+        // Table Data Preparation
+        const statusLabels: Record<string, string> = {
+            'new': 'جديدة',
+            'in_progress': 'قيد التنفيذ',
+            'review': 'مراجعة',
+            'revision': 'تعديل',
+            'approved': 'معتمد',
+            'rejected': 'مرفوض',
+            'completed': 'مكتمل'
+        }
+
+        const priorityLabels: Record<string, string> = {
+            'urgent': 'عاجل',
+            'high': 'عالي',
+            'medium': 'متوسط',
+            'low': 'منخفض'
+        }
+
+        const headers = ['التاريخ', 'الحالة', 'الأولوية', 'المصمم', 'التيم ليدر', 'العميل', 'المشروع', 'القسم', 'المهمة']
+
+        const tableData = tasks.map(task => {
+            const deptLabel = task.department === 'content' ? 'محتوى' : task.department === 'photography' ? 'تصوير' : '-'
+            const statusLabel = statusLabels[task.status] || task.status
+            const priorityLabel = priorityLabels[task.priority] || task.priority
+
+            return [
+                format(new Date(task.created_at), 'dd/MM/yyyy'),
+                statusLabel,
+                priorityLabel,
+                task.assigned_user?.name || 'غير معين',
+                task.creator?.name || '-',
+                task.project?.client?.name || task.project?.client?.company || '-',
+                task.project?.name || 'بدون مشروع',
+                deptLabel,
+                task.title
+            ]
         })
 
-        yPos += 28
-    }
-
-    // Status labels mapping
-    const statusLabels: Record<string, string> = {
-        'new': 'جديدة',
-        'in_progress': 'قيد التنفيذ',
-        'review': 'مراجعة',
-        'revision': 'تعديل',
-        'approved': 'معتمد',
-        'rejected': 'مرفوض',
-        'completed': 'مكتمل'
-    }
-
-    // Priority labels mapping
-    const priorityLabels: Record<string, string> = {
-        'urgent': 'عاجل',
-        'high': 'عالي',
-        'medium': 'متوسط',
-        'low': 'منخفض'
-    }
-
-    // Table headers (RTL order)
-    const headers = ['التاريخ', 'الحالة', 'الأولوية', 'المصمم', 'التيم ليدر', 'العميل', 'المشروع', 'القسم', 'المهمة']
-
-    // Prepare table data
-    const tableData = tasks.map(task => {
-        const deptLabel = task.department === 'content' ? 'محتوى' : task.department === 'photography' ? 'تصوير' : '-'
-        const statusLabel = statusLabels[task.status] || task.status
-        const priorityLabel = priorityLabels[task.priority] || task.priority
-        
-        return [
-            format(new Date(task.created_at), 'dd/MM/yyyy'),
-            statusLabel,
-            priorityLabel,
-            task.assigned_user?.name || 'غير معين',
-            task.creator?.name || '-',
-            task.project?.client?.name || task.project?.client?.company || '-',
-            task.project?.name || 'بدون مشروع',
-            deptLabel,
-            task.title
-        ]
-    })
-
-    // Generate table
-    doc.autoTable({
-        head: [headers],
-        body: tableData,
-        startY: yPos,
-        margin: { left: 10, right: 10 },
-        styles: {
-            font: 'helvetica',
-            fontSize: 8,
-            cellPadding: 2,
-            halign: 'right',
-            overflow: 'linebreak'
-        },
-        headStyles: {
-            fillColor: [71, 85, 105],
-            textColor: [255, 255, 255],
-            fontStyle: 'bold',
-            halign: 'right'
-        },
-        alternateRowStyles: {
-            fillColor: [248, 250, 252]
-        },
-        columnStyles: {
-            0: { cellWidth: 20 }, // Date
-            1: { cellWidth: 20 }, // Status
-            2: { cellWidth: 18 }, // Priority
-            3: { cellWidth: 25 }, // Designer
-            4: { cellWidth: 25 }, // Team Leader
-            5: { cellWidth: 30 }, // Client
-            6: { cellWidth: 30 }, // Project
-            7: { cellWidth: 20 }, // Department
-            8: { cellWidth: 'auto' } // Task title
+        const tableOptions = {
+            head: [headers],
+            body: tableData,
+            startY: yPos,
+            margin: { left: 10, right: 10 },
+            styles: {
+                font: fontName,
+                fontSize: 8,
+                cellPadding: 2,
+                halign: 'right' as 'right',
+                overflow: 'linebreak' as 'linebreak'
+            },
+            headStyles: {
+                fillColor: [71, 85, 105] as [number, number, number],
+                textColor: [255, 255, 255] as [number, number, number],
+                fontStyle: fontStyle,
+                halign: 'right' as 'right'
+            },
+            alternateRowStyles: {
+                fillColor: [248, 250, 252] as [number, number, number]
+            },
+            columnStyles: {
+                0: { cellWidth: 20 },
+                1: { cellWidth: 20 },
+                2: { cellWidth: 18 },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 25 },
+                5: { cellWidth: 30 },
+                6: { cellWidth: 30 },
+                7: { cellWidth: 20 },
+                8: { cellWidth: 'auto' as 'auto' }
+            }
         }
-    })
 
-    // Footer with page numbers
-    const pageCount = doc.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i)
-        doc.setFontSize(8)
-        doc.setTextColor(128)
-        const footer = `صفحة ${i} من ${pageCount}`
-        doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' })
+        // Generate table
+        if (typeof doc.autoTable === 'function') {
+            doc.autoTable(tableOptions)
+        } else if (typeof autoTable === 'function') {
+            autoTable(doc, tableOptions)
+        } else {
+            console.error('autoTable function not found')
+            throw new Error('PDF Table generation failed: autoTable not found')
+        }
+
+        // Footer
+        const pageCount = doc.getNumberOfPages()
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i)
+            doc.setFontSize(8)
+            doc.setTextColor(128)
+            const footer = `صفحة ${i} من ${pageCount}`
+            doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center', lang: 'ar' })
+        }
+
+        // Save PDF
+        const defaultFilename = `tasks_report_${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`
+        doc.save(filename || defaultFilename)
+        console.log('Tasks PDF saved successfully')
+
+    } catch (error) {
+        console.error('Export Tasks PDF Error:', error)
+        throw error
     }
-
-    // Save PDF
-    const defaultFilename = `tasks_report_${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`
-    doc.save(filename || defaultFilename)
 }

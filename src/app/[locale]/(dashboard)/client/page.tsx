@@ -33,7 +33,7 @@ import { RequestForm } from '@/components/client/request-form'
 import { RequestsList } from '@/components/client/requests-list'
 import { TaskReviewCard } from '@/components/client/task-review-card'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // ... existing imports
 
@@ -47,15 +47,17 @@ export default function ClientDashboard() {
     const userId = currentUser?.id ?? null
 
     // Redirect non-client roles
-    if (currentUser && currentUser.role !== 'client') {
-        const roleRoutes: Record<string, string> = {
-            admin: '/admin',
-            team_leader: '/team-leader',
-            creator: '/creator',
+    useEffect(() => {
+        if (currentUser && currentUser.role !== 'client') {
+            const roleRoutes: Record<string, string> = {
+                admin: '/admin',
+                team_leader: '/team-leader',
+                creator: '/creator',
+            }
+            const route = roleRoutes[currentUser.role]
+            if (route) router.push(route)
         }
-        const route = roleRoutes[currentUser.role]
-        if (route) router.push(route)
-    }
+    }, [currentUser, router])
 
     // Request form dialog state
     const [isRequestFormOpen, setIsRequestFormOpen] = useState(false)

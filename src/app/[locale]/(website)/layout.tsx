@@ -17,7 +17,7 @@ export default async function WebsiteLayout({
 
     return (
         <SiteSettingsProvider settings={settings}>
-            <main className="min-h-screen bg-background overflow-hidden">
+            <main className="min-h-screen bg-background overflow-x-hidden">
                 <Navbar />
                 {children}
                 <Footer />

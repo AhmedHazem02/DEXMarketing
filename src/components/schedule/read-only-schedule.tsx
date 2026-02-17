@@ -25,6 +25,8 @@ import {
     Building2,
     Users,
     Briefcase,
+    Filter,
+    X,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -34,7 +36,10 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useMySchedules, useClientSchedules } from '@/hooks/use-schedule'
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select'
+import { useMySchedules, useClientSchedules, useCalendarSchedules } from '@/hooks/use-schedule'
 import { useUsers, getRoleLabel } from '@/hooks/use-users'
 import { getScheduleStatusConfig, isScheduleOverdue, OVERDUE_CONFIG } from '@/types/schedule'
 import type { ScheduleWithRelations } from '@/types/schedule'
@@ -43,16 +48,18 @@ import type { User } from '@/types/database'
 interface ReadOnlyScheduleViewProps {
     userId?: string
     clientId?: string
+    teamLeaderId?: string
     title?: string
 }
 
-export function ReadOnlyScheduleView({ userId, clientId, title }: ReadOnlyScheduleViewProps) {
+export function ReadOnlyScheduleView({ userId, clientId, teamLeaderId, title }: ReadOnlyScheduleViewProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const dateLocale = isAr ? ar : enUS
 
     const [currentDate, setCurrentDate] = useState(new Date())
     const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+    const [clientFilter, setClientFilter] = useState<string>('all')
 
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth() + 1
@@ -68,9 +75,32 @@ export function ReadOnlyScheduleView({ userId, clientId, title }: ReadOnlySchedu
         year,
         month
     )
+    const { data: teamSchedules, isLoading: teamLoading } = useCalendarSchedules(
+        teamLeaderId || '',
+        year,
+        month
+    )
 
-    const schedules = userId ? mySchedules : clientSchedules
-    const isLoading = userId ? myLoading : clientLoading
+    const rawSchedules = teamLeaderId ? teamSchedules : userId ? mySchedules : clientSchedules
+    const isLoading = teamLeaderId ? teamLoading : userId ? myLoading : clientLoading
+
+    // Extract unique clients for filter dropdown
+    const uniqueClients = useMemo(() => {
+        const map = new Map<string, { id: string; label: string }>()
+        rawSchedules?.forEach((s) => {
+            if (s.client) {
+                const label = s.client.name || s.client.company
+                if (label) map.set(s.client.id, { id: s.client.id, label })
+            }
+        })
+        return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label))
+    }, [rawSchedules])
+
+    // Apply client filter
+    const schedules = useMemo(() => {
+        if (clientFilter === 'all') return rawSchedules
+        return rawSchedules?.filter(s => s.client?.id === clientFilter) ?? []
+    }, [rawSchedules, clientFilter])
 
     // Fetch all users for member name resolution
     const { data: allUsers } = useUsers()
@@ -134,6 +164,39 @@ export function ReadOnlyScheduleView({ userId, clientId, title }: ReadOnlySchedu
                     </Button>
                 </div>
             </div>
+
+            {/* Client Filter */}
+            {uniqueClients.length > 0 && (
+                <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Select value={clientFilter} onValueChange={setClientFilter}>
+                        <SelectTrigger className="w-[200px] sm:w-[250px] h-9 text-sm">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground me-1.5" />
+                            <SelectValue placeholder={isAr ? 'كل العملاء' : 'All Clients'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">
+                                {isAr ? 'كل العملاء' : 'All Clients'}
+                            </SelectItem>
+                            {uniqueClients.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                    {c.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {clientFilter !== 'all' && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setClientFilter('all')}
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </Button>
+                    )}
+                </div>
+            )}
 
             {/* Calendar Grid */}
             <Card>
@@ -211,7 +274,7 @@ export function ReadOnlyScheduleView({ userId, clientId, title }: ReadOnlySchedu
                                                                     : getScheduleStatusConfig(schedule.status).bgColor
                                                         )}
                                                     >
-                                                        {deptEmoji} {schedule.start_time?.slice(0, 5)} {schedule.company_name || schedule.title}
+                                                        {deptEmoji} {schedule.start_time?.slice(0, 5)} {schedule.schedule_type ? (schedule.schedule_type === 'reels' ? '📹' : '📝') + ' ' : ''}{schedule.title}
                                                     </div>
                                                 )
                                             })}
@@ -303,10 +366,10 @@ export function ReadOnlyScheduleView({ userId, clientId, title }: ReadOnlySchedu
                                                     </Badge>
                                                 </div>
 
-                                                {schedule.company_name && (
+                                                {schedule.schedule_type && (
                                                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                        <Building2 className="h-3.5 w-3.5" />
-                                                        {schedule.company_name}
+                                                        <span>{schedule.schedule_type === 'reels' ? '📹' : '📝'}</span>
+                                                        <span>{schedule.schedule_type === 'reels' ? (isAr ? 'ريلز' : 'Reels') : (isAr ? 'بوست' : 'Post')}</span>
                                                     </div>
                                                 )}
 
@@ -327,7 +390,7 @@ export function ReadOnlyScheduleView({ userId, clientId, title }: ReadOnlySchedu
                                                     {schedule.client && (
                                                         <span className="flex items-center gap-1">
                                                             <Building2 className="h-3 w-3" />
-                                                            {schedule.client.company || schedule.client.name}
+                                                            {schedule.client.name || schedule.client.company}
                                                         </span>
                                                     )}
                                                 </div>

@@ -57,6 +57,7 @@ import {
     useUpdateTask,
     useReturnTask,
 } from '@/hooks/use-tasks'
+import { useTasksRealtime } from '@/hooks/use-realtime'
 import { FileUploadZone } from './file-upload-zone'
 import { ReturnTaskDialog } from './return-task-dialog'
 import { getPriorityConfig, getColumnConfig } from '@/types/task'
@@ -284,6 +285,9 @@ export function TaskDetails({
     // Ref for auto-scroll to latest comment
     const commentsEndRef = useRef<HTMLDivElement>(null)
 
+    // Real-time subscription for live task/comments/attachments updates
+    useTasksRealtime()
+
     // Hooks
     const { data: task, isLoading } = useTaskDetails(taskId ?? '')
     const addComment = useAddComment()
@@ -439,13 +443,16 @@ export function TaskDetails({
                                 </div>
 
                                 <div className="flex items-center gap-1">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => onEdit?.(task)}
-                                    >
-                                        <Edit2 className="h-4 w-4" />
-                                    </Button>
+                                    {onEdit && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => onEdit?.(task)}
+                                        >
+                                            <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                    {onEdit && (
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <Button variant="ghost" size="icon">
@@ -477,6 +484,7 @@ export function TaskDetails({
                                             </AlertDialogFooter>
                                         </AlertDialogContent>
                                     </AlertDialog>
+                                    )}
                                 </div>
                             </div>
                         </SheetHeader>

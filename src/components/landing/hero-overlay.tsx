@@ -37,12 +37,12 @@ export function HeroOverlay() {
     }
 
     return (
-        <div ref={ref} className="relative z-10 flex min-h-[100dvh] flex-col justify-center px-6 py-32">
-            {/* Centered text — astronaut is now a small decorative element in the corner */}
-            <div className="mx-auto w-full max-w-4xl">
+        <div ref={ref} className="relative z-10 grid min-h-[100dvh] grid-cols-1 lg:grid-cols-2 items-center gap-12 px-6 py-32 container mx-auto">
+            {/* Text Content Column */}
+            <div className="w-full flex flex-col justify-center items-start">
                 <motion.div
                     style={{ y: yText, opacity: opacityText }}
-                    className="text-center"
+                    className="text-start"
                     initial="hidden"
                     animate={isIntroComplete ? "visible" : "hidden"}
                     variants={containerVariants}
@@ -94,7 +94,7 @@ export function HeroOverlay() {
                             hidden: { opacity: 0, y: 20 },
                             visible: { opacity: 1, y: 0, transition: { duration: 0.8, delay: 0.4 } }
                         }}
-                        className="mb-14 mx-auto max-w-2xl text-lg md:text-xl font-medium leading-relaxed text-white/50"
+                        className="mb-14 max-w-2xl text-lg md:text-xl font-medium leading-relaxed text-white/50"
                     >
                         {isAr
                             ? 'وكالة تسويق رقمي تُحرّك الأرقام وتبني الهويات — من الإبداع البصري إلى إدارة الحملات، كل ما يحتاجه مشروعك ليتصدر'
@@ -107,7 +107,7 @@ export function HeroOverlay() {
                             hidden: { opacity: 0, y: 20 },
                             visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay: 0.6 } }
                         }}
-                        className="mb-16 flex flex-col items-center gap-5 sm:flex-row justify-center"
+                        className="mb-16 flex flex-col items-start gap-5 sm:flex-row justify-start"
                     >
                         <Link href="/register">
                             <Button
@@ -143,7 +143,7 @@ export function HeroOverlay() {
                             hidden: { opacity: 0 },
                             visible: { opacity: 1, transition: { duration: 1, delay: 0.8 } }
                         }}
-                        className="flex items-center gap-10 md:gap-14 justify-center"
+                        className="flex items-center gap-10 md:gap-14 justify-start"
                     >
                         {STATS.map((stat, i) => (
                             <motion.div
@@ -152,7 +152,7 @@ export function HeroOverlay() {
                                     hidden: { opacity: 0, y: 20 },
                                     visible: { opacity: 1, y: 0, transition: { delay: 1.0 + i * 0.15 } }
                                 }}
-                                className="text-center"
+                                className="text-start"
                             >
                                 <div className="text-3xl md:text-4xl font-black bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent">
                                     {stat.value}
@@ -166,8 +166,13 @@ export function HeroOverlay() {
                 </motion.div>
             </div>
 
+            {/* Spacer Column for the Astronaut Visual */}
+            <div className="hidden lg:block h-full w-full pointer-events-none" aria-hidden="true" />
+
+
             {/* Badges / Floating Elements remain largely same but controlled by parent visibility implicitly or explicit check */}
-            {!prefersReducedMotion && isIntroComplete &&
+            {
+                !prefersReducedMotion && isIntroComplete &&
                 badges.map((badge, i) => {
                     // Position badges around the edges of the viewport
                     const positions = [
@@ -195,7 +200,8 @@ export function HeroOverlay() {
                             <span className="text-xs font-medium text-white/60">{badge}</span>
                         </motion.div>
                     )
-                })}
-        </div>
+                })
+            }
+        </div >
     )
 }

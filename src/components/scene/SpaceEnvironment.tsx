@@ -26,7 +26,7 @@ export function SpaceEnvironment({ starCount }: SpaceEnvironmentProps) {
                 scale={12}
                 size={1.2}
                 speed={0.2}
-                opacity={0.25}
+                opacity={0.15}
                 color="#FBBF24"
             />
 
@@ -35,26 +35,8 @@ export function SpaceEnvironment({ starCount }: SpaceEnvironmentProps) {
                 scale={18}
                 size={1.5}
                 speed={0.15}
-                opacity={0.15}
+                opacity={0.1}
                 color="#22D3EE"
-            />
-
-            {/* Ambient Light — softer */}
-            <ambientLight intensity={0.4} color="#112240" />
-
-            {/* Directional Light (Sun) — dimmer */}
-            <directionalLight
-                position={[10, 10, 5]}
-                intensity={1.0}
-                color="#FBBF24"
-            />
-
-            {/* Rim Light — softer */}
-            <spotLight
-                position={[-10, 0, 10]}
-                intensity={1.2}
-                color="#22D3EE"
-                angle={0.5}
             />
         </group>
     )

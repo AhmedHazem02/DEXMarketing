@@ -26,7 +26,10 @@ export function useClients(filters?: ClientFilters) {
 
       let query = supabase
         .from('clients')
-        .select('*')
+        .select(`
+          *,
+          user:users(id, name, email, role)
+        `)
         .order('company', { ascending: true })
 
       if (filters?.search) {
@@ -38,7 +41,13 @@ export function useClients(filters?: ClientFilters) {
       const { data, error } = await query
 
       if (error) throw error
-      return data as Client[]
+      
+      // Filter to show clients with role = 'client' or 'admin', or clients without user accounts
+      const clientsOnly = (data || []).filter((client: any) => 
+        !client.user || client.user?.role === 'client' || client.user?.role === 'admin'
+      )
+      
+      return clientsOnly as (Client & { user?: { id: string; name: string | null; email: string; role: string } | null })[]
     },
   })
 }

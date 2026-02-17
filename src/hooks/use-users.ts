@@ -11,7 +11,7 @@ const TEAM_MEMBERS_KEY = ['team-members']
 // Role-to-department mapping
 const DEPARTMENT_ROLES: Record<Department, UserRole[]> = {
     photography: ['videographer', 'photographer', 'editor'],
-    content: ['creator'],
+    content: ['creator', 'designer'],
 }
 
 /**
@@ -173,10 +173,41 @@ export function useTeamMembers(teamLeaderId: string) {
 }
 
 /**
+ * Hook to find the department leader for the current user.
+ * For content dept members (creator/designer): finds their account_manager
+ * For photography dept members (photographer/videographer/editor): finds their team_leader
+ */
+export function useMyDepartmentLeader(department?: Department | null) {
+    const supabase = createClient()
+
+    const leaderRole = department === 'content' ? 'account_manager' : 'team_leader'
+
+    return useQuery({
+        queryKey: ['department-leader', department, leaderRole],
+        enabled: !!department,
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, name, email, avatar_url, role, department')
+                .eq('role', leaderRole)
+                .eq('department', department!)
+                .eq('is_active', true)
+                .limit(1)
+                .maybeSingle()
+
+            if (error) throw error
+            return data as unknown as Pick<User, 'id' | 'name' | 'email' | 'avatar_url' | 'role' | 'department'> | null
+        },
+    })
+}
+
+/**
  * Get human-readable role label for display
  */
 export function getRoleLabel(role: string, isAr: boolean): string {
     const labels: Record<string, { en: string; ar: string }> = {
+        account_manager: { en: 'Account Manager', ar: 'مدير حسابات' },
+        designer: { en: 'Designer', ar: 'مصمم' },
         videographer: { en: 'Videographer', ar: 'مصور فيديو' },
         photographer: { en: 'Photographer', ar: 'مصور' },
         editor: { en: 'Editor', ar: 'محرر' },

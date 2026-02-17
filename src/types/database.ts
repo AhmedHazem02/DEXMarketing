@@ -11,7 +11,7 @@ export type Json =
     | Json[]
 
 // Enums
-export type UserRole = 'admin' | 'accountant' | 'team_leader' | 'creator' | 'client' | 'videographer' | 'editor' | 'photographer'
+export type UserRole = 'admin' | 'accountant' | 'team_leader' | 'account_manager' | 'creator' | 'designer' | 'client' | 'videographer' | 'editor' | 'photographer'
 export type Department = 'photography' | 'content'
 export type ProjectStatus = 'active' | 'completed' | 'on_hold' | 'cancelled'
 export type TaskStatus = 'new' | 'in_progress' | 'review' | 'client_review' | 'revision' | 'approved' | 'rejected'
@@ -23,6 +23,14 @@ export type MessageType = 'text' | 'image' | 'file'
 export type TransactionType = 'income' | 'expense'
 export type RequestType = 'new_task' | 'modification'
 export type RequestStatus = 'pending_approval' | 'approved' | 'rejected'
+export type MissingItemsStatus = 'pending' | 'resolved' | 'not_applicable'
+export type ScheduleType = 'reels' | 'post'
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+
+export interface ScheduleLink {
+    url: string
+    comment: string
+}
 
 // ============================================
 // Table Types
@@ -125,11 +133,73 @@ export interface Transaction {
     amount: number
     description: string | null
     category: string | null
+    sub_category: string | null
     receipt_url: string | null
     client_id: string | null
     project_id: string | null
+    client_account_id: string | null
+    transaction_date: string | null
+    is_approved: boolean
+    approved_by: string | null
+    approved_at: string | null
+    visible_to_client: boolean
+    notes: string | null
     created_by: string | null
     created_at: string
+}
+
+export interface TreasuryLog {
+    id: string
+    transaction_id: string | null
+    action: 'create' | 'update' | 'delete' | 'approve' | 'reject'
+    performed_by: string
+    client_id: string | null
+    client_name: string | null
+    amount: number | null
+    transaction_type: 'income' | 'expense' | null
+    category: string | null
+    description: string | null
+    changes: Json | null
+    created_at: string
+}
+
+export interface Package {
+    id: string
+    name: string
+    name_ar: string | null
+    price: number
+    duration_days: number
+    description: string | null
+    description_ar: string | null
+    is_active: boolean
+    created_at: string
+    updated_at: string
+}
+
+export interface ClientAccount {
+    id: string
+    client_id: string
+    package_id: string | null
+    package_name: string | null
+    package_name_ar: string | null
+    package_price: number | null
+    package_description: string | null
+    package_description_ar: string | null
+    package_duration_days: number | null
+    remaining_balance: number
+    start_date: string
+    end_date: string | null
+    is_active: boolean
+    created_by: string | null
+    created_at: string
+    updated_at: string
+}
+
+// Extended Types with Relations
+export interface ClientAccountWithRelations extends ClientAccount {
+    client?: Client
+    package?: Package
+    transactions?: Transaction[]
 }
 
 export interface Notification {
@@ -223,6 +293,14 @@ export interface Schedule {
     location: string | null
     status: ScheduleStatus
     notes: string | null
+    missing_items: string | null
+    missing_items_status: MissingItemsStatus
+    schedule_type: ScheduleType
+    created_by: string | null
+    approval_status: ApprovalStatus
+    manager_notes: string | null
+    links: ScheduleLink[]
+    images: string[]
     created_at: string
     updated_at: string
 }
@@ -356,6 +434,21 @@ export interface Database {
                 Row: Message
                 Insert: Omit<Message, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<Message, 'id'>>
+            }
+            treasury_logs: {
+                Row: TreasuryLog
+                Insert: Omit<TreasuryLog, 'id' | 'created_at'> & { id?: string; created_at?: string }
+                Update: Partial<Omit<TreasuryLog, 'id'>>
+            }
+            packages: {
+                Row: Package
+                Insert: Omit<Package, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string }
+                Update: Partial<Omit<Package, 'id'>>
+            }
+            client_accounts: {
+                Row: ClientAccount
+                Insert: Omit<ClientAccount, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string }
+                Update: Partial<Omit<ClientAccount, 'id'>>
             }
         }
         Enums: {

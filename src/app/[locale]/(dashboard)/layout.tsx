@@ -14,7 +14,9 @@ const ROLE_PATH_MAP: Record<string, string[]> = {
     admin: ['/admin'],
     client: ['/client'],
     team_leader: ['/team-leader'],
+    account_manager: ['/account-manager'],
     creator: ['/creator'],
+    designer: ['/creator'],
     accountant: ['/accountant'],
     videographer: ['/videographer'],
     editor: ['/editor'],
@@ -26,7 +28,9 @@ const ROLE_HOME: Record<string, string> = {
     admin: '/admin',
     client: '/client',
     team_leader: '/team-leader',
+    account_manager: '/account-manager',
     creator: '/creator',
+    designer: '/creator',
     accountant: '/accountant',
     videographer: '/videographer',
     editor: '/editor',
@@ -38,22 +42,35 @@ export default async function DashboardLayout({
 }: {
     children: React.ReactNode
 }) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    let user: any = null
+    let role = 'client'
+    let department: any = null
 
-    if (!user) {
-        redirect('/login')
+    try {
+        const supabase = await createClient()
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+
+        if (!authUser) {
+            redirect('/login')
+        }
+
+        user = authUser
+
+        // Fetch role & department
+        const { data: profile } = await supabase
+            .from('users')
+            .select('role, department')
+            .eq('id', authUser.id)
+            .single()
+
+        role = ((profile as any)?.role || 'client') as string
+        department = (profile as any)?.department || null
+    } catch (e: any) {
+        // Re-throw redirect (Next.js uses a special error for redirect)
+        if (e?.digest?.startsWith?.('NEXT_REDIRECT')) throw e
+        // Supabase temporarily unreachable — render page without auth data.
+        // Client-side hooks will handle auth state independently.
     }
-
-    // Fetch role & department
-    const { data: profile } = await supabase
-        .from('users')
-        .select('role, department')
-        .eq('id', user.id)
-        .single()
-
-    const role = ((profile as any)?.role || 'client') as string
-    const department = (profile as any)?.department || null
     const normalizedRole = role.toLowerCase().trim()
 
     // Get current path for route protection

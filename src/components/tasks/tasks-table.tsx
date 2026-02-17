@@ -55,19 +55,25 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 import { useTasksKanban } from '@/hooks/use-tasks'
+import { useTasksRealtime } from '@/hooks/use-realtime'
 import { KANBAN_COLUMNS, PRIORITY_CONFIG, type TaskWithRelations } from '@/types/task'
-import type { TaskStatus } from '@/types/database'
+import type { TaskStatus, Department } from '@/types/database'
 import { cn } from '@/lib/utils'
 
 interface TasksTableProps {
     projectId?: string
+    department?: Department
+    readOnly?: boolean
     onTaskClick?: (task: TaskWithRelations) => void
     onCreateTask?: () => void
 }
 
-export function TasksTable({ projectId, onTaskClick, onCreateTask }: TasksTableProps) {
+export function TasksTable({ projectId, department, readOnly, onTaskClick, onCreateTask }: TasksTableProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
+
+    // Real-time subscription for live task updates
+    useTasksRealtime()
 
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -75,7 +81,7 @@ export function TasksTable({ projectId, onTaskClick, onCreateTask }: TasksTableP
     const [globalFilter, setGlobalFilter] = useState('')
 
     // Fetch tasks
-    const { data: tasksByStatus, isLoading } = useTasksKanban(projectId)
+    const { data: tasksByStatus, isLoading } = useTasksKanban(projectId, department)
 
     // Flatten tasks from all statuses
     const tasks = useMemo(() => {
@@ -414,10 +420,12 @@ export function TasksTable({ projectId, onTaskClick, onCreateTask }: TasksTableP
                     </DropdownMenu>
 
                     {/* Create Task Button */}
-                    <Button onClick={onCreateTask}>
-                        <Plus className="h-4 w-4 me-2" />
-                        {isAr ? 'مهمة جديدة' : 'New Task'}
-                    </Button>
+                    {!readOnly && (
+                        <Button onClick={onCreateTask}>
+                            <Plus className="h-4 w-4 me-2" />
+                            {isAr ? 'مهمة جديدة' : 'New Task'}
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -426,7 +434,7 @@ export function TasksTable({ projectId, onTaskClick, onCreateTask }: TasksTableP
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
+                            <TableRow key={headerGroup.id} className="bg-muted/50">
                                 {headerGroup.headers.map((header) => {
                                     return (
                                         <TableHead key={header.id} className="h-12">

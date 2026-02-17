@@ -1,15 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useLocale } from 'next-intl'
-import { Loader2, Plus, Upload, DollarSign, FileText } from 'lucide-react'
+import { format } from 'date-fns'
+import { Loader2, Plus, Upload, DollarSign, CalendarIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Calendar } from '@/components/ui/calendar'
 import {
     Dialog,
     DialogContent,
@@ -27,12 +29,18 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover'
+import {
     Form,
     FormControl,
     FormField,
     FormItem,
     FormLabel,
     FormMessage,
+    FormDescription,
 } from '@/components/ui/form'
 import {
     Tabs,
@@ -42,7 +50,10 @@ import {
 
 import { useCreateTransaction } from '@/hooks/use-treasury'
 import { useCurrentUser } from '@/hooks/use-users'
-import type { TransactionType } from '@/types/database'
+import { useCurrentRole } from '@/hooks/use-current-role'
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getCategoryLabel, type CategoryOption } from '@/lib/constants/treasury'
+import type { TransactionType, Transaction } from '@/types/database'
+import { cn } from '@/lib/utils'
 
 // ============================================
 // Schema
@@ -51,8 +62,10 @@ import type { TransactionType } from '@/types/database'
 const transactionSchema = z.object({
     type: z.enum(['income', 'expense']),
     amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
-    description: z.string().min(3, 'Description is required'),
-    category: z.string().optional(),
+    description: z.string().optional(),
+    category: z.string().min(1, 'Category is required'),
+    sub_category: z.string().optional(),
+    date: z.date().optional(),
     receipt_url: z.string().optional(),
     client_id: z.string().optional(),
     project_id: z.string().optional(),
@@ -68,8 +81,11 @@ export function TransactionForm() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const [open, setOpen] = useState(false)
+    const [availableCategories, setAvailableCategories] = useState<CategoryOption[]>(EXPENSE_CATEGORIES)
+    
     const createTransaction = useCreateTransaction()
     const { data: currentUser } = useCurrentUser()
+    const { role, isAdmin } = useCurrentRole()
 
     const form = useForm<TransactionFormValues>({
         resolver: zodResolver(transactionSchema) as any,
@@ -78,8 +94,23 @@ export function TransactionForm() {
             amount: 0,
             description: '',
             category: '',
+            sub_category: '',
         },
     })
+
+    const selectedType = form.watch('type')
+
+    // Update available categories when type changes
+    useEffect(() => {
+        if (selectedType === 'income') {
+            setAvailableCategories(INCOME_CATEGORIES)
+        } else {
+            setAvailableCategories(EXPENSE_CATEGORIES)
+        }
+        // Reset category when type changes
+        form.setValue('category', '')
+        form.setValue('sub_category', '')
+    }, [selectedType, form])
 
     const onSubmit = async (values: TransactionFormValues) => {
         if (!currentUser) {
@@ -88,19 +119,24 @@ export function TransactionForm() {
         }
 
         try {
-            await createTransaction.mutateAsync({
+            const payload: any = {
                 ...values,
-                category: values.category || 'General',
-                created_by: currentUser.id
-            })
+                created_by: currentUser.id,
+                sub_category: values.sub_category || null,
+            }
+
+            // Only include date if admin and date is provided
+            if (isAdmin && values.date) {
+                payload.transaction_date = values.date.toISOString().split('T')[0]
+            }
+
+            await createTransaction.mutateAsync(payload)
             setOpen(false)
             form.reset()
         } catch (error) {
             console.error('Create transaction failed', error)
         }
     }
-
-    const type = form.watch('type')
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -153,7 +189,7 @@ export function TransactionForm() {
                             name="amount"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>{isAr ? 'الموعد' : 'Amount'}</FormLabel>
+                                    <FormLabel>{isAr ? 'المبلغ' : 'Amount'}</FormLabel>
                                     <FormControl>
                                         <div className="relative">
                                             <DollarSign className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -194,26 +230,91 @@ export function TransactionForm() {
                             name="category"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>{isAr ? 'الفئة' : 'Category'}</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormLabel>{isAr ? 'الفئة' : 'Category'} *</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder={isAr ? 'اختر الفئة' : 'Select Category'} />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="General">General</SelectItem>
-                                            <SelectItem value="Project">Project</SelectItem>
-                                            <SelectItem value="Salary">Salary</SelectItem>
-                                            <SelectItem value="Equipment">Equipment</SelectItem>
-                                            <SelectItem value="Marketing">Marketing</SelectItem>
-                                            <SelectItem value="Software">Software</SelectItem>
+                                            {availableCategories.map((category) => (
+                                                <SelectItem key={category.value} value={category.value}>
+                                                    {getCategoryLabel(category.value, isAr)}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
+
+                        {/* Sub Category */}
+                        <FormField
+                            control={form.control}
+                            name="sub_category"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{isAr ? 'التصنيف الفرعي' : 'Sub Category'}</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            placeholder={isAr ? 'تصنيف فرعي (اختياري)' : 'Sub category (optional)'}
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Date - Only for Admin */}
+                        {isAdmin && (
+                            <FormField
+                                control={form.control}
+                                name="date"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>{isAr ? 'التاريخ' : 'Date'}</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant="outline"
+                                                        className={cn(
+                                                            'w-full pl-3 text-left font-normal',
+                                                            !field.value && 'text-muted-foreground'
+                                                        )}
+                                                    >
+                                                        {field.value ? (
+                                                            format(field.value, 'PPP')
+                                                        ) : (
+                                                            <span>{isAr ? 'اختر التاريخ (أو اتركه للتاريخ الحالي)' : 'Pick date (or leave for current time)'}</span>
+                                                        )}
+                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={field.value}
+                                                    onSelect={field.onChange}
+                                                    disabled={(date) =>
+                                                        date > new Date() || date < new Date('1900-01-01')
+                                                    }
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormDescription>
+                                            {isAr ? 'الأدمن فقط يمكنه تحديد التاريخ' : 'Only admin can set custom date'}
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
 
                         {/* Receipt Upload (Placeholder) */}
                         <div className="flex items-center justify-center p-6 border-2 border-dashed rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">

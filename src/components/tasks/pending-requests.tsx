@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 import { usePendingRequests, useApproveClientRequest, useRejectClientRequest } from '@/hooks/use-tasks'
+import { useTasksRealtime } from '@/hooks/use-realtime'
 import { getRequestStatusConfig } from '@/types/task'
 import type { RequestStatus } from '@/types/database'
 import type { ClientRequestWithDetails } from '@/types/task'
@@ -275,6 +276,9 @@ function RequestCard({
 export function PendingRequests({ teamLeaderId, className }: PendingRequestsProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
+
+    // Real-time subscription for live request updates
+    useTasksRealtime()
 
     const { data: requests, isLoading } = usePendingRequests(teamLeaderId)
     const approveRequest = useApproveClientRequest()

@@ -62,6 +62,11 @@ export function LoginForm() {
             // Fetch user identity
             const { data: { user } } = await supabase.auth.getUser()
 
+            // Log login activity (fire-and-forget for performance)
+            if (user) {
+                supabase.from('activity_log').insert({ user_id: user.id, action: 'login', details: { email: values.email } } as never).then()
+            }
+
             if (!user) {
                 router.push('/login')
                 return
@@ -152,11 +157,13 @@ export function LoginForm() {
                     </form>
                 </Form>
             </CardContent>
+            {/* Registration disabled
             <CardFooter className="flex justify-center">
                 <Link href="/register" className="text-sm text-muted-foreground hover:underline">
                     {isAr ? 'ليس لديك حساب؟ سجل الآن' : "Don't have an account? Register"}
                 </Link>
             </CardFooter>
+            */}
         </Card>
     )
 }

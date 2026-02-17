@@ -1,4 +1,13 @@
-import { HeroSection, ServicesSection, PortfolioSection, TestimonialsSection, CTASection } from '@/components/landing'
+import {
+    HeroSection,
+    AboutSection,
+    ServicesSection,
+    StatsSection,
+    PortfolioSection,
+    TestimonialsSection,
+    ContactSection,
+    CTASection,
+} from '@/components/landing'
 import { locales } from '@/i18n/config'
 import { setRequestLocale } from 'next-intl/server'
 
@@ -15,9 +24,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     return (
         <>
             <HeroSection />
+            <AboutSection />
             <ServicesSection />
+            <StatsSection />
             <PortfolioSection />
             <TestimonialsSection />
+            <ContactSection />
             <CTASection />
         </>
     )

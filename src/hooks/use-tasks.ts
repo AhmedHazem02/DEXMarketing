@@ -173,7 +173,7 @@ export function useMyTasks(userId: string) {
                 .from('tasks')
                 .select(`
                     *,
-                    project:projects(id, name, status),
+                    project:projects(id, name, status, client:clients(id, name, company)),
                     creator:users!tasks_created_by_fkey(id, name, avatar_url)
                 `)
                 .eq('assigned_to', userId)

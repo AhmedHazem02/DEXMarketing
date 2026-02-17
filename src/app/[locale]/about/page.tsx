@@ -9,7 +9,7 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     const { locale } = params;
     const t = await getTranslations({ locale, namespace: 'common' })
     return {
-        title: (locale === 'ar' ? 'من نحن' : 'About Us') + ' - DEX ERP',
+        title: (locale === 'ar' ? 'من نحن' : 'About Us') + ' - DEX',
     }
 }
 
@@ -32,23 +32,28 @@ export default async function AboutPage(props: { params: Promise<{ locale: strin
 
     // Default Fallbacks
     const aboutContent = {
-        mission: content?.mission || (isAr ? 'نحن نسعى لتقديم أفضل الحلول البرمجية...' : 'We strive to provide the best software solutions...'),
-        vision: content?.vision || (isAr ? 'أن نكون الشركة الرائدة في مجال التكنولوجيا...' : 'To be the leading technology company...'),
-        story: content?.story || (isAr ? 'بدأت رحلتنا بطموح صغير...' : 'Our journey started with a small ambition...'),
+        mission: content?.mission || (isAr ? 'نحن نسعى لتقديم أفضل الحلول التسويقية الرقمية التي تحقق نتائج حقيقية وقابلة للقياس لعملائنا.' : 'We strive to deliver the best digital marketing solutions that achieve real, measurable results for our clients.'),
+        vision: content?.vision || (isAr ? 'أن نكون الوكالة الرائدة في مجال التسويق الرقمي في المنطقة.' : 'To be the leading digital marketing agency in the region.'),
+        story: content?.story || (isAr ? 'بدأت رحلتنا بشغف للإبداع الرقمي وطموح لبناء علامات تجارية مميزة. اليوم نخدم أكثر من 150 عميل بفريق من 30 خبير متخصص.' : 'Our journey started with a passion for digital creativity and an ambition to build remarkable brands. Today we serve over 150 clients with a team of 30 specialized experts.'),
     }
 
     return (
-        <main className="min-h-screen bg-background overflow-hidden font-sans">
+        <main className="min-h-screen bg-[#022026] overflow-hidden font-sans">
             <Navbar />
 
             {/* Page Header */}
-            <div className="pt-32 pb-20 bg-[#020617] relative text-white text-center">
-                <div className="absolute inset-0 bg-gradient-to-bl from-[#0f172a] via-[#000000] to-primary/20 opacity-90" />
+            <div className="pt-36 pb-20 relative text-white text-center">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#011118] via-[#022026] to-[#022026]" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#F2CB05]/[0.03] blur-[120px] rounded-full" />
                 <div className="container relative z-10 px-6">
-                    <h1 className="text-4xl md:text-6xl font-black mb-6">
+                    <span className="inline-block text-[#F2CB05]/70 text-xs font-mono tracking-[0.3em] uppercase mb-4">
+                        {isAr ? '— من نحن —' : '— About Us —'}
+                    </span>
+                    <h1 className="text-4xl md:text-6xl font-black mb-6 font-serif">
                         {isAr ? 'من نحن' : 'About Us'}
                     </h1>
-                    <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+                    <div className="w-12 h-1 bg-[#F2CB05] mx-auto rounded-full mb-6" />
+                    <p className="text-lg text-white/40 max-w-2xl mx-auto">
                         {isAr
                             ? 'تعرف على قصتنا ورؤيتنا للمستقبل.'
                             : 'Learn about our story and our vision for the future.'}
@@ -56,49 +61,48 @@ export default async function AboutPage(props: { params: Promise<{ locale: strin
                 </div>
             </div>
 
-            <section className="py-24 bg-background">
+            <section className="py-24 bg-[#022026]">
                 <div className="container mx-auto px-6">
-                    <div className="space-y-24">
+                    <div className="space-y-28">
 
                         {/* Our Story */}
                         <div className="grid lg:grid-cols-2 gap-16 items-center">
                             <div className="order-2 lg:order-1 space-y-6">
-                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary font-bold">
-                                    <BookOpen className="w-5 h-5" />
+                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#F2CB05]/10 text-[#F2CB05] text-sm font-bold">
+                                    <BookOpen className="w-4 h-4" />
                                     {isAr ? 'قصتنا' : 'Our Story'}
                                 </div>
-                                <h2 className="text-3xl font-bold leading-tight">
-                                    {isAr ? 'سنوات من الخبرة والابتكار' : 'Years of Experience and Innovation'}
+                                <h2 className="text-3xl font-bold text-white leading-tight font-serif">
+                                    {isAr ? 'سنوات من الخبرة والابتكار' : 'Years of Experience & Innovation'}
                                 </h2>
-                                <p className="text-lg text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                <p className="text-base text-white/40 leading-relaxed whitespace-pre-wrap">
                                     {aboutContent.story}
                                 </p>
                             </div>
-                            <div className="order-1 lg:order-2 bg-gradient-to-br from-primary/20 to-orange-500/20 rounded-3xl h-[400px] flex items-center justify-center relative overflow-hidden">
-                                <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
-                                {/* Placeholder Graphic */}
-                                <div className="text-9xl opacity-20 select-none">DEX</div>
+                            <div className="order-1 lg:order-2 bg-gradient-to-br from-[#F2CB05]/10 to-cyan-500/10 rounded-3xl h-[400px] flex items-center justify-center relative overflow-hidden border border-white/5">
+                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(242,203,5,0.05),transparent_70%)]" />
+                                <div className="text-9xl font-black opacity-10 text-white select-none font-serif">DEX</div>
                             </div>
                         </div>
 
                         {/* Mission & Vision */}
                         <div className="grid md:grid-cols-2 gap-8">
-                            <div className="bg-card p-8 rounded-3xl border border-border hover:border-primary/50 transition-colors">
-                                <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 mb-6">
-                                    <Target className="w-8 h-8" />
+                            <div className="p-8 rounded-2xl border border-white/5 bg-white/[0.02] hover:border-[#F2CB05]/20 transition-colors">
+                                <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-6">
+                                    <Target className="w-7 h-7" />
                                 </div>
-                                <h3 className="text-2xl font-bold mb-4">{isAr ? 'مهمتنا' : 'Our Mission'}</h3>
-                                <p className="text-muted-foreground leading-relaxed text-lg whitespace-pre-wrap">
+                                <h3 className="text-2xl font-bold text-white mb-4 font-serif">{isAr ? 'مهمتنا' : 'Our Mission'}</h3>
+                                <p className="text-white/40 leading-relaxed whitespace-pre-wrap">
                                     {aboutContent.mission}
                                 </p>
                             </div>
 
-                            <div className="bg-card p-8 rounded-3xl border border-border hover:border-primary/50 transition-colors">
-                                <div className="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500 mb-6">
-                                    <Eye className="w-8 h-8" />
+                            <div className="p-8 rounded-2xl border border-white/5 bg-white/[0.02] hover:border-[#F2CB05]/20 transition-colors">
+                                <div className="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 mb-6">
+                                    <Eye className="w-7 h-7" />
                                 </div>
-                                <h3 className="text-2xl font-bold mb-4">{isAr ? 'رؤيتنا' : 'Our Vision'}</h3>
-                                <p className="text-muted-foreground leading-relaxed text-lg whitespace-pre-wrap">
+                                <h3 className="text-2xl font-bold text-white mb-4 font-serif">{isAr ? 'رؤيتنا' : 'Our Vision'}</h3>
+                                <p className="text-white/40 leading-relaxed whitespace-pre-wrap">
                                     {aboutContent.vision}
                                 </p>
                             </div>

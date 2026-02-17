@@ -1,90 +1,80 @@
-'use client'
-
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
-type UserRole = 'admin' | 'client' | 'team_leader' | 'creator' | 'accountant'
-
-interface AuthDashboardState {
-    user: User | null
-    dashboardLink: string
-    handleLogout: () => Promise<void>
+interface UseAuthDashboardLinkReturn {
+  user: User | null
+  dashboardLink: string
+  handleLogout: () => Promise<void>
 }
 
-const ROLE_ROUTES: Record<string, string> = {
-    admin: '/admin',
-    client: '/client',
-    team_leader: '/team-leader',
-    creator: '/creator',
-    accountant: '/accountant',
-}
-
-function resolveLink(role?: string): string {
-    if (!role) return '/login'
-    const normalized = String(role).toLowerCase().trim()
-    return ROLE_ROUTES[normalized] ?? (normalized ? '/client' : '/login')
+const ROLE_DASHBOARD_MAP: Record<string, string> = {
+  admin: '/admin',
+  'team-leader': '/team-leader',
+  'account-manager': '/account-manager',
+  creator: '/creator',
+  editor: '/editor',
+  photographer: '/photographer',
+  videographer: '/videographer',
+  accountant: '/accountant',
+  client: '/client',
 }
 
 export function useAuthDashboardLink(
-    initialUser?: User | null,
-    initialRole?: string,
-): AuthDashboardState {
-    const supabaseRef = useRef(createClient())
-    const [user, setUser] = useState<User | null>(initialUser ?? null)
-    const [dashboardLink, setDashboardLink] = useState(() => resolveLink(initialRole))
+  initialUser?: User | null,
+  initialRole?: string
+): UseAuthDashboardLinkReturn {
+  const [user, setUser] = useState<User | null>(initialUser ?? null)
+  const [role, setRole] = useState<string | undefined>(initialRole)
+  const supabase = createClient()
 
-    const updateUserAndLink = useCallback(async (currentUser: User | null) => {
-        if (!currentUser) {
-            setUser(null)
-            setDashboardLink('/login')
-            return
-        }
+  useEffect(() => {
+    // Get initial user if not provided
+    if (!initialUser) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        setUser(user)
+      })
+    }
 
-        setUser(currentUser)
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
 
-        const { data } = await supabaseRef.current
-            .from('users')
-            .select('role')
-            .eq('id', currentUser.id)
-            .single()
+    return () => subscription.unsubscribe()
+  }, [initialUser, supabase])
 
-        const role = (data as { role?: string } | null)?.role
-            ?? currentUser.user_metadata?.role
+  // Fetch user role if we have a user but no role
+  useEffect(() => {
+    if (user && !role) {
+      supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => {
+          const userData = data as any
+          if (userData && userData.role && typeof userData.role === 'string') {
+            setRole(userData.role)
+          }
+        })
+    }
+  }, [user, role, supabase])
 
-        if (role) {
-            setDashboardLink(resolveLink(String(role)))
-        }
-    }, [])
+  const dashboardLink = role ? ROLE_DASHBOARD_MAP[role] ?? '/profile' : '/profile'
 
-    useEffect(() => {
-        const supabase = supabaseRef.current
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setRole(undefined)
+    window.location.href = '/'
+  }
 
-        if (!initialUser) {
-            supabase.auth.getSession().then(({ data: { session } }) => {
-                if (session?.user) updateUserAndLink(session.user)
-            })
-        }
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                if (['SIGNED_IN', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
-                    await updateUserAndLink(session?.user ?? null)
-                } else if (event === 'SIGNED_OUT') {
-                    setUser(null)
-                    setDashboardLink('/login')
-                }
-            },
-        )
-
-        return () => subscription.unsubscribe()
-    }, [initialUser, updateUserAndLink])
-
-    const handleLogout = useCallback(async () => {
-        await supabaseRef.current.auth.signOut()
-        setUser(null)
-        setDashboardLink('/login')
-    }, [])
-
-    return { user, dashboardLink, handleLogout }
+  return {
+    user,
+    dashboardLink,
+    handleLogout,
+  }
 }

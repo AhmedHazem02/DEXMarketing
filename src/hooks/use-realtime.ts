@@ -62,10 +62,15 @@ export function useNotificationsRealtime(userId: string) {
                     filter: `user_id=eq.${userId}`,
                 },
                 (payload) => {
-                    // Add new notification to cache
+                    // Add new notification to cache optimistically
                     queryClient.setQueryData(['notifications', userId], (old: any[] = []) => {
-                        return [payload.new, ...old]
+                        // Prevent duplicates
+                        const exists = old.some((n: any) => n.id === payload.new.id)
+                        if (exists) return old
+                        return [payload.new, ...old].slice(0, 50)
                     })
+                    // Also invalidate to ensure fresh data
+                    queryClient.invalidateQueries({ queryKey: ['notifications', userId] })
                 }
             )
             .subscribe()

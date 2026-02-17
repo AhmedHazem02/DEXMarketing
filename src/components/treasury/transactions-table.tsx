@@ -35,9 +35,21 @@ import { Calendar } from '@/components/ui/calendar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { useTransactions } from '@/hooks/use-treasury'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { useTransactions, useApproveTransaction, useDeleteTransaction } from '@/hooks/use-treasury'
 import { useDebounce, usePagination } from '@/hooks'
-import type { TransactionType } from '@/types/database'
+import { useCurrentRole } from '@/hooks/use-current-role'
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getCategoryLabel } from '@/lib/constants/treasury'
+import type { TransactionType, Transaction } from '@/types/database'
 import {
     ArrowUpRight,
     ArrowDownLeft,
@@ -53,13 +65,15 @@ import {
     ChevronLeft,
     ChevronRight,
     Loader2,
+    CheckCircle,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertCircle } from 'lucide-react'
 import { exportToCSV, exportToPDF, generateFilename, calculateStats } from '@/lib/export-utils'
 import { toast } from 'sonner'
 
-const CATEGORIES = ['General', 'Project', 'Salary', 'Equipment', 'Marketing', 'Software']
+const ALL_CATEGORIES = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES]
+    .filter((cat, index, self) => self.findIndex(c => c.value === cat.value) === index)
 
 type SortField = 'created_at' | 'amount'
 type SortDir = 'asc' | 'desc'
@@ -74,6 +88,7 @@ interface FilterErrors {
 export function TransactionsTable() {
     const locale = useLocale()
     const isAr = locale === 'ar'
+    const { isAdmin, isAccountant } = useCurrentRole()
 
     // Filter state
     const [search, setSearch] = useState('')
@@ -88,6 +103,18 @@ export function TransactionsTable() {
     const [sortField, setSortField] = useState<SortField>('created_at')
     const [sortDir, setSortDir] = useState<SortDir>('desc')
     const [isExporting, setIsExporting] = useState(false)
+
+    // Approval dialog state
+    const [approveDialogOpen, setApproveDialogOpen] = useState(false)
+    const [transactionToApprove, setTransactionToApprove] = useState<string | null>(null)
+    const [visibleToClient, setVisibleToClient] = useState(false)
+
+    const approveTransaction = useApproveTransaction()
+    const deleteTransaction = useDeleteTransaction()
+
+    // Delete dialog state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null)
 
     // Validation
     const filterErrors = useMemo<FilterErrors>(() => {
@@ -176,7 +203,7 @@ export function TransactionsTable() {
     // Client-side search + sort (using debounced search)
     const filteredTransactions = useMemo(() => {
         let result = transactions?.filter(t =>
-            !debouncedSearch || 
+            !debouncedSearch ||
             t.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
             t.category?.toLowerCase().includes(debouncedSearch.toLowerCase())
         ) || []
@@ -315,13 +342,13 @@ export function TransactionsTable() {
                         {isAr ? 'مسح الكل' : 'Clear all'}
                     </Button>
                 )}
-                
+
                 {/* Export Dropdown */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
+                        <Button
+                            variant="outline"
+                            size="sm"
                             className="gap-2"
                             disabled={filteredTransactions.length === 0 || isExporting}
                         >
@@ -388,8 +415,10 @@ export function TransactionsTable() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">{isAr ? 'الكل' : 'All'}</SelectItem>
-                                {CATEGORIES.map((cat) => (
-                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                {ALL_CATEGORIES.map((cat) => (
+                                    <SelectItem key={cat.value} value={cat.value}>
+                                        {getCategoryLabel(cat.value, isAr)}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -594,7 +623,7 @@ export function TransactionsTable() {
                     )}
                     {minAmount && (
                         <Badge variant="secondary" className="gap-1 pe-1">
-                            {isAr ? 'أدنى: $' : 'Min: $'}{minAmount}
+                            {isAr ? 'أدنى: ' : 'Min: '}{minAmount} ج.م
                             <button onClick={() => setMinAmount('')} className="ms-1 rounded-full hover:bg-muted p-0.5">
                                 <X className="h-3 w-3" />
                             </button>
@@ -602,7 +631,7 @@ export function TransactionsTable() {
                     )}
                     {maxAmount && (
                         <Badge variant="secondary" className="gap-1 pe-1">
-                            {isAr ? 'أقصى: $' : 'Max: $'}{maxAmount}
+                            {isAr ? 'أقصى: ' : 'Max: '}{maxAmount} ج.م
                             <button onClick={() => setMaxAmount('')} className="ms-1 rounded-full hover:bg-muted p-0.5">
                                 <X className="h-3 w-3" />
                             </button>
@@ -627,7 +656,7 @@ export function TransactionsTable() {
                             {isAr ? 'إجمالي الإيرادات' : 'Total Income'}
                         </p>
                         <p className="text-xl font-bold text-green-600">
-                            ${stats.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {stats.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ج.م
                         </p>
                     </div>
                     <div className="space-y-1">
@@ -635,7 +664,7 @@ export function TransactionsTable() {
                             {isAr ? 'إجمالي المصروفات' : 'Total Expenses'}
                         </p>
                         <p className="text-xl font-bold text-red-600">
-                            ${stats.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {stats.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ج.م
                         </p>
                     </div>
                     <div className="space-y-1">
@@ -643,7 +672,7 @@ export function TransactionsTable() {
                             {isAr ? 'الرصيد الصافي' : 'Net Balance'}
                         </p>
                         <p className={`text-xl font-bold ${stats.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {stats.balance >= 0 ? '+' : ''}${stats.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {stats.balance >= 0 ? '+' : ''}{stats.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ج.م
                         </p>
                     </div>
                 </div>
@@ -653,9 +682,10 @@ export function TransactionsTable() {
             <div className="rounded-md border bg-card">
                 <Table>
                     <TableHeader>
-                        <TableRow>
+                        <TableRow className="bg-muted/50">
                             <TableHead>{isAr ? 'المعاملة' : 'Transaction'}</TableHead>
                             <TableHead>{isAr ? 'الفئة' : 'Category'}</TableHead>
+                            <TableHead>{isAr ? 'الحالة' : 'Status'}</TableHead>
                             <TableHead>{isAr ? 'التاريخ' : 'Date'}</TableHead>
                             <TableHead className="text-end">{isAr ? 'المبلغ' : 'Amount'}</TableHead>
                             <TableHead className="w-[50px]"></TableHead>
@@ -664,7 +694,7 @@ export function TransactionsTable() {
                     <TableBody>
                         {paginatedTransactions?.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                                     {isAr ? 'لا توجد معاملات' : 'No transactions found'}
                                 </TableCell>
                             </TableRow>
@@ -696,7 +726,15 @@ export function TransactionsTable() {
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant="secondary" className="font-normal">
-                                            {tx.category || 'General'}
+                                            {getCategoryLabel(tx.category, isAr)}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant={tx.is_approved ? 'default' : 'outline'} className={tx.is_approved ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'text-yellow-700 border-yellow-400 dark:text-yellow-300'}>
+                                            {tx.is_approved
+                                                ? (isAr ? 'معتمد' : 'Approved')
+                                                : (isAr ? 'قيد الانتظار' : 'Pending')
+                                            }
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
@@ -707,7 +745,7 @@ export function TransactionsTable() {
                                     <TableCell className="text-end font-semibold">
                                         <span className={tx.type === 'income' ? 'text-green-600' : 'text-red-600'}>
                                             {tx.type === 'income' ? '+' : '-'}
-                                            ${tx.amount.toLocaleString()}
+                                            {tx.amount.toLocaleString()} ج.م
                                         </span>
                                     </TableCell>
                                     <TableCell>
@@ -718,12 +756,44 @@ export function TransactionsTable() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
+                                                {/* View Receipt - Available to Everyone */}
                                                 <DropdownMenuItem>
+                                                    <FileText className="me-2 h-4 w-4" />
                                                     {isAr ? 'عرض الإيصال' : 'View Receipt'}
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive">
-                                                    {isAr ? 'حذف' : 'Delete'}
-                                                </DropdownMenuItem>
+
+                                                {/* Approve - Admin Only */}
+                                                {isAdmin && !tx.is_approved && (
+                                                    <>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            onClick={() => {
+                                                                setTransactionToApprove(tx.id)
+                                                                setVisibleToClient(false)
+                                                                setApproveDialogOpen(true)
+                                                            }}
+                                                        >
+                                                            <CheckCircle className="me-2 h-4 w-4 text-green-600" />
+                                                            {isAr ? 'الموافقة على المعاملة' : 'Approve Transaction'}
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                )}
+
+                                                {/* Delete - Admin Only */}
+                                                {isAdmin && (
+                                                    <>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            className="text-destructive"
+                                                            onClick={() => {
+                                                                setTransactionToDelete(tx.id)
+                                                                setDeleteDialogOpen(true)
+                                                            }}
+                                                        >
+                                                            {isAr ? 'حذف' : 'Delete'}
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
@@ -759,7 +829,7 @@ export function TransactionsTable() {
                             <ChevronLeft className="h-4 w-4" />
                             {isAr ? 'السابق' : 'Previous'}
                         </Button>
-                        
+
                         <div className="flex items-center gap-1">
                             {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                                 let pageNum: number
@@ -772,7 +842,7 @@ export function TransactionsTable() {
                                 } else {
                                     pageNum = pagination.currentPage - 2 + i
                                 }
-                                
+
                                 return (
                                     <Button
                                         key={pageNum}
@@ -800,6 +870,115 @@ export function TransactionsTable() {
                     </div>
                 </div>
             )}
+
+            {/* Approval Dialog */}
+            <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {isAr ? 'الموافقة على المعاملة' : 'Approve Transaction'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {isAr
+                                ? 'قم بالموافقة على المعاملة واختر إذا كنت تريد أن تكون مرئية للعميل'
+                                : 'Approve the transaction and choose if it should be visible to client'
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex items-center space-x-2 py-4">
+                        <Checkbox
+                            id="visible-to-client"
+                            checked={visibleToClient}
+                            onCheckedChange={(checked) => setVisibleToClient(checked as boolean)}
+                        />
+                        <Label
+                            htmlFor="visible-to-client"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                            {isAr ? 'مرئي للعميل' : 'Visible to Client'}
+                        </Label>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setApproveDialogOpen(false)
+                                setTransactionToApprove(null)
+                                setVisibleToClient(false)
+                            }}
+                        >
+                            {isAr ? 'إلغاء' : 'Cancel'}
+                        </Button>
+                        <Button
+                            onClick={async () => {
+                                if (!transactionToApprove) return
+                                try {
+                                    await approveTransaction.mutateAsync({
+                                        transactionId: transactionToApprove,
+                                        visibleToClient: visibleToClient,
+                                    })
+                                    setApproveDialogOpen(false)
+                                    setTransactionToApprove(null)
+                                    setVisibleToClient(false)
+                                } catch (error) {
+                                    console.error('Failed to approve transaction:', error)
+                                }
+                            }}
+                            disabled={approveTransaction.isPending}
+                        >
+                            {approveTransaction.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                            {isAr ? 'موافقة' : 'Approve'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {isAr ? 'تأكيد الحذف' : 'Confirm Delete'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {isAr
+                                ? 'هل أنت متأكد من حذف هذه المعاملة؟ لا يمكن التراجع عن هذا الإجراء.'
+                                : 'Are you sure you want to delete this transaction? This action cannot be undone.'
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setDeleteDialogOpen(false)
+                                setTransactionToDelete(null)
+                            }}
+                        >
+                            {isAr ? 'إلغاء' : 'Cancel'}
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={async () => {
+                                if (!transactionToDelete) return
+                                try {
+                                    await deleteTransaction.mutateAsync(transactionToDelete)
+                                    toast.success(isAr ? 'تم حذف المعاملة' : 'Transaction deleted')
+                                    setDeleteDialogOpen(false)
+                                    setTransactionToDelete(null)
+                                } catch (error) {
+                                    console.error('Failed to delete transaction:', error)
+                                    toast.error(isAr ? 'فشل حذف المعاملة' : 'Failed to delete transaction')
+                                }
+                            }}
+                            disabled={deleteTransaction.isPending}
+                        >
+                            {deleteTransaction.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                            {isAr ? 'حذف' : 'Delete'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

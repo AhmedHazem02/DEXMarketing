@@ -1,15 +1,18 @@
 'use client'
 
+import { useState } from 'react'
 import { useLocale } from 'next-intl'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, Camera, FileText } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/use-users'
-import { ScheduleCalendar } from '@/components/schedule'
+import { ScheduleCalendar, ContentScheduleReadOnly } from '@/components/schedule'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 export default function TeamLeaderSchedulePage() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const { data: currentUser, isLoading } = useCurrentUser()
+    const [activeTab, setActiveTab] = useState<'own' | 'content'>('own')
 
     if (isLoading || !currentUser) {
         return (
@@ -48,7 +51,43 @@ export default function TeamLeaderSchedulePage() {
                 </div>
             </div>
 
-            <ScheduleCalendar teamLeaderId={currentUser.id} />
+            {/* Tabs */}
+            <div className="flex gap-2 border-b border-border/50 pb-1">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('own')}
+                    className={cn(
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-xl transition-colors',
+                        activeTab === 'own'
+                            ? 'bg-primary/10 text-primary border-b-2 border-primary'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                >
+                    <Camera className="h-4 w-4" />
+                    {isAr ? 'جدول التصوير' : 'Photography Schedule'}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('content')}
+                    className={cn(
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-xl transition-colors',
+                        activeTab === 'content'
+                            ? 'bg-primary/10 text-primary border-b-2 border-primary'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                >
+                    <FileText className="h-4 w-4" />
+                    {isAr ? 'جدول المحتوى' : 'Content Schedule'}
+                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full">{isAr ? 'قراءة فقط' : 'Read-only'}</span>
+                </button>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'own' ? (
+                <ScheduleCalendar teamLeaderId={currentUser.id} />
+            ) : (
+                <ContentScheduleReadOnly />
+            )}
         </div>
     )
 }

@@ -38,7 +38,7 @@ import {
     type TaskWithRelations,
     type TasksByStatus,
 } from '@/types/task'
-import type { TaskStatus, TaskPriority } from '@/types/database'
+import type { TaskStatus, TaskPriority, Department } from '@/types/database'
 
 // ============================================
 // Types
@@ -46,6 +46,8 @@ import type { TaskStatus, TaskPriority } from '@/types/database'
 
 interface KanbanBoardProps {
     projectId?: string
+    department?: Department
+    readOnly?: boolean
     onTaskClick?: (task: TaskWithRelations) => void
     onCreateTask?: (status?: TaskStatus) => void
 }
@@ -215,12 +217,13 @@ function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
 interface KanbanColumnProps {
     column: typeof KANBAN_COLUMNS[0]
     tasks: TaskWithRelations[]
+    readOnly?: boolean
     onTaskClick?: (task: TaskWithRelations) => void
     onCreateTask?: () => void
     onDropTask?: (taskId: string, newStatus: TaskStatus) => void
 }
 
-function KanbanColumn({ column, tasks, onTaskClick, onCreateTask, onDropTask }: KanbanColumnProps) {
+function KanbanColumn({ column, tasks, readOnly, onTaskClick, onCreateTask, onDropTask }: KanbanColumnProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const [isDragOver, setIsDragOver] = useState(false)
@@ -264,7 +267,7 @@ function KanbanColumn({ column, tasks, onTaskClick, onCreateTask, onDropTask }: 
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7"
+                    className={cn("h-7 w-7", readOnly && "hidden")}
                     onClick={onCreateTask}
                 >
                     <Plus className="w-4 h-4" />
@@ -299,7 +302,7 @@ function KanbanColumn({ column, tasks, onTaskClick, onCreateTask, onDropTask }: 
                         tasks.map((task) => (
                             <div
                                 key={task.id}
-                                draggable
+                                draggable={!readOnly}
                                 onDragStart={(e) => {
                                     e.dataTransfer.setData('taskId', task.id)
                                     e.dataTransfer.effectAllowed = 'move'
@@ -322,7 +325,7 @@ function KanbanColumn({ column, tasks, onTaskClick, onCreateTask, onDropTask }: 
 // Main Kanban Board Component
 // ============================================
 
-export function KanbanBoard({ projectId, onTaskClick, onCreateTask }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, department, readOnly, onTaskClick, onCreateTask }: KanbanBoardProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
 
@@ -330,7 +333,7 @@ export function KanbanBoard({ projectId, onTaskClick, onCreateTask }: KanbanBoar
     const [priorityFilter, setPriorityFilter] = useState<TaskPriority | 'all'>('all')
 
     // Data fetching
-    const { data: tasksByStatus, isLoading, error } = useTasksKanban(projectId)
+    const { data: tasksByStatus, isLoading, error } = useTasksKanban(projectId, department)
     const updateStatus = useUpdateTaskStatus()
 
     // Real-time subscription
@@ -435,10 +438,12 @@ export function KanbanBoard({ projectId, onTaskClick, onCreateTask }: KanbanBoar
                         </SelectContent>
                     </Select>
 
-                    <Button onClick={() => onCreateTask?.()}>
-                        <Plus className="h-4 w-4 me-2" />
-                        {isAr ? 'مهمة جديدة' : 'New Task'}
-                    </Button>
+                    {!readOnly && (
+                        <Button onClick={() => onCreateTask?.()}>
+                            <Plus className="h-4 w-4 me-2" />
+                            {isAr ? 'مهمة جديدة' : 'New Task'}
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -449,9 +454,10 @@ export function KanbanBoard({ projectId, onTaskClick, onCreateTask }: KanbanBoar
                         key={column.id}
                         column={column}
                         tasks={filteredTasks?.[column.id] ?? []}
+                        readOnly={readOnly}
                         onTaskClick={onTaskClick}
                         onCreateTask={() => onCreateTask?.(column.id)}
-                        onDropTask={handleDropTask}
+                        onDropTask={readOnly ? undefined : handleDropTask}
                     />
                 ))}
             </div>

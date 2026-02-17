@@ -145,10 +145,15 @@ interface CreateTransactionInput {
     amount: number
     description?: string
     category?: string
+    sub_category?: string
     receipt_url?: string
     client_id?: string
     project_id?: string
+    client_account_id?: string
+    visible_to_client?: boolean
+    notes?: string
     created_by?: string
+    transaction_date?: string
 }
 
 /**
@@ -170,7 +175,82 @@ export function useCreateTransaction() {
             return data as unknown as Transaction
         },
         onSuccess: () => {
-            // Invalidate both treasury and transactions
+            // Invalidate treasury, transactions, and client accounts
+            queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
+            queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
+            queryClient.invalidateQueries({ queryKey: ['client-accounts'] })
+        },
+    })
+}
+
+/**
+ * Hook to update a transaction (Admin only)
+ */
+export function useUpdateTransaction() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({
+            id,
+            updates
+        }: {
+            id: string
+            updates: Partial<Omit<Transaction, 'id' | 'created_at'>>
+        }) => {
+            const { data, error } = await (supabase
+                .from('transactions') as any)
+                .update(updates)
+                .eq('id', id)
+                .select()
+                .single()
+
+            if (error) throw error
+            return data as unknown as Transaction
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
+            queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
+            queryClient.invalidateQueries({ queryKey: ['client-accounts'] })
+        },
+    })
+}
+
+/**
+ * Hook to approve a transaction (Admin only)
+ */
+export function useApproveTransaction() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({
+            transactionId,
+            visibleToClient = true
+        }: {
+            transactionId: string
+            visibleToClient?: boolean
+        }) => {
+            // Get current user for approved_by
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('User not authenticated')
+
+            const { data, error } = await (supabase
+                .from('transactions') as any)
+                .update({
+                    is_approved: true,
+                    approved_by: user.id,
+                    approved_at: new Date().toISOString(),
+                    visible_to_client: visibleToClient
+                })
+                .eq('id', transactionId)
+                .select()
+                .single()
+
+            if (error) throw error
+            return data as unknown as Transaction
+        },
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
             queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
         },
