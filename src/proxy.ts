@@ -26,6 +26,9 @@ export async function proxy(request: NextRequest) {
     const isProtectedRoute = protectedPrefixes.some(prefix => logicalPath.startsWith(prefix));
 
     // 3. Refresh Supabase auth session
+    // This ensures the auth token in cookies is always fresh,
+    // so Server Components get a valid session on first load
+    // (without requiring a manual browser refresh).
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -35,6 +38,7 @@ export async function proxy(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
+                    // Write refreshed cookies onto the intl response
                     cookiesToSet.forEach(({ name, value, options }) =>
                         intlResponse.cookies.set(name, value, options)
                     )
@@ -61,6 +65,11 @@ export async function proxy(request: NextRequest) {
         }
     } else {
         // For non-protected routes, still refresh the token silently
+        // Calling getUser() triggers the token refresh if needed.
+        // We don't need the result — just the side-effect of refreshing cookies.
+        // Wrapped in try/catch so a temporary Supabase network outage doesn't
+        // crash the middleware — the dashboard layout will independently verify
+        // auth and redirect unauthenticated users.
         try {
             await supabase.auth.getUser()
         } catch {

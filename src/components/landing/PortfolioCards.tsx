@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Play, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 import { Link } from '@/i18n/navigation'
+import GlareHover from '../ui/GlareHover'
 
 function isVideoUrl(url?: string): boolean {
     if (!url) return false
@@ -29,7 +30,13 @@ export function PortfolioItem({ item, index, gradientColor, isPlaying, onPlay }:
     const isExternal = isExternalUrl(item.link)
 
     const cardContent = (
-        <>
+        <GlareHover
+            glareColor="#ffffff"
+            glareOpacity={0.2}
+            glareAngle={-45}
+            glareSize={250}
+            className="h-full"
+        >
             {/* Background: Image, Video, or Gradient fallback */}
             {hasMedia && isVideo ? (
                 isPlaying ? (
@@ -85,10 +92,10 @@ export function PortfolioItem({ item, index, gradientColor, isPlaying, onPlay }:
                     </div>
                 </div>
             )}
-        </>
+        </GlareHover>
     )
 
-    const cardClasses = "group relative aspect-[4/3] rounded-3xl overflow-hidden cursor-pointer"
+    const cardClasses = "group relative aspect-[4/3] rounded-3xl overflow-hidden cursor-pointer glass glass-hover"
 
     return (
         <motion.div
@@ -136,20 +143,28 @@ export function FallbackPortfolioItem({ project, index, isAr }: FallbackPortfoli
             viewport={{ once: true }}
             transition={{ delay: index * 0.1 }}
             whileHover={{ y: -8 }}
-            className="group relative aspect-[4/3] rounded-3xl overflow-hidden cursor-pointer"
+            className="group relative aspect-[4/3] rounded-3xl overflow-hidden cursor-pointer glass glass-hover"
         >
-            <div className={`absolute inset-0 bg-gradient-to-br ${project.color} opacity-80`} />
-            <div className="absolute inset-0 p-6 flex flex-col justify-end bg-gradient-to-t from-black/60 to-transparent">
-                <span className="text-xs font-semibold text-white/80 mb-2">
-                    {isAr ? project.categoryAr : project.category}
-                </span>
-                <h3 className="text-xl font-bold text-white">{isAr ? project.titleAr : project.titleEn}</h3>
-            </div>
-            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <ArrowRight className="h-6 w-6 text-white" />
+            <GlareHover
+                glareColor="#ffffff"
+                glareOpacity={0.2}
+                glareAngle={-45}
+                glareSize={250}
+                className="h-full"
+            >
+                <div className={`absolute inset-0 bg-gradient-to-br ${project.color} opacity-80`} />
+                <div className="absolute inset-0 p-6 flex flex-col justify-end bg-gradient-to-t from-black/60 to-transparent">
+                    <span className="text-xs font-semibold text-white/80 mb-2">
+                        {isAr ? project.categoryAr : project.category}
+                    </span>
+                    <h3 className="text-xl font-bold text-white">{isAr ? project.titleAr : project.titleEn}</h3>
                 </div>
-            </div>
+                <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                        <ArrowRight className="h-6 w-6 text-white" />
+                    </div>
+                </div>
+            </GlareHover>
         </motion.div>
     )
 }

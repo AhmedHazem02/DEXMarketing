@@ -37,7 +37,7 @@ export function CTASection() {
                     className="mx-auto max-w-5xl"
                 >
                     {/* Glassy card */}
-                    <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] p-14 backdrop-blur-sm md:p-24">
+                    <div className="glass-premium relative overflow-hidden rounded-3xl p-14 md:p-24">
                         {/* Inner glow */}
                         <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/[0.06] via-transparent to-orange-500/[0.04]" />
 

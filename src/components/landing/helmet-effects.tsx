@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface HelmetEffectsProps {
     /** Enable/disable particle effects */
@@ -12,34 +12,58 @@ interface HelmetEffectsProps {
     showLightRays?: boolean
     /** Enable/disable dynamic reflections */
     showReflections?: boolean
+    /** Current ambient light intensity (0 to 1) */
+    ambientLight?: any
 }
 
-export function HelmetEffects({ 
-    showParticles = true, 
-    showGlow = true, 
+export function HelmetEffects({
+    showParticles = true,
+    showGlow = true,
     showLightRays = true,
     showReflections = true,
+    ambientLight = 1,
 }: HelmetEffectsProps) {
     const containerRef = useRef<HTMLDivElement>(null)
-    
+
+    // Only render decorative random elements on client to avoid hydration mismatch
+    const [isMounted, setIsMounted] = useState(false)
+    useEffect(() => { setIsMounted(true) }, [])
+
     // Mouse tracking for dynamic lighting
     const mouseX = useMotionValue(0)
     const mouseY = useMotionValue(0)
-    
+
     // Smooth spring animation for mouse movement
     const springConfig = { damping: 25, stiffness: 150 }
     const smoothMouseX = useSpring(mouseX, springConfig)
     const smoothMouseY = useSpring(mouseY, springConfig)
-    
+
+    // Scale reflecting opacity by ambient light intensity
+    // Handles both raw numbers and motion values
+    const reflectionOpacity = useTransform(
+        ambientLight instanceof Object && 'get' in ambientLight ? ambientLight : useMotionValue(ambientLight || 1),
+        (val: number) => Math.min(0.95, (val as number) * 1.5) // Boost visibility slightly but bound at 0.95
+    )
+
     // Transform mouse position to light position
     const lightX = useTransform(smoothMouseX, [-1, 1], [-30, 30])
     const lightY = useTransform(smoothMouseY, [-1, 1], [-20, 20])
-    
+
     // Reflection position
     const reflectionX = useTransform(smoothMouseX, [-1, 1], [42, 52])
     const reflectionRotate = useTransform(smoothMouseX, [-1, 1], [-35, -15])
-    
+
+    const [containerRect, setContainerRect] = useState({ left: 0, top: 0, width: 0, height: 0 })
+
     useEffect(() => {
+        const updateRect = () => {
+            if (containerRef.current) {
+                setContainerRect(containerRef.current.getBoundingClientRect())
+            }
+        }
+        updateRect()
+        window.addEventListener('resize', updateRect)
+
         const handleMouseMove = (e: MouseEvent) => {
             if (!containerRef.current) return
             const rect = containerRef.current.getBoundingClientRect()
@@ -48,18 +72,21 @@ export function HelmetEffects({
             mouseX.set(x)
             mouseY.set(y)
         }
-        
+
         window.addEventListener('mousemove', handleMouseMove)
-        return () => window.removeEventListener('mousemove', handleMouseMove)
-    }, [mouseX, mouseY])
-    
+        return () => {
+            window.removeEventListener('resize', updateRect)
+            window.removeEventListener('mousemove', handleMouseMove)
+        }
+    }, [mouseX, mouseY]) // Removed containerRect from dependencies
+
     return (
         <div ref={containerRef} className="absolute inset-0">
             {/* Enhanced Dynamic Key Light */}
             {showGlow && (
                 <motion.div
                     className="absolute top-[8%] left-1/2 -translate-x-1/2 w-[200px] h-[200px] lg:top-[10%] lg:w-[280px] lg:h-[280px] rounded-full pointer-events-none"
-                    style={{ 
+                    style={{
                         x: lightX,
                         y: lightY,
                     }}
@@ -81,7 +108,7 @@ export function HelmetEffects({
                             filter: 'blur(45px)',
                         }}
                     />
-                    
+
                     {/* Inner Bright Core */}
                     <motion.div
                         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100px] h-[100px] lg:w-[140px] lg:h-[140px] rounded-full"
@@ -130,7 +157,7 @@ export function HelmetEffects({
                             boxShadow: '0 0 40px rgba(34,211,238,0.4)',
                         }}
                     />
-                    
+
                     {/* Bright Inner Core */}
                     <motion.div
                         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60px] h-[60px] lg:w-[90px] lg:h-[90px] rounded-full"
@@ -144,8 +171,8 @@ export function HelmetEffects({
                             ease: "easeInOut",
                         }}
                         style={{
-                            background: 'radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(34,211,238,0.6) 40%, transparent 70%)',
-                            filter: 'blur(15px)',
+                            background: 'radial-gradient(circle, rgba(255,255,255,0.45) 0%, rgba(34,211,238,0.4) 50%, transparent 85%)',
+                            filter: 'blur(20px)',
                         }}
                     />
                 </motion.div>
@@ -158,6 +185,7 @@ export function HelmetEffects({
                     style={{
                         left: reflectionX,
                         rotate: reflectionRotate,
+                        opacity: reflectionOpacity,
                     }}
                 >
                     {/* Main Specular Highlight */}
@@ -176,7 +204,7 @@ export function HelmetEffects({
                             filter: 'blur(18px)',
                         }}
                     />
-                    
+
                     {/* Sharp Bright Spot */}
                     <motion.div
                         className="absolute top-[20%] left-[30%] w-[25px] h-[35px] lg:w-[35px] lg:h-[50px] rounded-full"
@@ -206,6 +234,7 @@ export function HelmetEffects({
                         x: useTransform(smoothMouseX, [-1, 1], [10, -10]),
                         y: useTransform(smoothMouseY, [-1, 1], [5, -5]),
                         rotate: useTransform(smoothMouseX, [-1, 1], [10, -10]),
+                        opacity: useTransform(reflectionOpacity, (v) => (v as number) * 0.6),
                     }}
                     animate={{
                         opacity: [0.3, 0.6, 0.3],
@@ -252,7 +281,7 @@ export function HelmetEffects({
                 const radius = 150
                 const x = Math.cos((angle * Math.PI) / 180) * radius
                 const y = Math.sin((angle * Math.PI) / 180) * radius
-                
+
                 return (
                     <motion.div
                         key={`particle-${i}`}
@@ -260,10 +289,10 @@ export function HelmetEffects({
                         style={{
                             left: `calc(50% + ${x}px)`,
                             top: `calc(12% + ${y}px)`,
-                            background: i % 2 === 0 
+                            background: i % 2 === 0
                                 ? 'radial-gradient(circle, rgba(34,211,238,1) 0%, rgba(59,130,246,0.8) 50%, transparent 100%)'
                                 : 'radial-gradient(circle, rgba(251,191,36,1) 0%, rgba(251,146,60,0.8) 50%, transparent 100%)',
-                            boxShadow: i % 2 === 0 
+                            boxShadow: i % 2 === 0
                                 ? '0 0 12px rgba(34,211,238,0.9), 0 0 6px rgba(34,211,238,0.6)'
                                 : '0 0 12px rgba(251,191,36,0.9), 0 0 6px rgba(251,191,36,0.6)',
                         }}
@@ -281,12 +310,12 @@ export function HelmetEffects({
                 )
             })}
 
-            {/* Floating Energy Particles - More dynamic */}
-            {showParticles && [...Array(12)].map((_, i) => {
+            {/* Floating Energy Particles - client only to avoid hydration mismatch */}
+            {isMounted && showParticles && [...Array(12)].map((_, i) => {
                 const startX = Math.random() * 120 - 60
                 const startY = 20 + Math.random() * 60
                 const isLeft = i % 2 === 0
-                
+
                 return (
                     <motion.div
                         key={`energy-${i}`}
@@ -294,7 +323,7 @@ export function HelmetEffects({
                         style={{
                             left: `calc(50% + ${startX}px)`,
                             top: `${startY}%`,
-                            background: isLeft 
+                            background: isLeft
                                 ? 'radial-gradient(circle, rgba(251,191,36,1) 0%, rgba(251,146,60,0.7) 50%, transparent 100%)'
                                 : 'radial-gradient(circle, rgba(34,211,238,1) 0%, rgba(59,130,246,0.7) 50%, transparent 100%)',
                             boxShadow: isLeft
@@ -389,7 +418,7 @@ export function HelmetEffects({
                         height: `${200 + i * 50}px`,
                         border: '1px solid',
                         borderColor: i % 2 === 0 ? 'rgba(34,211,238,0.3)' : 'rgba(251,191,36,0.25)',
-                        boxShadow: i % 2 === 0 
+                        boxShadow: i % 2 === 0
                             ? '0 0 15px rgba(34,211,238,0.2), inset 0 0 15px rgba(34,211,238,0.1)'
                             : '0 0 15px rgba(251,191,36,0.2), inset 0 0 15px rgba(251,191,36,0.1)',
                     }}
@@ -433,14 +462,14 @@ export function HelmetEffects({
                 </motion.div>
             )}
 
-            {/* Data stream lines - Enhanced with color variety */}
-            {[...Array(6)].map((_, i) => {
+            {/* Data stream lines - client only to avoid hydration mismatch */}
+            {isMounted && [...Array(6)].map((_, i) => {
                 const colors = [
                     { from: 'rgba(34,211,238,0)', mid: 'rgba(34,211,238,0.7)', to: 'rgba(34,211,238,0)' },
                     { from: 'rgba(251,191,36,0)', mid: 'rgba(251,191,36,0.7)', to: 'rgba(251,191,36,0)' },
                 ]
                 const colorSet = colors[i % 2]
-                
+
                 return (
                     <motion.div
                         key={`data-stream-${i}`}

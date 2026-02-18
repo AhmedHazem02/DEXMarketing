@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { useLocale } from 'next-intl'
 import { Quote, Star, Radio } from 'lucide-react'
+import GlareHover from '../ui/GlareHover'
 
 const TESTIMONIALS = [
     {
@@ -115,37 +116,45 @@ export function TestimonialsSection() {
                             {loopItems.map((testimonial, i) => (
                                 <div
                                     key={i}
-                                    className="group relative w-[380px] flex-shrink-0 rounded-3xl border border-white/[0.06] bg-white/[0.02] p-8 backdrop-blur-sm transition-colors duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]"
+                                    className="group relative w-[380px] flex-shrink-0 rounded-3xl glass glass-hover transition-colors duration-300"
                                 >
-                                    {/* Quote icon */}
-                                    <Quote className="mb-4 h-8 w-8 text-primary/20" />
+                                    <GlareHover
+                                        glareColor="#ffffff"
+                                        glareOpacity={0.1}
+                                        glareAngle={-30}
+                                        glareSize={150}
+                                        className="h-full p-8"
+                                    >
+                                        {/* Quote icon */}
+                                        <Quote className="mb-4 h-8 w-8 text-primary/20" />
 
-                                    {/* Text */}
-                                    <p className="mb-8 text-base leading-relaxed text-white/70">
-                                        {isAr ? testimonial.textAr : testimonial.textEn}
-                                    </p>
+                                        {/* Text */}
+                                        <p className="mb-8 text-base leading-relaxed text-white/70">
+                                            {isAr ? testimonial.textAr : testimonial.textEn}
+                                        </p>
 
-                                    {/* Footer */}
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-orange-500/80 text-sm font-bold text-white shadow-lg">
-                                            {(isAr ? testimonial.nameAr : testimonial.nameEn).charAt(0)}
-                                        </div>
-                                        <div>
-                                            <div className="text-sm font-bold text-white">
-                                                {isAr ? testimonial.nameAr : testimonial.nameEn}
+                                        {/* Footer */}
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-orange-500/80 text-sm font-bold text-white shadow-lg">
+                                                {(isAr ? testimonial.nameAr : testimonial.nameEn).charAt(0)}
                                             </div>
-                                            <div className="text-xs text-white/40">
-                                                {isAr ? testimonial.roleAr : testimonial.roleEn}
+                                            <div>
+                                                <div className="text-sm font-bold text-white">
+                                                    {isAr ? testimonial.nameAr : testimonial.nameEn}
+                                                </div>
+                                                <div className="text-xs text-white/40">
+                                                    {isAr ? testimonial.roleAr : testimonial.roleEn}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Stars */}
-                                    <div className="absolute end-6 top-8 flex gap-0.5">
-                                        {FIVE_STARS.map((_, j) => (
-                                            <Star key={j} className="h-3.5 w-3.5 fill-primary/70 text-primary/70" />
-                                        ))}
-                                    </div>
+                                        {/* Stars */}
+                                        <div className="absolute end-6 top-8 flex gap-0.5">
+                                            {FIVE_STARS.map((_, j) => (
+                                                <Star key={j} className="h-3.5 w-3.5 fill-primary/70 text-primary/70" />
+                                            ))}
+                                        </div>
+                                    </GlareHover>
                                 </div>
                             ))}
                         </motion.div>

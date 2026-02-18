@@ -3,7 +3,8 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { useLocale } from 'next-intl'
 import { Target, Lightbulb, Rocket, BarChart3 } from 'lucide-react'
-import { PROCESS_STATS as STATS_DATA } from '@/lib/constants/landing'
+import { PROCESS_STATS as STATS_DATA, Stat } from '../../lib/constants/landing'
+import GlareHover from '../ui/GlareHover'
 
 const PROCESS_STEPS = [
     {
@@ -79,21 +80,29 @@ export function ProcessSection() {
 
                         {/* Stats grid */}
                         <div className="grid grid-cols-2 gap-4">
-                            {STATS_DATA.map((stat, i) => (
+                            {STATS_DATA.map((stat: Stat, i: number) => (
                                 <motion.div
                                     key={stat.value}
                                     initial={{ opacity: 0, y: 20 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
                                     transition={{ delay: i * 0.1 }}
-                                    className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-sm"
+                                    className="rounded-2xl glass overflow-hidden"
                                 >
-                                    <div className="text-3xl font-black bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">
-                                        {stat.value}
-                                    </div>
-                                    <div className="mt-1 text-sm text-white/40">
-                                        {isAr ? stat.labelAr : stat.labelEn}
-                                    </div>
+                                    <GlareHover
+                                        glareColor="#ffffff"
+                                        glareOpacity={0.15}
+                                        glareAngle={45}
+                                        glareSize={200}
+                                        className="p-6"
+                                    >
+                                        <div className="text-3xl font-black bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">
+                                            {stat.value}
+                                        </div>
+                                        <div className="mt-1 text-sm text-white/40">
+                                            {isAr ? stat.labelAr : stat.labelEn}
+                                        </div>
+                                    </GlareHover>
                                 </motion.div>
                             ))}
                         </div>

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useLocale } from 'next-intl'
 import { Target, Eye, Sparkles } from 'lucide-react'
 import { GlowOrb, OrbitalRing, FloatingHexagon, DotGrid, GradientRing } from './floating-elements'
+import GlareHover from '../ui/GlareHover'
 
 export function AboutSection() {
   const locale = useLocale()
@@ -133,24 +134,32 @@ export function AboutSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="group relative p-8 rounded-2xl glass glass-hover transition-all duration-500 overflow-hidden"
+            className="group relative rounded-2xl glass glass-hover transition-all duration-500 overflow-hidden"
           >
-            {/* Subtle corner glow */}
-            <div className="absolute -top-10 -end-10 w-32 h-32 bg-[#22D3EE]/[0.06] blur-[60px] rounded-full group-hover:bg-[#22D3EE]/[0.1] transition-all duration-700" />
+            <GlareHover
+              glareColor="#ffffff"
+              glareOpacity={0.15}
+              glareAngle={-45}
+              glareSize={250}
+              className="p-8"
+            >
+              {/* Subtle corner glow */}
+              <div className="absolute -top-10 -end-10 w-32 h-32 bg-[#22D3EE]/[0.06] blur-[60px] rounded-full group-hover:bg-[#22D3EE]/[0.1] transition-all duration-700" />
 
-            <div className="relative z-10">
-              <div className="w-12 h-12 rounded-xl bg-[#22D3EE]/10 flex items-center justify-center text-[#22D3EE] mb-5 ring-1 ring-[#22D3EE]/10">
-                <Target className="h-6 w-6" />
+              <div className="relative z-10">
+                <div className="w-12 h-12 rounded-xl bg-[#22D3EE]/10 flex items-center justify-center text-[#22D3EE] mb-5 ring-1 ring-[#22D3EE]/10">
+                  <Target className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">
+                  {isAr ? 'مهمتنا' : 'Our Mission'}
+                </h3>
+                <p className="text-sm text-white/40 leading-relaxed">
+                  {isAr
+                    ? 'نسعى لتقديم حلول تسويقية وتقنية مبتكرة تساعد عملاءنا على النمو والتميز في السوق الرقمي المتغير باستمرار.'
+                    : 'We strive to deliver innovative marketing and tech solutions that help our clients grow and stand out in the ever-changing digital landscape.'}
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">
-                {isAr ? 'مهمتنا' : 'Our Mission'}
-              </h3>
-              <p className="text-sm text-white/40 leading-relaxed">
-                {isAr
-                  ? 'نسعى لتقديم حلول تسويقية وتقنية مبتكرة تساعد عملاءنا على النمو والتميز في السوق الرقمي المتغير باستمرار.'
-                  : 'We strive to deliver innovative marketing and tech solutions that help our clients grow and stand out in the ever-changing digital landscape.'}
-              </p>
-            </div>
+            </GlareHover>
           </motion.div>
 
           <motion.div
@@ -158,24 +167,32 @@ export function AboutSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="group relative p-8 rounded-2xl glass glass-hover transition-all duration-500 overflow-hidden"
+            className="group relative rounded-2xl glass glass-hover transition-all duration-500 overflow-hidden"
           >
-            {/* Subtle corner glow */}
-            <div className="absolute -top-10 -end-10 w-32 h-32 bg-[#A855F7]/[0.06] blur-[60px] rounded-full group-hover:bg-[#A855F7]/[0.1] transition-all duration-700" />
+            <GlareHover
+              glareColor="#ffffff"
+              glareOpacity={0.15}
+              glareAngle={-45}
+              glareSize={250}
+              className="p-8"
+            >
+              {/* Subtle corner glow */}
+              <div className="absolute -top-10 -end-10 w-32 h-32 bg-[#A855F7]/[0.06] blur-[60px] rounded-full group-hover:bg-[#A855F7]/[0.1] transition-all duration-700" />
 
-            <div className="relative z-10">
-              <div className="w-12 h-12 rounded-xl bg-[#A855F7]/10 flex items-center justify-center text-[#A855F7] mb-5 ring-1 ring-[#A855F7]/10">
-                <Eye className="h-6 w-6" />
+              <div className="relative z-10">
+                <div className="w-12 h-12 rounded-xl bg-[#A855F7]/10 flex items-center justify-center text-[#A855F7] mb-5 ring-1 ring-[#A855F7]/10">
+                  <Eye className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">
+                  {isAr ? 'رؤيتنا' : 'Our Vision'}
+                </h3>
+                <p className="text-sm text-white/40 leading-relaxed">
+                  {isAr
+                    ? 'أن نكون الشريك الرقمي الأول لكل براند يطمح للتميز والريادة في المنطقة العربية وخارجها.'
+                    : 'To be the #1 digital partner for every brand that aspires to excellence and leadership in the Arab region and beyond.'}
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">
-                {isAr ? 'رؤيتنا' : 'Our Vision'}
-              </h3>
-              <p className="text-sm text-white/40 leading-relaxed">
-                {isAr
-                  ? 'أن نكون الشريك الرقمي الأول لكل براند يطمح للتميز والريادة في المنطقة العربية وخارجها.'
-                  : 'To be the #1 digital partner for every brand that aspires to excellence and leadership in the Arab region and beyond.'}
-              </p>
-            </div>
+            </GlareHover>
           </motion.div>
         </div>
       </div>
