@@ -247,7 +247,7 @@ useGLTF.preload(MODEL_PATH)
 
 function Scene() {
   return (
-    <>
+    <Suspense fallback={null}>
       {/* City HDR: subtle PBR reflections on visor glass */}
       <Environment preset="city" environmentIntensity={0.22} background={false} />
 
@@ -257,10 +257,8 @@ function Scene() {
       {/* Orbiting sweep light */}
       <SweepLight />
 
-      <Suspense fallback={null}>
-        <AstronautModel />
-      </Suspense>
-    </>
+      <AstronautModel />
+    </Suspense>
   )
 }
 
