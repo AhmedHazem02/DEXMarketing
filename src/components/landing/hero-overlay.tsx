@@ -5,9 +5,15 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, ArrowRight, Rocket } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { useLocale } from 'next-intl'
-import { useRef } from 'react'
+import { useRef, Suspense } from 'react'
+import dynamic from 'next/dynamic'
 import { useIntroStore } from '@/store/intro-store'
 import { HERO_STATS as STATS } from '@/lib/constants/landing'
+
+const Hero3D = dynamic(() => import('../scene/Hero3D'), {
+    ssr: false,
+    loading: () => <div className="w-full h-full rounded-2xl bg-[#050505]" />,
+})
 
 /* ---------- floating mission badges ---------- */
 const BADGES_EN = ['Branding', 'Social Media', 'Video', 'SEO', 'Web']
@@ -168,8 +174,12 @@ export function HeroOverlay() {
                     </motion.div>
                 </div>
 
-                {/* Spacer Column for the Astronaut Visual */}
-                <div className="hidden lg:block h-full w-full pointer-events-none" aria-hidden="true" />
+                {/* 3D Model Column — same position/size as the old astronaut image */}
+                <div className="hidden lg:flex items-center justify-center h-full w-full pointer-events-none">
+                    <div className="w-full max-w-[750px] aspect-square">
+                        <Hero3D />
+                    </div>
+                </div>
             </div >
 
             {/* Badges / Floating Elements - Positioned relative to the section/viewport now */}
