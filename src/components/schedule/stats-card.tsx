@@ -20,14 +20,14 @@ export function StatsCard({ icon, label, value, color, active, onClick, pulse }:
         <button
             onClick={onClick}
             className={cn(
-                'relative flex items-center gap-3 p-3 sm:p-4 rounded-2xl border transition-all duration-200',
-                'bg-card/50 hover:bg-card hover:shadow-lg',
+                'relative flex items-center gap-3 p-3 sm:p-4 rounded-2xl transition-all duration-300',
+                'glass-dashboard hover:shadow-lg hover:translate-y-[-2px]',
                 colors.border,
                 active && `ring-2 ${colors.ring} ${colors.bg}`,
             )}
         >
             <div className={cn(
-                'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-sm',
                 colors.bg
             )}>
                 <span className={colors.icon}>

@@ -33,13 +33,13 @@ export function AboutSection() {
           transition={{ duration: 0.7 }}
           className="text-center mb-16"
         >
-          <span className="text-xs font-mono text-[#F2CB05]/70 uppercase tracking-[0.3em] mb-4 block">
-            {isAr ? 'تعرف علينا' : 'Get to Know Us'}
+          <span className="section-label mb-6 inline-flex">
+            {isAr ? '02 — تعرف علينا' : '02 — Get to Know Us'}
           </span>
-          <h2 className="text-4xl sm:text-5xl font-black text-white leading-tight font-serif">
+          <h2 className="mt-6 text-4xl sm:text-5xl font-black text-white leading-tight font-serif text-glow-white">
             {isAr ? 'من نحن' : 'About DEX'}
           </h2>
-          <div className="mt-4 mx-auto w-16 h-1 bg-gradient-to-r from-[#F2CB05] to-[#FFE664] rounded-full" />
+          <div className="mt-5 mx-auto w-20 h-[2px] bg-gradient-to-r from-transparent via-[#F2CB05]/60 to-transparent rounded-full" />
         </motion.div>
 
         {/* Main Content */}

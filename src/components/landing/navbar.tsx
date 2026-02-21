@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { Link } from '@/i18n/navigation'
 import { useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -30,6 +30,10 @@ export function Navbar({ initialUser, initialRole }: NavbarProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     const { user, dashboardLink, handleLogout } = useAuthDashboardLink(initialUser, initialRole)
+
+    // Scroll progress for the thin bottom bar
+    const { scrollYProgress } = useScroll()
+    const progressWidth = useTransform(scrollYProgress, [0, 1], ['0%', '100%'])
 
     // Throttled scroll handler - runs at most once every 150ms
     const handleScroll = useThrottle(() => {
@@ -127,6 +131,12 @@ export function Navbar({ initialUser, initialRole }: NavbarProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Scroll progress bar */}
+            <motion.div
+                className="absolute bottom-0 left-0 h-[2px] origin-left bg-gradient-to-r from-primary via-yellow-300 to-orange-500"
+                style={{ width: progressWidth, opacity: isScrolled ? 1 : 0 }}
+            />
 
             {/* Mobile Menu */}
             <AnimatePresence>

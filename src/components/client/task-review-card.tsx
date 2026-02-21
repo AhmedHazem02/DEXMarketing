@@ -89,7 +89,7 @@ export function TaskReviewCard({ task }: TaskReviewCardProps) {
     return (
         <>
             <Card
-                className="hover:border-primary/50 transition-all cursor-pointer group"
+                className="hover:border-primary/40 hover:shadow-[0_0_24px_rgba(251,191,36,0.08)] hover:translate-y-[-2px] transition-all duration-300 cursor-pointer group"
                 onClick={() => setIsReviewDialogOpen(true)}
             >
                 <CardHeader className="pb-3">

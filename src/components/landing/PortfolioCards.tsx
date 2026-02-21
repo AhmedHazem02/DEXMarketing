@@ -1,3 +1,4 @@
+'use client'
 
 import { motion } from 'framer-motion'
 import { Play, ArrowRight } from 'lucide-react'
@@ -31,10 +32,10 @@ export function PortfolioItem({ item, index, gradientColor, isPlaying, onPlay }:
 
     const cardContent = (
         <GlareHover
-            glareColor="#ffffff"
-            glareOpacity={0.2}
+            glareColor="#f2cb05"
+            glareOpacity={0.15}
             glareAngle={-45}
-            glareSize={250}
+            glareSize={300}
             className="h-full"
         >
             {/* Background: Image, Video, or Gradient fallback */}
@@ -54,7 +55,7 @@ export function PortfolioItem({ item, index, gradientColor, isPlaying, onPlay }:
                             className="absolute inset-0 flex items-center justify-center z-10"
                             onClick={onPlay}
                         >
-                            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors">
+                            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center hover:bg-white/30 hover:border-white/40 transition-all duration-300 shadow-lg">
                                 <Play className="h-8 w-8 text-white fill-white" />
                             </div>
                         </button>
@@ -65,29 +66,33 @@ export function PortfolioItem({ item, index, gradientColor, isPlaying, onPlay }:
                     src={item.media}
                     alt={item.title || ''}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     loading="lazy"
                 />
             ) : (
-                <div className={`absolute inset-0 bg-gradient-to-br ${gradientColor} opacity-80`} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${gradientColor} opacity-80 transition-opacity duration-500 group-hover:opacity-90`} />
             )}
 
-            {/* Content Overlay */}
-            <div className="absolute inset-0 p-6 flex flex-col justify-end bg-gradient-to-t from-black/60 to-transparent">
+            {/* Rich content overlay */}
+            <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6">
                 {item.category && (
-                    <span className="text-xs font-semibold text-white/80 mb-2">{item.category}</span>
+                    <span className="mb-2 inline-block self-start rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur-sm">
+                        {item.category}
+                    </span>
                 )}
                 <h3 className="text-xl font-bold text-white">{item.title || ''}</h3>
                 {item.description && (
-                    <p className="text-sm text-white/70 mt-1 line-clamp-2">{item.description}</p>
+                    <p className="mt-1 text-sm text-white/65 line-clamp-2 translate-y-1 opacity-0 transition-all duration-400 group-hover:translate-y-0 group-hover:opacity-100">
+                        {item.description}
+                    </p>
                 )}
             </div>
 
-            {/* Hover Overlay */}
+            {/* Hover overlay with glow */}
             {!isPlaying && (
-                <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <div className="absolute inset-0 bg-primary/15 opacity-0 group-hover:opacity-100 transition-opacity duration-400 flex items-center justify-center">
+                    <div className="w-13 h-13 rounded-full border border-white/30 bg-white/15 backdrop-blur-md flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.3)] scale-75 group-hover:scale-100 transition-transform duration-400">
                         <ArrowRight className="h-6 w-6 text-white" />
                     </div>
                 </div>
@@ -95,7 +100,7 @@ export function PortfolioItem({ item, index, gradientColor, isPlaying, onPlay }:
         </GlareHover>
     )
 
-    const cardClasses = "group relative aspect-[4/3] rounded-3xl overflow-hidden cursor-pointer glass glass-hover"
+    const cardClasses = "group relative aspect-[4/3] rounded-3xl overflow-hidden cursor-pointer glass-card"
 
     return (
         <motion.div
@@ -103,7 +108,6 @@ export function PortfolioItem({ item, index, gradientColor, isPlaying, onPlay }:
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: index * 0.1 }}
-            whileHover={{ y: -8 }}
             className={cardClasses}
         >
             {item.link ? (
@@ -142,25 +146,29 @@ export function FallbackPortfolioItem({ project, index, isAr }: FallbackPortfoli
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: index * 0.1 }}
-            whileHover={{ y: -8 }}
-            className="group relative aspect-[4/3] rounded-3xl overflow-hidden cursor-pointer glass glass-hover"
+            className="group relative aspect-[4/3] rounded-3xl overflow-hidden cursor-pointer glass-card"
         >
             <GlareHover
-                glareColor="#ffffff"
-                glareOpacity={0.2}
+                glareColor="#f2cb05"
+                glareOpacity={0.15}
                 glareAngle={-45}
-                glareSize={250}
+                glareSize={300}
                 className="h-full"
             >
-                <div className={`absolute inset-0 bg-gradient-to-br ${project.color} opacity-80`} />
-                <div className="absolute inset-0 p-6 flex flex-col justify-end bg-gradient-to-t from-black/60 to-transparent">
-                    <span className="text-xs font-semibold text-white/80 mb-2">
+                {/* Gradient BG */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${project.color} opacity-80 transition-opacity duration-500 group-hover:opacity-90`} />
+
+                {/* Rich content overlay */}
+                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/25 to-transparent p-6">
+                    <span className="mb-2 inline-block self-start rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur-sm">
                         {isAr ? project.categoryAr : project.category}
                     </span>
                     <h3 className="text-xl font-bold text-white">{isAr ? project.titleAr : project.titleEn}</h3>
                 </div>
-                <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+
+                {/* Hover glow overlay */}
+                <div className="absolute inset-0 bg-primary/15 opacity-0 group-hover:opacity-100 transition-opacity duration-400 flex items-center justify-center">
+                    <div className="w-13 h-13 rounded-full border border-white/30 bg-white/15 backdrop-blur-md flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.3)] scale-75 group-hover:scale-100 transition-transform duration-400">
                         <ArrowRight className="h-6 w-6 text-white" />
                     </div>
                 </div>

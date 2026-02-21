@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { useLocale } from 'next-intl'
-import { Megaphone, Palette, Video, TrendingUp, Camera, PenTool, Sparkles, LucideIcon } from 'lucide-react'
+import { Megaphone, Palette, Video, TrendingUp, Camera, PenTool, LucideIcon } from 'lucide-react'
 import { usePage } from '@/hooks/use-cms'
 import { ServiceCard, FallbackServiceCard } from './ServiceCards'
 
@@ -122,24 +122,16 @@ export function ServicesSection() {
                     viewport={{ once: true, margin: '-100px' }}
                     className="mb-24 text-center"
                 >
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/20 bg-primary/[0.08]"
-                    >
-                        <Sparkles className="h-7 w-7 text-primary" />
-                    </motion.div>
-                    <span className="mb-4 inline-block text-sm font-bold uppercase tracking-[0.25em] text-primary">
-                        {isAr ? 'ترسانة الخدمات' : 'Our Arsenal'}
+                    <span className="section-label mb-6 inline-flex">
+                        {isAr ? '03 — ترسانة الخدمات' : '03 — Our Arsenal'}
                     </span>
-                    <h2 className="text-4xl font-black md:text-5xl lg:text-6xl">
+                    <h2 className="mt-6 text-4xl font-black md:text-5xl lg:text-7xl text-glow-white">
                         {isAr ? 'كل ما تحتاجه ' : 'Everything You '}
                         <span className="bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">
-                            {isAr ? 'للنجاح' : 'Need'}
+                            {isAr ? 'للنجاح' : 'Need to Win'}
                         </span>
                     </h2>
-                    <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
+                    <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground leading-relaxed">
                         {isAr
                             ? 'أدوات وخدمات متكاملة تدفع مشروعك من الأرض إلى النجوم'
                             : 'A complete suite of tools to launch your brand from ground to orbit'}

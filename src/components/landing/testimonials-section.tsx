@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 import { useLocale } from 'next-intl'
-import { Quote, Star, Radio } from 'lucide-react'
+import { Quote, Star } from 'lucide-react'
 import GlareHover from '../ui/GlareHover'
 
 const TESTIMONIALS = [
@@ -67,11 +67,15 @@ export function TestimonialsSection() {
     const loopItems = [...TESTIMONIALS, ...TESTIMONIALS]
 
     return (
-        <section id="testimonials" className="relative overflow-hidden py-40">
+        <section id="testimonials" className="relative overflow-hidden py-40 bg-[#022026]">
             {/* Background */}
             <div className="pointer-events-none absolute inset-0">
-                <div className="absolute left-1/2 top-0 h-[1px] w-[60%] -translate-x-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                <div className="absolute -left-20 top-1/2 h-[500px] w-[500px] rounded-full bg-primary/[0.02] blur-[150px]" />
+                <div className="section-divider absolute top-0 left-0 right-0" />
+                <div className="section-divider absolute bottom-0 left-0 right-0" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#022026] via-[#021c22] to-[#022026]" />
+                <div className="absolute -left-20 top-1/3 h-[600px] w-[600px] rounded-full bg-primary/[0.025] blur-[160px]" />
+                <div className="absolute -right-20 bottom-1/3 h-[500px] w-[500px] rounded-full bg-purple-500/[0.015] blur-[160px]" />
+                <div className="absolute inset-0 grid-pattern opacity-15" />
             </div>
 
             <div className="container relative z-10 mx-auto px-6">
@@ -82,18 +86,10 @@ export function TestimonialsSection() {
                     viewport={{ once: true, margin: '-100px' }}
                     className="mb-20 text-center"
                 >
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/20 bg-primary/[0.08]"
-                    >
-                        <Radio className="h-7 w-7 text-primary" />
-                    </motion.div>
-                    <span className="mb-4 inline-block text-sm font-bold uppercase tracking-[0.25em] text-primary">
-                        {isAr ? 'إشارات واردة' : 'Incoming Signals'}
+                    <span className="section-label mb-6 inline-flex">
+                        {isAr ? '06 — إشارات واردة' : '06 — Incoming Signals'}
                     </span>
-                    <h2 className="text-4xl font-black md:text-6xl lg:text-7xl">
+                    <h2 className="mt-6 text-4xl font-black md:text-6xl lg:text-7xl text-glow-white">
                         {isAr ? 'ماذا يقول ' : 'What Clients '}
                         <span className="bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">
                             {isAr ? 'عملاؤنا' : 'Transmit'}

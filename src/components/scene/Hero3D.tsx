@@ -249,7 +249,10 @@ function Scene() {
   return (
     <Suspense fallback={null}>
       {/* City HDR: subtle PBR reflections on visor glass */}
-      <Environment preset="city" environmentIntensity={0.22} background={false} />
+      <Environment preset="city" environmentIntensity={0.25} background={false} />
+
+      {/* Very faint warm fill from below for rim separation */}
+      <pointLight color="#fbbf24" intensity={3} position={[0, -6, 2]} distance={12} decay={2} />
 
       {/* Mouse flashlight */}
       <MouseLight />
@@ -297,9 +300,9 @@ export default function Hero3D() {
      * The pseudo-element glow is a CSS radial gradient behind the canvas.
      */
     <motion.div
-      className="relative w-full h-full bg-black overflow-hidden"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
+      className="relative w-full h-full bg-black overflow-hidden rounded-3xl"
+      initial={{ opacity: 0, y: 30, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* 6 · Background glow — rim light illusion from behind */}
@@ -308,9 +311,33 @@ export default function Hero3D() {
         style={{
           position:   'absolute',
           inset:      0,
-          background: 'radial-gradient(ellipse 55% 60% at 50% 40%, rgba(200,220,255,0.07) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 55% 60% at 50% 40%, rgba(200,220,255,0.09) 0%, transparent 70%)',
           pointerEvents: 'none',
           zIndex:     1,
+        }}
+      />
+
+      {/* Side accent glow - golden warm left */}
+      <div
+        aria-hidden="true"
+        style={{
+          position:  'absolute',
+          inset:     0,
+          background:'radial-gradient(ellipse 35% 50% at 15% 50%, rgba(251,191,36,0.04) 0%, transparent 60%)',
+          pointerEvents: 'none',
+          zIndex:    1,
+        }}
+      />
+
+      {/* Side accent glow - blue cold right */}
+      <div
+        aria-hidden="true"
+        style={{
+          position:  'absolute',
+          inset:     0,
+          background:'radial-gradient(ellipse 35% 50% at 85% 50%, rgba(59,130,246,0.03) 0%, transparent 60%)',
+          pointerEvents: 'none',
+          zIndex:    1,
         }}
       />
 
@@ -327,12 +354,24 @@ export default function Hero3D() {
         }}
       />
 
+      {/* Vignette overlay for depth */}
+      <div
+        aria-hidden="true"
+        style={{
+          position:  'absolute',
+          inset:     0,
+          background:'radial-gradient(ellipse 70% 70% at 50% 50%, transparent 50%, rgba(0,0,0,0.4) 100%)',
+          pointerEvents: 'none',
+          zIndex:    3,
+        }}
+      />
+
       {/* Keyframe injection */}
       <style>{`
         @keyframes nebulaPulse {
           0%,   44%  { opacity: 0; }
-          50%         { opacity: 1; background: radial-gradient(ellipse 42% 48% at 50% 36%, rgba(192,38,211,0.18) 0%, transparent 65%); }
-          65%,  82%  { opacity: 1; background: radial-gradient(ellipse 42% 48% at 50% 36%, rgba(236,72,153,0.15) 0%, transparent 65%); }
+          50%         { opacity: 1; background: radial-gradient(ellipse 42% 48% at 50% 36%, rgba(192,38,211,0.20) 0%, transparent 65%); }
+          65%,  82%  { opacity: 1; background: radial-gradient(ellipse 42% 48% at 50% 36%, rgba(236,72,153,0.17) 0%, transparent 65%); }
           92%,  100% { opacity: 0; }
         }
       `}</style>
@@ -344,7 +383,7 @@ export default function Hero3D() {
           antialias:           true,
           alpha:               false,
           toneMapping:         THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.0,
+          toneMappingExposure: 1.05,
         }}
         dpr={[1, 2]}
         style={{ position: 'relative', zIndex: 2, background: '#000000' }}

@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 
 interface HelmetEffectsProps {
@@ -8,21 +8,27 @@ interface HelmetEffectsProps {
     showGlow?: boolean
     showLightRays?: boolean
     showReflections?: boolean
-    ambientLight?: any
+    ambientLight?: number | MotionValue<number>
 }
 
-// Pre-generate stable random positions outside component
+/* Seeded RNG — deterministic, prevents hydration mismatch */
+function seededRandom(seed: number): number {
+    const x = Math.sin(seed * 9301 + 49297) * 49297
+    return x - Math.floor(x)
+}
+
+// Pre-generate stable positions using seeded RNG — no hydration mismatch
 const ENERGY_PARTICLES = Array.from({ length: 8 }, (_, i) => ({
-    startX: Math.random() * 100 - 50,
-    startY: 20 + Math.random() * 55,
+    startX: seededRandom(i * 5 + 1) * 100 - 50,
+    startY: 20 + seededRandom(i * 5 + 2) * 55,
     isLeft: i % 2 === 0,
-    driftX: (Math.random() - 0.5) * 35,
-    duration: 4 + Math.random() * 2,
+    driftX: (seededRandom(i * 5 + 3) - 0.5) * 35,
+    duration: 4 + seededRandom(i * 5 + 4) * 2,
 }))
 
 const DATA_STREAMS = Array.from({ length: 4 }, (_, i) => ({
-    width: 35 + Math.random() * 45,
-    left: 42 + Math.random() * 12,
+    width: 35 + seededRandom(i * 3 + 1) * 45,
+    left: 42 + seededRandom(i * 3 + 2) * 12,
     isGold: i % 2 === 0,
 }))
 
@@ -44,15 +50,20 @@ export function HelmetEffects({
     const smoothMouseX = useSpring(mouseX, springConfig)
     const smoothMouseY = useSpring(mouseY, springConfig)
 
-    const reflectionOpacity = useTransform(
-        ambientLight instanceof Object && 'get' in ambientLight ? ambientLight : useMotionValue(ambientLight || 1),
-        (val: number) => Math.min(0.9, val * 1.5)
-    )
+    // Always call hooks unconditionally — resolves Rules of Hooks violation
+    const fallbackAmbient = useMotionValue(typeof ambientLight === 'number' ? ambientLight : 1)
+    const resolvedAmbient = (ambientLight && typeof ambientLight === 'object' && 'get' in ambientLight)
+        ? (ambientLight as MotionValue<number>)
+        : fallbackAmbient
+    const reflectionOpacity = useTransform(resolvedAmbient, (val: number) => Math.min(0.9, val * 1.5))
 
     const lightX = useTransform(smoothMouseX, [-1, 1], [-30, 30])
     const lightY = useTransform(smoothMouseY, [-1, 1], [-20, 20])
     const reflectionX = useTransform(smoothMouseX, [-1, 1], [42, 52])
     const reflectionRotate = useTransform(smoothMouseX, [-1, 1], [-35, -15])
+    // Pre-computed transforms for conditional JSX — hooks must not be called inside conditions
+    const visorLightX = useTransform(smoothMouseX, [-1, 1], [-15, 15])
+    const visorLightY = useTransform(smoothMouseY, [-1, 1], [-10, 10])
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -99,8 +110,8 @@ export function HelmetEffects({
                 <motion.div
                     className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[120px] h-[120px] lg:top-[12%] lg:w-[180px] lg:h-[180px] rounded-full pointer-events-none"
                     style={{
-                        x: useTransform(smoothMouseX, [-1, 1], [-15, 15]),
-                        y: useTransform(smoothMouseY, [-1, 1], [-10, 10]),
+                        x: visorLightX,
+                        y: visorLightY,
                     }}
                 >
                     <motion.div

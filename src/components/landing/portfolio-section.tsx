@@ -41,35 +41,64 @@ export function PortfolioSection() {
     const hasCmsData = cmsItems && cmsItems.length > 0
 
     return (
-        <section id="portfolio" className="py-32 relative overflow-hidden bg-gradient-to-b from-background to-primary/5">
-            <div className="container mx-auto px-6">
+        <section id="portfolio" className="py-40 relative overflow-hidden bg-[#022026]">
+            {/* Background */}
+            <div className="pointer-events-none absolute inset-0">
+                <div className="section-divider absolute top-0 left-0 right-0" />
+                <div className="section-divider absolute bottom-0 left-0 right-0" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#022026] via-[#021d22] to-[#022026]" />
+                {/* Ambient orbs */}
+                <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-primary/[0.025] blur-[150px]" />
+                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-cyan-500/[0.02] blur-[150px]" />
+                {/* Grid */}
+                <div className="absolute inset-0 grid-pattern opacity-15" />
+            </div>
+
+            <div className="container relative z-10 mx-auto px-6">
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="text-center mb-16"
+                    viewport={{ once: true, margin: '-100px' }}
+                    transition={{ duration: 0.8 }}
+                    className="mb-24"
                 >
-                    <span className="inline-block px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-                        {isAr ? 'أعمالنا' : 'Our Work'}
-                    </span>
-                    <h2 className="text-4xl md:text-6xl font-black mb-6">
-                        {isAr ? 'مشاريع ' : 'Projects '}
-                        <span className="bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
-                            {isAr ? 'ملهمة' : 'That Inspire'}
-                        </span>
-                    </h2>
+                    <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8">
+                        <div>
+                            <span className="section-label mb-6 inline-flex">
+                                {isAr ? '05 — أعمالنا' : '05 — Our Work'}
+                            </span>
+                            <h2 className="text-5xl md:text-7xl font-black leading-tight text-glow-white">
+                                {isAr ? 'مشاريع ' : 'Projects '}
+                                <span className="block bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">
+                                    {isAr ? 'تُلهم العالم' : 'That Inspire'}
+                                </span>
+                            </h2>
+                        </div>
+                        <Link href="/portfolio" className="flex-shrink-0">
+                            <Button
+                                variant="outline"
+                                size="lg"
+                                className="group rounded-2xl border-white/10 bg-white/[0.03] px-8 py-6 font-semibold text-white hover:border-primary/30 hover:bg-white/[0.06] transition-all duration-300 hover:scale-[1.02]"
+                            >
+                                {isAr ? 'كل الأعمال' : 'View All Projects'}
+                                {isAr
+                                    ? <ArrowLeft className="ms-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                                    : <ArrowRight className="ms-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                                }
+                            </Button>
+                        </Link>
+                    </div>
                 </motion.div>
 
                 {/* Portfolio Grid */}
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {hasCmsData ? (
                         cmsItems.map((item, i) => (
                             <PortfolioItem
                                 key={item.id || i}
                                 item={item}
                                 index={i}
-
                                 isPlaying={playingVideo === item.id}
                                 onPlay={(e) => handlePlayVideo(item.id || String(i), e)}
                                 gradientColor={GRADIENT_COLORS[i % GRADIENT_COLORS.length]}
@@ -86,21 +115,6 @@ export function PortfolioSection() {
                         ))
                     )}
                 </div>
-
-                {/* View All Button */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true }}
-                    className="text-center mt-12"
-                >
-                    <Link href="/portfolio">
-                        <Button variant="outline" size="lg" className="rounded-full px-8">
-                            {isAr ? 'عرض جميع الأعمال' : 'View All Projects'}
-                            {isAr ? <ArrowLeft className="ms-2 h-4 w-4" /> : <ArrowRight className="ms-2 h-4 w-4" />}
-                        </Button>
-                    </Link>
-                </motion.div>
             </div>
         </section>
     )

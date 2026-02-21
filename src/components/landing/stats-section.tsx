@@ -55,48 +55,56 @@ function useCountUp(end: number, duration: number = 2000, start: boolean = false
 function StatCard({ stat, index, isVisible }: { stat: Stat; index: number; isVisible: boolean }) {
   const locale = useLocale()
   const isAr = locale === 'ar'
-  const count = useCountUp(stat.value, 2000, isVisible)
+  const count = useCountUp(stat.value, 2200, isVisible)
   const Icon = stat.icon
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.6, delay: index * 0.1 }}
-      className="relative group"
+      transition={{ duration: 0.7, delay: index * 0.12, ease: [0.16, 1, 0.3, 1] }}
+      className="relative group card-lift"
     >
-      {/* Glass card */}
-      <div className="glass glass-hover rounded-2xl p-8 text-center transition-all duration-500 overflow-hidden">
-        {/* Corner glow */}
+      {/* Glass card — gradient border on hover */}
+      <div className="glass rounded-3xl p-8 text-center overflow-hidden transition-all duration-500 group-hover:border-white/[0.12] gradient-border">
+        {/* Full-card ambient glow on hover */}
         <div
-          className="absolute -top-8 -end-8 w-24 h-24 rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
-          style={{ backgroundColor: `${stat.color}15` }}
+          className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+          style={{ background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${stat.color}08 0%, transparent 65%)` }}
         />
 
-        <div
-          className="relative z-10 w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center transition-all duration-300 group-hover:scale-110 ring-1"
-          style={{
-            backgroundColor: `${stat.color}10`,
-            color: stat.color,
-            // @ts-expect-error - CSS custom prop
-            '--tw-ring-color': `${stat.color}12`,
-          }}
-        >
-          <Icon className="h-7 w-7" />
+        {/* Pulsing ring behind icon */}
+        <div className="relative mx-auto mb-6 w-16 h-16">
+          <div
+            className="absolute inset-0 rounded-full transition-all duration-700 group-hover:scale-125 group-hover:opacity-0 opacity-40"
+            style={{ backgroundColor: `${stat.color}18` }}
+          />
+          <div
+            className="relative z-10 w-full h-full rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+            style={{
+              backgroundColor: `${stat.color}12`,
+              color: stat.color,
+              boxShadow: `0 0 20px ${stat.color}20`,
+            }}
+          >
+            <Icon className="h-7 w-7" />
+          </div>
         </div>
 
+        {/* Number */}
         <div
-          className="relative z-10 text-4xl sm:text-5xl font-black font-mono mb-2"
+          className="relative z-10 text-5xl sm:text-6xl font-black font-mono mb-3 leading-none"
           style={{
             color: stat.color,
-            textShadow: `0 0 30px ${stat.color}25`,
+            textShadow: `0 0 40px ${stat.color}30`,
           }}
         >
-          {count}{stat.suffix}
+          {count}<span className="text-4xl">{stat.suffix}</span>
         </div>
 
-        <p className="relative z-10 text-sm text-white/40 font-medium">
+        {/* Label */}
+        <p className="relative z-10 text-xs font-bold uppercase tracking-widest text-white/35">
           {isAr ? stat.labelAr : stat.labelEn}
         </p>
       </div>
@@ -107,6 +115,8 @@ function StatCard({ stat, index, isVisible }: { stat: Stat; index: number; isVis
 export function StatsSection() {
   const ref = useRef<HTMLDivElement>(null)
   const [isVisible, setIsVisible] = useState(false)
+  const locale = useLocale()
+  const isAr = locale === 'ar'
 
   const handleIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
     if (entries[0].isIntersecting) {
@@ -125,21 +135,32 @@ export function StatsSection() {
   }, [handleIntersection])
 
   return (
-    <section className="relative py-24 overflow-hidden" id="stats" ref={ref}>
+    <section className="relative py-32 overflow-hidden" id="stats" ref={ref}>
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#022026] via-[#02282e] to-[#022026]" />
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F2CB05]/15 to-transparent" />
-      <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#022026] via-[#02232a] to-[#022026]" />
+      <div className="section-divider absolute top-0 left-0 right-0" />
+      <div className="section-divider absolute bottom-0 left-0 right-0" />
 
       {/* ── Floating decorative elements ── */}
-      <GlowOrb color="#F2CB05" size={400} blur={140} opacity={0.03} className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-      <OrbitalRing size={500} borderColor="rgba(242, 203, 5, 0.04)" dotColor="#F2CB05" duration={30} className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden lg:block" />
+      <GlowOrb color="#F2CB05" size={500} blur={160} opacity={0.025} className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+      <OrbitalRing size={600} borderColor="rgba(242, 203, 5, 0.03)" dotColor="#F2CB05" duration={35} className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden lg:block" />
 
       {/* Grid pattern */}
       <div className="absolute inset-0 grid-pattern opacity-20" />
 
       <div className="container relative z-10 mx-auto px-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Section label */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <span className="section-label">
+            {isAr ? '01 — الأرقام تتحدث' : '01 — Numbers speak'}
+          </span>
+        </motion.div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-8">
           {STATS.map((stat, i) => (
             <StatCard key={stat.labelEn} stat={stat} index={i} isVisible={isVisible} />
           ))}

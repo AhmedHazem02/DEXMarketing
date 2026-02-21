@@ -28,7 +28,7 @@ export function ProjectCard({ project, index, locale, variant = 'galaxy' }: Proj
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ delay: index * 0.1, duration: 0.6, type: 'spring', stiffness: 100 }}
                 whileHover={prefersReducedMotion ? undefined : { y: -8 }}
-                className={`group relative overflow-hidden rounded-3xl border border-white/[0.06] ${project.span || ''}`}
+                className={`group relative overflow-hidden rounded-3xl glass-card ${project.span || ''}`}
             >
                 {/* Gradient background */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${project.gradient} opacity-60 transition-opacity duration-500 group-hover:opacity-90`} />
@@ -42,7 +42,7 @@ export function ProjectCard({ project, index, locale, variant = 'galaxy' }: Proj
                 {/* Content */}
                 <div className="relative z-10 flex h-full flex-col justify-end p-8">
                     <div className="translate-y-4 transition-transform duration-500 group-hover:translate-y-0">
-                        <span className="mb-2 inline-block rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/80 backdrop-blur-sm">
+                        <span className="mb-2 inline-block rounded-full border border-white/25 bg-white/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/90 backdrop-blur-sm shadow-sm">
                             {category}
                         </span>
                         <h3 className="text-2xl font-bold text-white lg:text-3xl">
@@ -52,7 +52,7 @@ export function ProjectCard({ project, index, locale, variant = 'galaxy' }: Proj
 
                     {/* Arrow indicator */}
                     <motion.div
-                        className="absolute end-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100"
+                        className="absolute end-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-white/12 text-white opacity-0 backdrop-blur-md shadow-[0_0_16px_rgba(251,191,36,0.25)] transition-all duration-300 group-hover:opacity-100 group-hover:scale-110"
                     >
                         <ArrowUpRight className="h-5 w-5" />
                     </motion.div>
@@ -78,7 +78,7 @@ export function ProjectCard({ project, index, locale, variant = 'galaxy' }: Proj
             viewport={{ once: true }}
             transition={{ delay: index * 0.1 }}
             whileHover={prefersReducedMotion ? undefined : { y: -8 }}
-            className="group relative aspect-[4/3] rounded-3xl overflow-hidden"
+            className="group relative aspect-[4/3] rounded-3xl overflow-hidden glass-card"
         >
             {/* Background gradient */}
             <div className={`absolute inset-0 bg-gradient-to-br ${project.gradient} opacity-80`} />

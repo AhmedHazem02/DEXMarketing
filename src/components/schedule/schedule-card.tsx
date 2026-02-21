@@ -52,10 +52,10 @@ export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onSt
 
     return (
         <div className={cn(
-            'group relative rounded-xl border p-4 transition-all duration-200',
+            'group relative rounded-xl glass-dashboard p-4 transition-all duration-300 hover:translate-y-[-1px]',
             getCardBorderClass(schedule.status, overdue),
-            overdue && 'bg-red-500/5',
-            schedule.status === 'completed' && 'bg-emerald-500/5',
+            overdue && '!border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.1)]',
+            schedule.status === 'completed' && '!border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.08)]',
         )}>
             {/* Status accent line */}
             <div className={cn(

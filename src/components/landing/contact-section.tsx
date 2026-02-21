@@ -41,6 +41,7 @@ export function ContactSection() {
   const isAr = locale === 'ar'
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isError, setIsError] = useState(false)
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -59,6 +60,7 @@ export function ContactSection() {
       // Send contact form data to Supabase
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase.from('contact_messages') as any).insert({
         name: data.name,
         email: data.email,
@@ -66,21 +68,14 @@ export function ContactSection() {
         message: data.message,
       })
 
-      if (error) {
-        // If table doesn't exist yet, still show success but log warning
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Contact form table may not exist yet:', error.message)
-        }
-      }
+      if (error) throw error
 
       setIsSubmitted(true)
       setTimeout(() => setIsSubmitted(false), 4000)
       form.reset()
     } catch {
-      // Graceful fallback — still show success to user
-      setIsSubmitted(true)
-      setTimeout(() => setIsSubmitted(false), 4000)
-      form.reset()
+      setIsError(true)
+      setTimeout(() => setIsError(false), 4000)
     } finally {
       setIsSubmitting(false)
     }
@@ -108,13 +103,13 @@ export function ContactSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <span className="inline-block text-[#F2CB05]/70 text-sm font-mono tracking-widest uppercase mb-3">
-            {isAr ? '— تواصل معنا —' : '— Get in Touch —'}
+          <span className="section-label mb-6 inline-flex">
+            {isAr ? '09 — تواصل معنا' : '09 — Get in Touch'}
           </span>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white font-serif mb-4">
+          <h2 className="mt-6 text-3xl sm:text-5xl font-black text-white font-serif mb-4 text-glow-white">
             {isAr ? 'لنبدأ مشروعك' : "Let's Start Your Project"}
           </h2>
-          <div className="w-12 h-1 bg-[#F2CB05] mx-auto rounded-full" />
+          <div className="w-20 h-[2px] mx-auto bg-gradient-to-r from-transparent via-[#F2CB05]/60 to-transparent rounded-full" />
         </motion.div>
 
         <div className="grid lg:grid-cols-5 gap-12 lg:gap-16 max-w-6xl mx-auto">
@@ -266,6 +261,16 @@ export function ContactSection() {
                   >
                     <CheckCircle className="h-4 w-4" />
                     {isAr ? 'تم إرسال رسالتك بنجاح!' : 'Message sent successfully!'}
+                  </motion.div>
+                )}
+                {isError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2 text-red-400 text-sm"
+                  >
+                    <span className="h-4 w-4 text-base leading-none">&#x26A0;</span>
+                    {isAr ? 'حدث خطأ، يرجى المحاولة مجدداً.' : 'Something went wrong. Please try again.'}
                   </motion.div>
                 )}
               </form>

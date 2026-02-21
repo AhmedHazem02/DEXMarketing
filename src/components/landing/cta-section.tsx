@@ -19,14 +19,29 @@ export function CTASection() {
     const email = settings.contact_email || 'info@dex-advertising.com'
 
     return (
-        <section id="contact" className="relative overflow-hidden py-40">
+        <section id="cta" className="relative overflow-hidden py-48">
             {/* Background effects */}
             <div className="pointer-events-none absolute inset-0">
-                <div className="absolute left-1/2 top-0 h-[1px] w-[60%] -translate-x-1/2 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.03] to-transparent" />
+                <div className="section-divider absolute top-0 left-0 right-0" />
+                <div className="absolute left-1/2 top-0 h-[1px] w-[60%] -translate-x-1/2 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#022026] via-[#021a1f] to-[#022026]" />
                 {/* Large ambient orbs */}
-                <div className="absolute left-1/4 top-1/4 h-[600px] w-[600px] rounded-full bg-primary/[0.04] blur-[150px]" />
-                <div className="absolute right-1/4 bottom-1/4 h-[400px] w-[400px] rounded-full bg-orange-500/[0.04] blur-[120px]" />
+                <div className="absolute left-1/4 top-1/4 h-[700px] w-[700px] rounded-full bg-primary/[0.04] blur-[180px]" />
+                <div className="absolute right-1/4 bottom-1/4 h-[500px] w-[500px] rounded-full bg-orange-500/[0.04] blur-[150px]" />
+                {/* Grid pattern */}
+                <div className="absolute inset-0 grid-pattern opacity-15" />
+            </div>
+
+            {/* Section label at top */}
+            <div className="container relative z-10 mx-auto px-6 mb-16 text-center">
+                <motion.span
+                    className="section-label inline-flex"
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                >
+                    {isAr ? '08 — انطلق بمهمتك' : '08 — Begin Your Mission'}
+                </motion.span>
             </div>
 
             <div className="container relative z-10 mx-auto px-6">
@@ -34,49 +49,75 @@ export function CTASection() {
                     initial={{ opacity: 0, y: 50 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: '-100px' }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                     className="mx-auto max-w-5xl"
                 >
                     {/* Glassy card */}
-                    <div className="glass-premium relative overflow-hidden rounded-3xl p-14 md:p-24">
+                    <div className="glass-premium relative overflow-hidden rounded-3xl p-14 md:p-24 gradient-border">
                         {/* Inner glow */}
-                        <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/[0.06] via-transparent to-orange-500/[0.04]" />
+                        <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/[0.07] via-transparent to-orange-500/[0.05]" />
 
                         {/* Grid lines decoration */}
-                        <div className="pointer-events-none absolute inset-0 opacity-[0.03]" style={{
+                        <div className="pointer-events-none absolute inset-0 opacity-[0.025]" style={{
                             backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
                             backgroundSize: '60px 60px',
                         }} />
 
+                        {/* Animated orbital rings behind everything */}
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden rounded-3xl">
+                            {!prefersReducedMotion && (
+                                <>
+                                    <motion.div
+                                        className="absolute w-[600px] h-[600px] rounded-full border border-primary/[0.06]"
+                                        animate={{ rotate: 360, scale: [1, 1.05, 1] }}
+                                        transition={{ rotate: { duration: 25, repeat: Infinity, ease: 'linear' }, scale: { duration: 8, repeat: Infinity, ease: 'easeInOut' } }}
+                                    />
+                                    <motion.div
+                                        className="absolute w-[400px] h-[400px] rounded-full border border-white/[0.04]"
+                                        animate={{ rotate: -360 }}
+                                        transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+                                    />
+                                    {/* Orbiting dot */}
+                                    <motion.div
+                                        className="absolute w-2 h-2 rounded-full bg-primary/50"
+                                        style={{ boxShadow: '0 0 12px rgba(251,191,36,0.4)', transformOrigin: '300px 0px' }}
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                                    />
+                                </>
+                            )}
+                        </div>
+
                         <div className="relative z-10 text-center">
                             {/* Icon */}
                             <motion.div
-                                className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full border border-primary/20 bg-primary/10"
-                                animate={prefersReducedMotion ? undefined : { scale: [1, 1.08, 1] }}
-                                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                                className="mx-auto mb-10 flex h-24 w-24 items-center justify-center rounded-full border border-primary/20 bg-primary/[0.08] shadow-[0_0_40px_rgba(251,191,36,0.12)]"
+                                animate={prefersReducedMotion ? undefined : { scale: [1, 1.06, 1], boxShadow: ['0_0_40px_rgba(251,191,36,0.12)', '0_0_60px_rgba(251,191,36,0.2)', '0_0_40px_rgba(251,191,36,0.12)'] }}
+                                transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
                             >
-                                <Zap className="h-9 w-9 text-primary" />
+                                <Zap className="h-11 w-11 text-primary drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
                             </motion.div>
 
                             {/* Heading */}
-                            <h2 className="mb-8 text-4xl font-black md:text-5xl lg:text-6xl">
+                            <h2 className="mb-8 text-4xl font-black md:text-6xl lg:text-7xl leading-tight text-glow-white">
                                 {isAr ? 'جاهز ' : 'Ready to '}
                                 <span className="bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">
                                     {isAr ? 'تنطلق؟' : 'Launch?'}
                                 </span>
                             </h2>
 
-                            <p className="mx-auto mb-14 max-w-xl text-lg text-white/50">
+                            <p className="mx-auto mb-16 max-w-xl text-lg md:text-xl text-white/45 leading-relaxed">
                                 {isAr
                                     ? 'تواصل معنا اليوم وخلّي فريقنا يصمّملك خطة تسويقية مخصصة — الاستشارة الأولى مجانية'
                                     : 'Get in touch and let our team craft a custom growth strategy — your first consultation is on us'}
                             </p>
 
                             {/* CTA Buttons */}
-                            <div className="mb-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                            <div className="mb-14 flex flex-col items-center justify-center gap-4 sm:flex-row">
                                 <Link href="/register">
                                     <Button
                                         size="lg"
-                                        className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-yellow-400 to-orange-500 px-12 py-8 text-xl font-bold text-background shadow-[0_0_40px_rgba(251,191,36,0.2)] transition-all duration-500 hover:shadow-[0_0_60px_rgba(251,191,36,0.35)] hover:brightness-110"
+                                        className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-yellow-400 to-orange-500 px-14 py-8 text-xl font-bold text-background shadow-[0_0_40px_rgba(251,191,36,0.25),0_0_80px_rgba(251,191,36,0.1)] transition-all duration-500 hover:shadow-[0_0_60px_rgba(251,191,36,0.4),0_0_100px_rgba(251,191,36,0.15)] hover:brightness-110 hover:scale-[1.03]"
                                     >
                                         <span className="relative z-10 flex items-center gap-3">
                                             <Rocket className="h-6 w-6 transition-transform group-hover:-translate-y-1 group-hover:rotate-12" />
@@ -85,8 +126,8 @@ export function CTASection() {
                                         </span>
                                         {!prefersReducedMotion && (
                                             <motion.div
-                                                className="absolute inset-0 bg-white/20"
-                                                animate={{ x: ['100%', '-100%'] }}
+                                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+                                                animate={{ x: ['120%', '-120%'] }}
                                                 transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 4 }}
                                             />
                                         )}
@@ -95,12 +136,18 @@ export function CTASection() {
                             </div>
 
                             {/* Contact badges */}
-                            <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
-                                <a href={`tel:${phone}`} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-white/50 transition-colors hover:border-primary/30 hover:text-primary">
+                            <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+                                <a
+                                    href={`tel:${phone}`}
+                                    className="flex items-center gap-2.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-6 py-3 text-white/45 transition-all duration-300 hover:border-primary/25 hover:text-primary hover:bg-primary/[0.04] hover:scale-[1.02]"
+                                >
                                     <Phone className="h-4 w-4" />
                                     <span dir="ltr">{phone}</span>
                                 </a>
-                                <a href={`mailto:${email}`} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-white/50 transition-colors hover:border-primary/30 hover:text-primary">
+                                <a
+                                    href={`mailto:${email}`}
+                                    className="flex items-center gap-2.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-6 py-3 text-white/45 transition-all duration-300 hover:border-primary/25 hover:text-primary hover:bg-primary/[0.04] hover:scale-[1.02]"
+                                >
                                     <Mail className="h-4 w-4" />
                                     <span>{email}</span>
                                 </a>

@@ -63,10 +63,10 @@ export function ProcessSection() {
                         viewport={{ once: true, margin: '-100px' }}
                         transition={{ duration: 0.7 }}
                     >
-                        <span className="mb-4 inline-block text-sm font-bold uppercase tracking-[0.25em] text-primary">
-                            {isAr ? 'لماذا DEX؟' : 'Why DEX?'}
+                        <span className="section-label mb-6 inline-flex">
+                            {isAr ? '04 — لماذا DEX؟' : '04 — Why DEX?'}
                         </span>
-                        <h2 className="mb-6 text-4xl font-black md:text-5xl lg:text-6xl">
+                        <h2 className="mt-6 mb-6 text-4xl font-black md:text-5xl lg:text-6xl text-glow-white">
                             {isAr ? 'ليست مجرد ' : 'Not Just an '}
                             <span className="bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">
                                 {isAr ? 'وكالة' : 'Agency'}
