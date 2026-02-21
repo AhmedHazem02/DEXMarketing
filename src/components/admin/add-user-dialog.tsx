@@ -58,7 +58,7 @@ export function AddUserDialog() {
         const department = autoDepartmentRoles[values.role] || values.department || null
         setIsLoading(true)
         try {
-            const res = await createUser({ ...values, department })
+            const res = await createUser({ ...values, department: department ?? undefined })
             if (res.success) {
                 toast.success('تم إنشاء المستخدم بنجاح')
                 setOpen(false)

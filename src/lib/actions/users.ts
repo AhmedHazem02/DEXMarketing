@@ -13,7 +13,7 @@ const createUserSchema = z.object({
     email: z.string().email('Invalid email format'),
     name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name too long'),
     role: z.string().min(1, 'Role is required'),
-    department: z.string().optional(),
+    department: z.string().nullable().optional(),
     password: z.string().min(8, 'Password must be at least 8 characters').max(72, 'Password too long'),
 })
 
@@ -73,7 +73,7 @@ async function requireSelfOrAdmin(targetUserId: string) {
 const DEPARTMENT_REQUIRED_ROLES = ['team_leader', 'creator', 'videographer', 'editor', 'photographer'] as const
 
 /** Auto-assign department based on role if not explicitly provided */
-function resolveDepartment(role: string, department?: string): string | null {
+function resolveDepartment(role: string, department?: string | null): string | null {
     if (department) return department
     if (['videographer', 'editor', 'photographer'].includes(role)) return 'photography'
     if (role === 'creator') return 'content'
