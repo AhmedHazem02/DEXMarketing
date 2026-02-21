@@ -19,7 +19,7 @@ const DEPARTMENT_REQUIRED_ROLES = ['team_leader', 'account_manager', 'videograph
 const formSchema = z.object({
     name: z.string().min(2, 'الاسم يجب أن يكون حرفين على الأقل'),
     email: z.string().email('بريد إلكتروني غير صالح'),
-    password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
+    password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'),
     role: z.enum(['admin', 'accountant', 'team_leader', 'account_manager', 'creator', 'designer', 'client', 'videographer', 'editor', 'photographer']),
     department: z.enum(['photography', 'content']).nullable().optional(),
 })
@@ -124,7 +124,7 @@ export function AddUserDialog() {
                                 <FormItem>
                                     <FormLabel>كلمة المرور</FormLabel>
                                     <FormControl>
-                                        <Input type="password" placeholder="******" {...field} />
+                                        <Input type="password" placeholder="8 أحرف على الأقل" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
