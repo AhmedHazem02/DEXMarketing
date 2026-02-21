@@ -61,7 +61,7 @@ import { cn } from '@/lib/utils'
 
 const transactionSchema = z.object({
     type: z.enum(['income', 'expense']),
-    amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
+    amount: z.coerce.number().min(0, 'Amount cannot be negative'),
     description: z.string().optional(),
     category: z.string().min(1, 'Category is required'),
     sub_category: z.string().optional(),

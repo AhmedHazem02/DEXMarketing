@@ -56,7 +56,7 @@ import { cn } from '@/lib/utils'
 const clientTransactionSchema = z.object({
     client_account_id: z.string().min(1, 'Client account is required'),
     type: z.enum(['income', 'expense']),
-    amount: z.number().positive('Amount must be positive'),
+    amount: z.number().min(0, 'Amount cannot be negative'),
     description: z.string().optional(),
     date: z.date().optional(),
     visible_to_client: z.boolean(),

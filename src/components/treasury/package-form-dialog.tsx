@@ -38,8 +38,8 @@ import type { Package } from '@/types/database'
 const packageSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     name_ar: z.string().optional().nullable(),
-    price: z.number().min(1, 'Price must be greater than 0'),
-    duration_days: z.number().min(1, 'Duration must be at least 1 day'),
+    price: z.number().min(0, 'Price cannot be negative'),
+    duration_days: z.number().min(0, 'Duration cannot be negative'),
     description: z.string().optional().nullable(),
     description_ar: z.string().optional().nullable(),
 })
@@ -201,7 +201,7 @@ export function PackageFormDialog({ open, onOpenChange, package: pkg }: PackageF
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                min="1"
+                                                min="0"
                                                 step="0.01"
                                                 placeholder="5000"
                                                 {...field}
@@ -223,7 +223,7 @@ export function PackageFormDialog({ open, onOpenChange, package: pkg }: PackageF
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                min="1"
+                                                min="0"
                                                 placeholder="30"
                                                 {...field}
                                                 onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}

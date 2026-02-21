@@ -55,7 +55,7 @@ const editTransactionSchema = z.object({
     type: z.enum(['income', 'expense']),
     category: z.string().min(1, 'Category is required'),
     sub_category: z.string().optional(),
-    amount: z.number().positive('Amount must be positive'),
+    amount: z.number().min(0, 'Amount cannot be negative'),
     description: z.string().optional(),
     transaction_date: z.date().optional(),
     visible_to_client: z.boolean(),

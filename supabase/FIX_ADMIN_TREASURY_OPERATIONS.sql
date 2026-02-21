@@ -33,6 +33,12 @@ CREATE POLICY "Only admin can delete transactions" ON public.transactions
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
+-- 4.5 Fix packages CHECK constraint to accept 0 for duration_days
+-- ============================================
+ALTER TABLE public.packages DROP CONSTRAINT IF EXISTS packages_duration_days_check;
+ALTER TABLE public.packages ADD CONSTRAINT packages_duration_days_check CHECK (duration_days >= 0);
+
+-- ============================================
 -- 5. Fix log_transaction_changes() — FK violation on DELETE
 -- Problem: AFTER DELETE trigger inserts OLD.id into treasury_logs.transaction_id,
 --          but the row is already gone, so the FK constraint fails.
