@@ -20,10 +20,11 @@ export function useTreasury() {
             const { data, error } = await supabase
                 .from('treasury')
                 .select('*')
-                .single()
+                .maybeSingle()
 
             if (error) throw error
-            return data as unknown as Treasury
+            // Return a default treasury object if no row exists
+            return (data as unknown as Treasury) ?? { id: '', current_balance: 0, updated_at: new Date().toISOString() } as Treasury
         },
         staleTime: 2 * 60 * 1000, // 2 minutes
         gcTime: 10 * 60 * 1000, // 10 minutes
@@ -275,8 +276,10 @@ export function useDeleteTransaction() {
             if (error) throw error
         },
         onSuccess: () => {
+            // Invalidate all related queries to refresh UI
             queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
             queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
+            queryClient.invalidateQueries({ queryKey: CLIENT_ACCOUNTS_KEY })
         },
     })
 }

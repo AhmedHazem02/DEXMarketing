@@ -45,7 +45,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { useTransactions, useApproveTransaction, useDeleteTransaction } from '@/hooks/use-treasury'
+import { useTransactions, useApproveTransaction, useDeleteTransaction, useUpdateTransaction } from '@/hooks/use-treasury'
+import { EditTransactionDialog } from '@/components/treasury/edit-transaction-dialog'
 import { useDebounce, usePagination } from '@/hooks'
 import { useCurrentRole } from '@/hooks/use-current-role'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getCategoryLabel } from '@/lib/constants/treasury'
@@ -66,6 +67,8 @@ import {
     ChevronRight,
     Loader2,
     CheckCircle,
+    Pencil,
+    Trash2,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertCircle } from 'lucide-react'
@@ -111,6 +114,10 @@ export function TransactionsTable() {
 
     const approveTransaction = useApproveTransaction()
     const deleteTransaction = useDeleteTransaction()
+
+    // Edit dialog state
+    const [editDialogOpen, setEditDialogOpen] = useState(false)
+    const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null)
 
     // Delete dialog state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -779,6 +786,22 @@ export function TransactionsTable() {
                                                     </>
                                                 )}
 
+                                                {/* Edit - Admin Only */}
+                                                {isAdmin && (
+                                                    <>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            onClick={() => {
+                                                                setTransactionToEdit(tx)
+                                                                setEditDialogOpen(true)
+                                                            }}
+                                                        >
+                                                            <Pencil className="me-2 h-4 w-4" />
+                                                            {isAr ? 'تعديل' : 'Edit'}
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                )}
+
                                                 {/* Delete - Admin Only */}
                                                 {isAdmin && (
                                                     <>
@@ -790,6 +813,7 @@ export function TransactionsTable() {
                                                                 setDeleteDialogOpen(true)
                                                             }}
                                                         >
+                                                            <Trash2 className="me-2 h-4 w-4" />
                                                             {isAr ? 'حذف' : 'Delete'}
                                                         </DropdownMenuItem>
                                                     </>
@@ -932,6 +956,16 @@ export function TransactionsTable() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Edit Transaction Dialog */}
+            <EditTransactionDialog
+                open={editDialogOpen}
+                onOpenChange={(open) => {
+                    setEditDialogOpen(open)
+                    if (!open) setTransactionToEdit(null)
+                }}
+                transaction={transactionToEdit}
+            />
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

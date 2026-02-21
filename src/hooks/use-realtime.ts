@@ -11,7 +11,7 @@ import { NOTIFICATIONS_KEY } from './use-notifications'
  * Automatically invalidates React Query cache when changes occur
  */
 export function useRealtimeSubscription(
-    table: 'tasks' | 'notifications' | 'comments',
+    table: 'tasks' | 'notifications' | 'comments' | 'client_accounts' | 'transactions',
     queryKey: string[]
 ) {
     const supabase = createClient()
@@ -133,6 +133,48 @@ export function useTasksRealtime() {
             supabase.removeChannel(tasksChannel)
             supabase.removeChannel(commentsChannel)
             supabase.removeChannel(attachmentsChannel)
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [queryClient])
+}
+
+/**
+ * Hook to subscribe to real-time updates for client accounts and transactions
+ * Automatically updates client balance when transactions are created/updated
+ */
+export function useClientAccountsRealtimeSync() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+    const { CLIENT_ACCOUNTS_KEY } = require('./use-client-accounts')
+
+    useEffect(() => {
+        // Listen to client_accounts changes
+        const accountsChannel = supabase
+            .channel('db-client-accounts')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'client_accounts' },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: CLIENT_ACCOUNTS_KEY })
+                }
+            )
+            .subscribe()
+
+        // Listen to transactions changes - invalidates accounts since it affects balance
+        const transactionsChannel = supabase
+            .channel('db-transactions-balance')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'transactions' },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: CLIENT_ACCOUNTS_KEY })
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(accountsChannel)
+            supabase.removeChannel(transactionsChannel)
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queryClient])

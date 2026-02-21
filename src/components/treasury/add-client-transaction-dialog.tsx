@@ -46,7 +46,7 @@ import {
 import { useClientAccounts } from '@/hooks/use-client-accounts'
 import { useCreateTransaction } from '@/hooks/use-treasury'
 import { useCurrentRole } from '@/hooks/use-current-role'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getCategoryLabel,type CategoryOption } from '@/lib/constants/treasury'
+
 import { cn } from '@/lib/utils'
 
 // ============================================
@@ -56,8 +56,6 @@ import { cn } from '@/lib/utils'
 const clientTransactionSchema = z.object({
     client_account_id: z.string().min(1, 'Client account is required'),
     type: z.enum(['income', 'expense']),
-    category: z.string().min(1, 'Category is required'),
-    sub_category: z.string().optional(),
     amount: z.number().positive('Amount must be positive'),
     description: z.string().optional(),
     date: z.date().optional(),
@@ -85,7 +83,6 @@ export function AddClientTransactionDialog({
     const isAr = locale === 'ar'
     
     const { isAdmin } = useCurrentRole()
-    const [availableCategories, setAvailableCategories] = useState<CategoryOption[]>(INCOME_CATEGORIES)
 
     const { data: clientAccounts, isLoading: isLoadingAccounts } = useClientAccounts()
     const createTransaction = useCreateTransaction()
@@ -95,27 +92,11 @@ export function AddClientTransactionDialog({
         defaultValues: {
             client_account_id: defaultClientAccountId || '',
             type: 'income',
-            category: '',
-            sub_category: '',
             amount: 0,
             description: '',
             visible_to_client: true,
         },
     })
-
-    const selectedType = form.watch('type')
-
-    // Update categories when type changes
-    useEffect(() => {
-        if (selectedType === 'income') {
-            setAvailableCategories(INCOME_CATEGORIES)
-        } else {
-            setAvailableCategories(EXPENSE_CATEGORIES)
-        }
-        // Reset category when type changes
-        form.setValue('category', '')
-        form.setValue('sub_category', '')
-    }, [selectedType, form])
 
     // Set default client account if provided
     useEffect(() => {
@@ -133,8 +114,6 @@ export function AddClientTransactionDialog({
                 client_account_id: values.client_account_id,
                 client_id: selectedAccount?.client_id || null,
                 type: values.type,
-                category: values.category,
-                sub_category: values.sub_category || null,
                 amount: values.amount,
                 description: values.description || null,
                 visible_to_client: values.visible_to_client,
@@ -257,74 +236,28 @@ export function AddClientTransactionDialog({
                                     </FormItem>
                                 )}
                             />
-
-                            {/* Category */}
-                            <FormField
-                                control={form.control}
-                                name="category"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{isAr ? 'التصنيف' : 'Category'} *</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={isAr ? 'اختر التصنيف' : 'Select category'} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent position="popper">
-                                                {availableCategories.map((category) => (
-                                                    <SelectItem key={category.value} value={category.value}>
-                                                        {getCategoryLabel(category.value, isAr)}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Amount */}
-                            <FormField
-                                control={form.control}
-                                name="amount"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{isAr ? 'المبلغ' : 'Amount'} *</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                placeholder={isAr ? 'أدخل المبلغ' : 'Enter amount'}
-                                                {...field}
-                                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            {/* Sub Category (Optional) */}
-                            <FormField
-                                control={form.control}
-                                name="sub_category"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{isAr ? 'التصنيف الفرعي' : 'Sub Category'}</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder={isAr ? 'اختياري' : 'Optional'}
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
+                        {/* Amount */}
+                        <FormField
+                            control={form.control}
+                            name="amount"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{isAr ? 'المبلغ' : 'Amount'} *</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder={isAr ? 'أدخل المبلغ' : 'Enter amount'}
+                                            {...field}
+                                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         {/* Date Field - Only visible for Admin */}
                         {isAdmin && (

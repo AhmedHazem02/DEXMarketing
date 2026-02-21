@@ -59,6 +59,7 @@ import { toast } from 'sonner'
 import { useClientAccounts, useDeleteClientAccount } from '@/hooks/use-client-accounts'
 import { useClients } from '@/hooks/use-clients'
 import { useCurrentRole } from '@/hooks/use-current-role'
+import { useClientAccountsRealtimeSync } from '@/hooks/use-realtime'
 import { AddClientAccountDialog } from './add-client-account-dialog'
 import { AddClientTransactionDialog } from './add-client-transaction-dialog'
 import { EditClientAccountDialog } from './edit-client-account-dialog'
@@ -77,6 +78,9 @@ export function ClientAccountsPage() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const { isAccountant } = useCurrentRole()
+
+    // Enable real-time sync for client accounts and transactions
+    useClientAccountsRealtimeSync()
 
     const [searchQuery, setSearchQuery] = useState('')
     const [clientFilter, setClientFilter] = useState<string>('')
