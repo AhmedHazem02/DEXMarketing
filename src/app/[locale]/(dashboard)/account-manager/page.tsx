@@ -5,12 +5,11 @@ import { useLocale } from 'next-intl'
 import {
     KanbanBoard,
     TasksTable,
-    TaskForm,
     TaskDetails,
     type TaskWithRelations
 } from '@/components/tasks'
 import { PendingRequests } from '@/components/tasks/pending-requests'
-import type { TaskStatus } from '@/types/database'
+import type { Department } from '@/types/database'
 import { Loader2, LayoutGrid, Table2 } from 'lucide-react'
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import { useCurrentUser } from '@/hooks/use-users'
@@ -25,32 +24,14 @@ export default function AccountManagerDashboard() {
 
     useTasksRealtime()
 
-    const [isFormOpen, setIsFormOpen] = useState(false)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
-    const [defaultStatus, setDefaultStatus] = useState<TaskStatus>('new')
     const [viewMode, setViewMode] = useState<'kanban' | 'table'>('table')
+    const [deptFilter, setDeptFilter] = useState<Department>('content')
 
     const handleTaskClick = useCallback((task: TaskWithRelations) => {
         setSelectedTask(task)
         setIsDetailsOpen(true)
-    }, [])
-
-    const handleCreateTask = useCallback((status?: TaskStatus) => {
-        setDefaultStatus(status ?? 'new')
-        setSelectedTask(null)
-        setIsFormOpen(true)
-    }, [])
-
-    const handleEditTask = useCallback((task: TaskWithRelations) => {
-        setSelectedTask(task)
-        setIsDetailsOpen(false)
-        setIsFormOpen(true)
-    }, [])
-
-    const handleFormSuccess = useCallback(() => {
-        setIsFormOpen(false)
-        setSelectedTask(null)
     }, [])
 
     if (!userId) {
@@ -76,18 +57,33 @@ export default function AccountManagerDashboard() {
                     </p>
                 </div>
 
-                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'kanban' | 'table')}>
-                    <TabsList>
-                        <TabsTrigger value="table" className="gap-2">
-                            <Table2 className="h-4 w-4" />
-                            {isAr ? 'جدول' : 'Table'}
-                        </TabsTrigger>
-                        <TabsTrigger value="kanban" className="gap-2">
-                            <LayoutGrid className="h-4 w-4" />
-                            {isAr ? 'كانبان' : 'Kanban'}
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <div className="flex items-center gap-3">
+                    {/* Department Filter */}
+                    <Tabs value={deptFilter} onValueChange={(v) => setDeptFilter(v as Department)}>
+                        <TabsList>
+                            <TabsTrigger value="content" className="gap-2">
+                                {isAr ? '✍️ المحتوى' : '✍️ Content'}
+                            </TabsTrigger>
+                            <TabsTrigger value="photography" className="gap-2">
+                                {isAr ? '📸 التصوير' : '📸 Photography'}
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+
+                    {/* View Toggle */}
+                    <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'kanban' | 'table')}>
+                        <TabsList>
+                            <TabsTrigger value="table" className="gap-2">
+                                <Table2 className="h-4 w-4" />
+                                {isAr ? 'جدول' : 'Table'}
+                            </TabsTrigger>
+                            <TabsTrigger value="kanban" className="gap-2">
+                                <LayoutGrid className="h-4 w-4" />
+                                {isAr ? 'كانبان' : 'Kanban'}
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
             </div>
 
             <PendingRequests teamLeaderId={userId} />
@@ -97,33 +93,26 @@ export default function AccountManagerDashboard() {
             {viewMode === 'table' ? (
                 <TasksTable
                     projectId={undefined}
+                    department={deptFilter}
+                    readOnly
                     onTaskClick={handleTaskClick}
-                    onCreateTask={() => handleCreateTask()}
                 />
             ) : (
                 <KanbanBoard
                     projectId={undefined}
+                    department={deptFilter}
+                    readOnly
                     onTaskClick={handleTaskClick}
-                    onCreateTask={handleCreateTask}
                 />
             )}
-
-            <TaskForm
-                open={isFormOpen}
-                onOpenChange={setIsFormOpen}
-                task={selectedTask}
-                defaultStatus={defaultStatus}
-                currentUserId={userId}
-                onSuccess={handleFormSuccess}
-            />
 
             <TaskDetails
                 open={isDetailsOpen}
                 onOpenChange={setIsDetailsOpen}
                 taskId={selectedTask?.id ?? null}
                 currentUserId={userId}
-                onEdit={handleEditTask}
-                canReturn={true}
+                onEdit={undefined}
+                canReturn={false}
             />
         </div>
     )

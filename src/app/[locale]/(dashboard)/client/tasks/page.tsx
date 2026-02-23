@@ -13,12 +13,24 @@ import {
     AlertCircle,
     Eye,
     Loader2,
+    RotateCcw,
 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
 import {
     Table,
     TableBody,
@@ -38,7 +50,7 @@ import {
 } from '@/components/ui/pagination'
 
 import { useCurrentUser } from '@/hooks/use-users'
-import { useClientProfile } from '@/hooks/use-client-portal'
+import { useClientProfile, useApproveTask, useRejectTask } from '@/hooks/use-client-portal'
 import { useClientTasks, useClientTasksStats } from '@/hooks/use-tasks'
 import { TaskFiltersComponent } from '@/components/tasks/task-filters'
 import { getColumnConfig, getPriorityConfig } from '@/types/task'
@@ -66,6 +78,14 @@ export default function ClientTasksPage() {
     const [currentPage, setCurrentPage] = useState(1)
     const [filters, setFilters] = useState<TaskFilters>({})
     const pageSize = 15
+
+    // Review dialog state
+    const [reviewTask, setReviewTask] = useState<TaskWithRelations | null>(null)
+    const [isReviewOpen, setIsReviewOpen] = useState(false)
+    const [revisionNotes, setRevisionNotes] = useState('')
+    const [isProcessing, setIsProcessing] = useState(false)
+    const approveTask = useApproveTask()
+    const rejectTask = useRejectTask()
 
     // Fetch tasks and stats
     const { data: tasksData, isLoading: isTasksLoading } = useClientTasks(
@@ -136,15 +156,53 @@ export default function ClientTasksPage() {
     }
 
     const handleTaskClick = (task: TaskWithRelations) => {
+        // For client_review tasks, open the review dialog directly
+        if (task.status === 'client_review') {
+            setReviewTask(task)
+            setRevisionNotes('')
+            setIsReviewOpen(true)
+            return
+        }
         // Navigate to project page with task highlighted
         if (task.project?.id) {
             router.push(`/client/projects/${task.project.id}`)
         } else {
-            // If no project, you could show a dialog or alert
-            // For now, we'll just do nothing or show an alert
             alert(isAr
                 ? `المهمة "${task.title}" ليست مرتبطة بمشروع حالياً`
                 : `Task "${task.title}" is not associated with a project`)
+        }
+    }
+
+    const handleApprove = async () => {
+        if (!reviewTask) return
+        setIsProcessing(true)
+        try {
+            await approveTask.mutateAsync({
+                taskId: reviewTask.id,
+                feedback: isAr ? 'تمت الموافقة من العميل' : 'Approved by client',
+            })
+            setIsReviewOpen(false)
+        } catch (error) {
+            console.error('Failed to approve task:', error)
+        } finally {
+            setIsProcessing(false)
+        }
+    }
+
+    const handleRequestRevision = async () => {
+        if (!reviewTask || !revisionNotes.trim()) return
+        setIsProcessing(true)
+        try {
+            await rejectTask.mutateAsync({
+                taskId: reviewTask.id,
+                feedback: revisionNotes,
+            })
+            setIsReviewOpen(false)
+            setRevisionNotes('')
+        } catch (error) {
+            console.error('Failed to request revision:', error)
+        } finally {
+            setIsProcessing(false)
         }
     }
 
@@ -296,6 +354,7 @@ export default function ClientTasksPage() {
                                             <TableHead>{isAr ? 'الحالة' : 'Status'}</TableHead>
                                             <TableHead>{isAr ? 'الأولوية' : 'Priority'}</TableHead>
                                             <TableHead>{isAr ? 'الموعد النهائي' : 'Deadline'}</TableHead>
+                                            <TableHead>{isAr ? 'إجراء' : 'Action'}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -371,6 +430,27 @@ export default function ClientTasksPage() {
                                                             <span className="text-sm text-muted-foreground">
                                                                 {isAr ? 'لا يوجد' : 'N/A'}
                                                             </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                                        {task.status === 'client_review' ? (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="text-indigo-600 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 gap-1.5"
+                                                                onClick={() => handleTaskClick(task)}
+                                                            >
+                                                                <RotateCcw className="h-3.5 w-3.5" />
+                                                                {isAr ? 'طلب تعديل / موافقة' : 'Review'}
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={() => handleTaskClick(task)}
+                                                            >
+                                                                <Eye className="h-3.5 w-3.5" />
+                                                            </Button>
                                                         )}
                                                     </TableCell>
                                                 </TableRow>
@@ -458,6 +538,80 @@ export default function ClientTasksPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Task Review Dialog */}
+            <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
+                <DialogContent className="sm:max-w-[560px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <RotateCcw className="h-5 w-5 text-indigo-500" />
+                            {isAr ? 'مراجعة المهمة' : 'Review Task'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {isAr
+                                ? 'راجع تفاصيل المهمة واختر الموافقة أو طلب تعديلات مع ملاحظاتك'
+                                : 'Review the task and choose to approve or request modifications with your notes'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {reviewTask && (
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-xs text-muted-foreground mb-1">{isAr ? 'عنوان المهمة' : 'Task Title'}</p>
+                                <p className="font-semibold text-base">{reviewTask.title}</p>
+                            </div>
+                            {reviewTask.description && (
+                                <div>
+                                    <p className="text-xs text-muted-foreground mb-1">{isAr ? 'الوصف' : 'Description'}</p>
+                                    <p className="text-sm whitespace-pre-wrap">{reviewTask.description}</p>
+                                </div>
+                            )}
+                            {reviewTask.project?.name && (
+                                <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-muted-foreground">{isAr ? 'المشروع:' : 'Project:'}</span>
+                                    <Badge variant="outline">{reviewTask.project.name}</Badge>
+                                </div>
+                            )}
+                            <Separator />
+                            <div className="space-y-2">
+                                <Label htmlFor="revision-notes">
+                                    {isAr ? 'ملاحظات التعديل (مطلوبة لطلب التعديل)' : 'Revision Notes (required to request revision)'}
+                                </Label>
+                                <Textarea
+                                    id="revision-notes"
+                                    placeholder={isAr ? 'اكتب ملاحظاتك وما تريد تعديله...' : 'Write your notes and what needs to be changed...'}
+                                    value={revisionNotes}
+                                    onChange={(e) => setRevisionNotes(e.target.value)}
+                                    rows={4}
+                                    className="resize-none"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="outline"
+                            onClick={handleRequestRevision}
+                            disabled={isProcessing || !revisionNotes.trim()}
+                            className="text-orange-600 border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                        >
+                            {isProcessing && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                            <RotateCcw className="me-2 h-4 w-4" />
+                            {isAr ? 'طلب تعديل' : 'Request Revision'}
+                        </Button>
+                        <Button
+                            onClick={handleApprove}
+                            disabled={isProcessing}
+                            className="bg-green-600 hover:bg-green-700"
+                        >
+                            {isProcessing && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                            <CheckCircle2 className="me-2 h-4 w-4" />
+                            {isAr ? 'موافقة' : 'Approve'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

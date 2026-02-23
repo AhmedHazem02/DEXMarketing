@@ -332,6 +332,12 @@ export function RevisionsHub({ onTaskClick, onReassign }: RevisionsHubProps) {
         if (!tasks) return []
 
         return tasks.filter(task => {
+            // Department filter: admin sees all, others see their department only
+            if (currentUser?.role !== 'admin' && currentUser?.department) {
+                if (task.department && task.department !== currentUser.department) {
+                    return false
+                }
+            }
             // Status filter
             if (statusFilter !== 'all' && task.status !== statusFilter) {
                 return false
@@ -346,7 +352,7 @@ export function RevisionsHub({ onTaskClick, onReassign }: RevisionsHubProps) {
             }
             return true
         })
-    }, [tasks, statusFilter, searchQuery])
+    }, [tasks, statusFilter, searchQuery, currentUser])
 
     // Handlers
     const handleReassign = async (taskId: string, userId: string) => {
@@ -365,9 +371,17 @@ export function RevisionsHub({ onTaskClick, onReassign }: RevisionsHubProps) {
         })
     }
 
-    // Stats
-    const revisionCount = tasks?.filter(t => t.status === 'revision').length ?? 0
-    const rejectedCount = tasks?.filter(t => t.status === 'rejected').length ?? 0
+    // Stats (scoped to department)
+    const deptTasks = useMemo(() => {
+        if (!tasks) return []
+        if (currentUser?.role === 'admin') return tasks
+        return tasks.filter(t =>
+            !currentUser?.department || !t.department || t.department === currentUser.department
+        )
+    }, [tasks, currentUser])
+
+    const revisionCount = deptTasks.filter(t => t.status === 'revision').length
+    const rejectedCount = deptTasks.filter(t => t.status === 'rejected').length
 
     return (
         <div className="space-y-6">

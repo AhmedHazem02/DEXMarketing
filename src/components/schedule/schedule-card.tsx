@@ -100,6 +100,7 @@ export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onSt
 
                     {/* Actions */}
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        {!isAccountManager && (
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -113,6 +114,8 @@ export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onSt
                             </TooltipTrigger>
                             <TooltipContent>{isAr ? 'تعديل' : 'Edit'}</TooltipContent>
                         </Tooltip>
+                        )}
+                        {!isAccountManager && (
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
@@ -126,10 +129,11 @@ export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onSt
                             </TooltipTrigger>
                             <TooltipContent>{isAr ? 'حذف' : 'Delete'}</TooltipContent>
                         </Tooltip>
+                        )}
                     </div>
                 </div>
 
-                {/* Info chips */}
+                {/* Info chips: time + location */}
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                     {schedule.start_time && (
                         <div className="flex items-center gap-1 text-xs bg-muted/30 text-muted-foreground px-2 py-1 rounded-lg">
@@ -148,13 +152,15 @@ export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onSt
                             <span className="truncate max-w-[120px]">{schedule.location}</span>
                         </div>
                     )}
-                    {schedule.client && (
-                        <div className="flex items-center gap-1 text-xs bg-primary/5 text-primary px-2 py-1 rounded-lg">
-                            <Building2 className="h-3 w-3" />
-                            <span className="truncate max-w-[120px]">{schedule.client?.name}</span>
-                        </div>
-                    )}
                 </div>
+
+                {/* Client chip – own row */}
+                {schedule.client && (
+                    <div className="flex items-center gap-1 text-xs bg-primary/5 text-primary px-2 py-1 rounded-lg mt-1.5 w-fit max-w-full">
+                        <Building2 className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{schedule.client?.name}</span>
+                    </div>
+                )}
 
                 {/* Assigned Members */}
                 {members.length > 0 && (
@@ -181,13 +187,10 @@ export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onSt
                                 ))}
                         </div>
                         {members.length > 6 && (
-                            <span className="text-[10px] text-muted-foreground">
+                            <span className="text-[10px] text-muted-foreground ms-1">
                                 +{members.length - 6}
                             </span>
                         )}
-                        <span className="text-xs text-muted-foreground/60 ms-1">
-                            {members.map(m => m.name?.split(' ')[0]).join(' · ')}
-                        </span>
                     </div>
                 )}
 

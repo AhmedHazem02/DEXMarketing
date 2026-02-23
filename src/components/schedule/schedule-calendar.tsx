@@ -44,6 +44,7 @@ import {
     useUpdateScheduleApproval
 } from '@/hooks/use-schedule'
 import { useClients } from '@/hooks/use-clients'
+import { useMyAssignedClients } from '@/hooks/use-client-assignments'
 import { useCurrentUser, useTeamMembers } from '@/hooks/use-users'
 import { isScheduleOverdue } from '@/types/schedule'
 import type { ScheduleWithRelations, CreateScheduleInput, ScheduleStatus } from '@/types/schedule'
@@ -89,7 +90,11 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
     const { data: currentUser } = useCurrentUser()
     const { data: schedules, isLoading } = useCalendarSchedules(teamLeaderId, year, month)
     const { data: teamMembers } = useTeamMembers(teamLeaderId)
-    const { data: clients } = useClients()
+    const { data: allClients } = useClients()
+    const { data: assignedClients } = useMyAssignedClients(currentUser?.id)
+
+    const isTeamMember = ['creator', 'designer', 'videographer', 'photographer', 'editor'].includes(currentUser?.role || '')
+    const clients = isTeamMember ? assignedClients : allClients
     const createSchedule = useCreateSchedule()
     const updateSchedule = useUpdateSchedule()
     const deleteSchedule = useDeleteSchedule()

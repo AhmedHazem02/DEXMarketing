@@ -180,7 +180,7 @@ const TaskCard = memo(function TaskCard({ task, onClick, isDragging }: TaskCardP
 
                 {/* Assignee */}
                 {task.assigned_user && (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 ms-auto">
                         <Avatar className="h-6 w-6">
                             <AvatarImage src={task.assigned_user.avatar_url ?? undefined} />
                             <AvatarFallback className="text-xs bg-primary/10 text-primary">
@@ -195,18 +195,20 @@ const TaskCard = memo(function TaskCard({ task, onClick, isDragging }: TaskCardP
             </div>
 
             {/* Project & Client Badges */}
-            <div className="absolute bottom-4 start-4 max-w-[70%] flex flex-col gap-1">
-                {task.project && (
-                    <Badge variant="outline" className="text-[10px] truncate w-fit">
-                        {task.project.name}
-                    </Badge>
-                )}
-                {task.client && (
-                    <Badge variant="outline" className="text-[10px] truncate w-fit bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
-                        {task.client.name}
-                    </Badge>
-                )}
-            </div>
+            {(task.project || task.client) && (
+                <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-border/30">
+                    {task.project && (
+                        <Badge variant="outline" className="text-[10px] truncate max-w-full">
+                            {task.project.name}
+                        </Badge>
+                    )}
+                    {task.client && (
+                        <Badge variant="outline" className="text-[10px] truncate max-w-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                            {task.client.name}
+                        </Badge>
+                    )}
+                </div>
+            )}
         </motion.div>
     )
 })

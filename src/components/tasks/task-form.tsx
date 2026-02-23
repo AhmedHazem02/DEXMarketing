@@ -108,11 +108,11 @@ export function TaskForm({
     // Admins use useUsers to get all users
     const { data: allUsers, isLoading: allUsersLoading } = useUsers()
     const { data: teamMembers, isLoading: teamMembersLoading } = useTeamMembers(
-        currentUser?.role === 'team_leader' ? currentUserId : ''
+        (currentUser?.role === 'team_leader' || currentUser?.role === 'account_manager') ? currentUserId : ''
     )
 
     // Determine which users to show based on current user's role
-    const usersLoading = currentUser?.role === 'team_leader' ? teamMembersLoading : allUsersLoading
+    const usersLoading = (currentUser?.role === 'team_leader' || currentUser?.role === 'account_manager') ? teamMembersLoading : allUsersLoading
     const assignableUsers = (() => {
         if (!currentUser) return []
 
@@ -121,9 +121,9 @@ export function TaskForm({
             return allUsers?.filter(u => u.is_active) ?? []
         }
 
-        // Team leaders get their department's team members
-        if (currentUser.role === 'team_leader') {
-            return teamMembers ?? []
+        // Team leaders and account managers get their department's team members only (excluding themselves)
+        if (currentUser.role === 'team_leader' || currentUser.role === 'account_manager') {
+            return (teamMembers ?? []).filter(m => m.id !== currentUser.id)
         }
 
         // Other roles can only assign to users in their department
