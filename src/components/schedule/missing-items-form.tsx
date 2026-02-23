@@ -51,7 +51,7 @@ export function MissingItemsForm({ teamLeaderId, initialDate, isLoading, onSubmi
 
         const taskLabel = selectedTask?.title || ''
         const clientLabel = selectedTask?.project?.client
-            ? (selectedTask.project.client.name || selectedTask.project.client.company)
+            ? selectedTask.project.client.name
             : ''
         const autoTitle = isAr
             ? `نواقص${taskLabel ? ' - ' + taskLabel : ''}${clientLabel ? ' (' + clientLabel + ')' : ''}`
@@ -121,7 +121,7 @@ export function MissingItemsForm({ teamLeaderId, initialDate, isLoading, onSubmi
                                 </div>
                                 {myTasks.map(task => {
                                     const clientName = task.project?.client
-                                        ? (task.project.client.name || task.project.client.company)
+                                        ? task.project.client.name
                                         : null
                                     return (
                                         <SelectItem key={task.id} value={task.id}>
@@ -150,7 +150,7 @@ export function MissingItemsForm({ teamLeaderId, initialDate, isLoading, onSubmi
                 {selectedTask?.project?.client && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
                         <Building2 className="h-3 w-3" />
-                        <span>{selectedTask.project.client.name || selectedTask.project.client.company}</span>
+                        <span>{selectedTask.project.client.name}</span>
                     </div>
                 )}
             </div>

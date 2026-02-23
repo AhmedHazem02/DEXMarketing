@@ -62,7 +62,7 @@ export default async function RootLayout({
 
   // Use both fonts variables to allow switching
   return (
-    <html lang={locale} dir={dir} suppressHydrationWarning>
+    <html lang={locale} dir={dir} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className={`${tajawal.variable} ${playfair.variable} ${spaceMono.variable} ${tajawal.className} antialiased min-h-screen bg-background text-foreground`}>
         <QueryProvider>
           <NextIntlClientProvider messages={messages}>

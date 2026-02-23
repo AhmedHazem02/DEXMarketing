@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useLocale } from 'next-intl'
 import { format } from 'date-fns'
-import { Loader2, Plus, Upload, DollarSign, CalendarIcon } from 'lucide-react'
+import { Loader2, Plus, Upload, CalendarIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -196,10 +196,11 @@ export function TransactionForm() {
                                     <FormLabel>{isAr ? 'المبلغ' : 'Amount'}</FormLabel>
                                     <FormControl>
                                         <div className="relative">
-                                            <DollarSign className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <span className="absolute start-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground select-none">ج.م</span>
                                             <Input
                                                 type="number"
                                                 step="0.01"
+                                                placeholder="0"
                                                 className="ps-10 text-lg font-semibold"
                                                 {...field}
                                             />

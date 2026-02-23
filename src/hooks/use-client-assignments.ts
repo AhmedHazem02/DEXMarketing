@@ -38,7 +38,7 @@ export function useMyAssignedClients(userId?: string) {
                     assigned_by,
                     created_at,
                     client:clients(
-                        id, name, email, phone, company, user_id, notes, created_at
+                        id, name, email, phone, user_id, notes, created_at
                     )
                 `)
                 .eq('user_id', userId!)
@@ -76,7 +76,7 @@ export function useTeamClientAssignments(assignerId?: string) {
                     user_id,
                     assigned_by,
                     created_at,
-                    client:clients(id, name, company, email, phone, user_id),
+                    client:clients(id, name, email, phone, user_id),
                     user:users!client_assignments_user_id_fkey(id, name, email, role, avatar_url, department)
                 `)
                 .eq('assigned_by', assignerId!)

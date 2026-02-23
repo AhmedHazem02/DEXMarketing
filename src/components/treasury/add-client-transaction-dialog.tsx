@@ -190,7 +190,7 @@ export function AddClientTransactionDialog({
                                             ) : (
                                                 clientAccounts.map((account) => {
                                                     const userName = (account.client as any)?.user?.name
-                                                    const clientName = userName || account.client?.company || account.client?.name || account.client?.email || (isAr ? 'عميل بدون اسم' : 'Unnamed client')
+                                                    const clientName = userName || account.client?.name || account.client?.email || (isAr ? 'عميل بدون اسم' : 'Unnamed client')
                                                     const pkgName = isAr ? (account.package_name_ar || account.package_name) : account.package_name
                                                     return (
                                                         <SelectItem key={account.id} value={account.id}>

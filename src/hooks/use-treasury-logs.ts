@@ -12,7 +12,7 @@ const TREASURY_LOGS_KEY = ['treasury-logs'] as const
  */
 export interface TreasuryLogWithRelations extends TreasuryLog {
     performer?: Pick<User, 'id' | 'name' | 'email'>
-    client?: Pick<Client, 'id' | 'name' | 'company'> & { user?: Pick<User, 'id' | 'name' | 'email'> | null }
+    client?: Pick<Client, 'id' | 'name'> & { user?: Pick<User, 'id' | 'name' | 'email'> | null }
 }
 
 /**
@@ -41,7 +41,7 @@ export function useTreasuryLogs(filters?: TreasuryLogsFilters) {
                 .select(`
                     *,
                     performer:users!treasury_logs_performed_by_fkey(id, name, email),
-                    client:clients(id, name, company, user:users(id, name, email))
+                    client:clients(id, name, user:users(id, name, email))
                 `)
                 .order('created_at', { ascending: false })
                 .limit(100)
@@ -134,7 +134,7 @@ export function useRecentTreasuryActivity(limit: number = 10) {
                 .select(`
                     *,
                     performer:users!treasury_logs_performed_by_fkey(id, name, email),
-                    client:clients(id, name, company)
+                    client:clients(id, name)
                 `)
                 .order('created_at', { ascending: false })
                 .limit(limit)

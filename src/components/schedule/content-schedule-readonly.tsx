@@ -273,11 +273,11 @@ export function ContentScheduleReadOnly() {
                                                     <div className="flex items-center gap-2 text-xs">
                                                         <Avatar className="h-5 w-5">
                                                             <AvatarFallback className="text-[8px] bg-primary/10">
-                                                                {(schedule.client.name || schedule.client.company)?.charAt(0)?.toUpperCase()}
+                                                                {schedule.client.name?.charAt(0)?.toUpperCase()}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <span className="text-muted-foreground">
-                                                            {schedule.client.name || schedule.client.company}
+                                                            {schedule.client.name}
                                                         </span>
                                                     </div>
                                                 )}

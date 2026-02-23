@@ -152,7 +152,6 @@ export async function createUser(data: {
                     user_id: user.user.id,
                     name: data.name,
                     email: data.email,
-                    company: 'New Client',
                 } as any)
             if (clientError) console.error('Client Record Create Error:', clientError)
         }
@@ -281,4 +280,53 @@ export async function deleteAccount(userId: string) {
     }
 
     return { success: true }
+}
+
+/**
+ * Ensure a client record exists for a user with role 'client'.
+ * Useful for users created before the auto-create fix.
+ */
+export async function ensureClientRecord() {
+    const supabase = await createClient()
+    const adminSupabase = createAdminClient()
+
+    // Get the current authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) return { success: false, error: 'Not authenticated' }
+
+    // Verify the user has the client role
+    const { data: profile } = await (supabase.from('users') as any)
+        .select('name, email, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || profile.role !== 'client') {
+        return { success: false, error: 'User is not a client' }
+    }
+
+    // Check if client record already exists
+    const { data: existing } = await adminSupabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+    if (existing) return { success: true, alreadyExists: true }
+
+    // Create the missing client record
+    const { error: insertError } = await adminSupabase
+        .from('clients')
+        .insert({
+            user_id: user.id,
+            name: profile.name || user.email?.split('@')[0] || 'Client',
+            email: profile.email || user.email,
+        } as any)
+
+    if (insertError) {
+        console.error('ensureClientRecord error:', insertError)
+        return { success: false, error: insertError.message }
+    }
+
+    revalidatePath('/[locale]/(dashboard)/client')
+    return { success: true, created: true }
 }

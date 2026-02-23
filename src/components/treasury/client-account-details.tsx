@@ -5,7 +5,6 @@ import { useLocale } from 'next-intl'
 import { format } from 'date-fns'
 import {
     Package as PackageIcon,
-    DollarSign,
     Calendar,
     ArrowUpRight,
     ArrowDownRight,
@@ -70,7 +69,6 @@ export function ClientAccountDetails({
 
     // Get client name
     const clientName = (account.client as any)?.user?.name ||
-        account.client?.company ||
         account.client?.name ||
         'N/A'
 
@@ -111,7 +109,7 @@ export function ClientAccountDetails({
                             <div className="flex-1 space-y-1">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <Building2 className="h-4 w-4" />
-                                    {account.client?.company || '-'}
+                                    {account.client?.name || '-'}
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <Calendar className="h-4 w-4" />
@@ -179,7 +177,7 @@ export function ClientAccountDetails({
                                 </CardHeader>
                                 <CardContent>
                                     <div className="flex items-center gap-2">
-                                        <DollarSign className="h-4 w-4 text-green-500" />
+                                        <span className="text-xs font-bold text-green-500 select-none">ج.م</span>
                                         <span className={cn(
                                             'font-semibold',
                                             remainingBalance < 0 && 'text-red-600',

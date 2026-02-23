@@ -93,7 +93,6 @@ export function AddClientAccountDialog({ open, onOpenChange }: AddClientAccountD
         const query = clientSearchQuery.toLowerCase()
         return (
             client.name?.toLowerCase().includes(query) ||
-            client.company?.toLowerCase().includes(query) ||
             client.email?.toLowerCase().includes(query) ||
             client.phone?.includes(query)
         )
@@ -175,7 +174,7 @@ export function AddClientAccountDialog({ open, onOpenChange }: AddClientAccountD
                                                 >
                                                     <span className="truncate">
                                                         {field.value
-                                                            ? ((selectedClient as any)?.user?.name || selectedClient?.company || selectedClient?.name || selectedClient?.email || 'عميل')
+                                                            ? ((selectedClient as any)?.user?.name || selectedClient?.name || selectedClient?.email || 'عميل')
                                                             : (isAr ? 'اختر العميل...' : 'Select client...')
                                                         }
                                                     </span>
@@ -205,8 +204,8 @@ export function AddClientAccountDialog({ open, onOpenChange }: AddClientAccountD
                                                         filteredClients.map((client) => {
                                                             // Prioritize user.name (from users table) over client.name
                                                             const userName = (client as any).user?.name
-                                                            const displayName = userName || client.company || client.name || client.email || 'عميل بدون اسم'
-                                                            const subtitle = client.company && (userName || client.name) ? (userName || client.name) : client.email
+                                                            const displayName = userName || client.name || client.email || 'عميل بدون اسم'
+                                                            const subtitle = client.email
                                                             const createdDate = client.created_at 
                                                                 ? format(new Date(client.created_at), 'PPP', { locale: isAr ? ar : enUS })
                                                                 : ''

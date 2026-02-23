@@ -108,7 +108,6 @@ export function EditClientAccountDialog({ open, onOpenChange, account }: EditCli
 
     // Get client name for display
     const clientName = (account?.client as any)?.user?.name || 
-                       account?.client?.company || 
                        account?.client?.name || 
                        'N/A'
 

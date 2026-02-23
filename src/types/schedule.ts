@@ -12,7 +12,7 @@ export type { ScheduleStatus, ApprovalStatus, MissingItemsStatus, ScheduleType }
  */
 export interface ScheduleWithRelations extends Schedule {
     team_leader?: Pick<User, 'id' | 'name' | 'avatar_url'> | null
-    client?: Pick<Client, 'id' | 'name' | 'company'> | null
+    client?: Pick<Client, 'id' | 'name'> | null
     project?: Pick<Project, 'id' | 'name'> | null
     task?: Pick<Task, 'id' | 'title'> | null
     // Populated client-side from assigned_members UUIDs

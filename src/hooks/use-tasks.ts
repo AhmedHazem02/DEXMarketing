@@ -56,7 +56,7 @@ export function useTasks(filters: TaskFilters = {}, limit?: number) {
                     assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
                     creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
                     project:projects(id, name, status),
-                    client:clients(id, name, company)
+                    client:clients(id, name)
                 `)
                 .order('created_at', { ascending: false })
 
@@ -97,7 +97,7 @@ export function useTasksKanban(projectId?: string, department?: Department) {
                     assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
                     creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
                     project:projects(id, name, status),
-                    client:clients(id, name, company)
+                    client:clients(id, name)
                 `)
                 .order('updated_at', { ascending: false })
 
@@ -153,7 +153,7 @@ export function useMyTasks(userId: string) {
                 .from('tasks')
                 .select(`
                     *,
-                    project:projects(id, name, status, client:clients(id, name, company)),
+                    project:projects(id, name, status, client:clients(id, name)),
                     creator:users!tasks_created_by_fkey(id, name, avatar_url)
                 `)
                 .eq('assigned_to', userId)
@@ -254,7 +254,7 @@ export function useTaskDetails(taskId: string) {
                     assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
                     creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
                     project:projects(id, name, status),
-                    client:clients(id, name, company)
+                    client:clients(id, name)
                 `)
                 .eq('id', taskId)
                 .single()
@@ -775,9 +775,9 @@ export function useAdminTasks(filters: TaskFilters = {}, page = 1, pageSize = 15
                     creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
                     project:projects(
                         id, name, status,
-                        client:clients(id, name, company)
+                        client:clients(id, name)
                     ),
-                    client:clients!tasks_client_id_fkey(id, name, company)
+                    client:clients!tasks_client_id_fkey(id, name)
                 `, { count: 'exact' })
                 .order('created_at', { ascending: false })
                 .range((page - 1) * pageSize, page * pageSize - 1)
@@ -864,9 +864,9 @@ export function useAdminTasksExport(filters: TaskFilters = {}, enabled = false) 
                     creator:users!tasks_created_by_fkey(id, name),
                     project:projects(
                         id, name,
-                        client:clients(id, name, company)
+                        client:clients(id, name)
                     ),
-                    client:clients!tasks_client_id_fkey(id, name, company)
+                    client:clients!tasks_client_id_fkey(id, name)
                 `)
                 .order('created_at', { ascending: false })
 

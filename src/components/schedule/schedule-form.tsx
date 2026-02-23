@@ -98,7 +98,7 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         const selectedClient = clients?.find(c => c.id === clientId)
-        const companyName = selectedClient ? (selectedClient.name || selectedClient.company) : title
+        const companyName = selectedClient ? selectedClient.name : title
         onSubmit({
             title,
             company_name: companyName,
@@ -235,13 +235,13 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
                                                 <div className="flex items-center gap-2.5 py-1">
                                                     <Avatar className="h-8 w-8 border border-border/50">
                                                         <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-primary/20 to-primary/5">
-                                                            {(client.name || client.company)?.charAt(0)?.toUpperCase() || '?'}
+                                                            {client.name?.charAt(0)?.toUpperCase() || '?'}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-1.5">
                                                             <span className="font-medium text-sm truncate">
-                                                                {client.name || client.company}
+                                                                {client.name}
                                                             </span>
                                                             {hasUserAccount && (
                                                                 <span className="text-emerald-500" title={isAr ? 'لديه حساب - يمكنه الدخول' : 'Has account - Can login'}>

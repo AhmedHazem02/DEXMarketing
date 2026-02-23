@@ -89,7 +89,7 @@ export function ReadOnlyScheduleView({ userId, clientId, teamLeaderId, title }: 
         const map = new Map<string, { id: string; label: string }>()
         rawSchedules?.forEach((s) => {
             if (s.client) {
-                const label = s.client.name || s.client.company
+                const label = s.client.name
                 if (label) map.set(s.client.id, { id: s.client.id, label })
             }
         })
@@ -390,7 +390,7 @@ export function ReadOnlyScheduleView({ userId, clientId, teamLeaderId, title }: 
                                                     {schedule.client && (
                                                         <span className="flex items-center gap-1">
                                                             <Building2 className="h-3 w-3" />
-                                                            {schedule.client.name || schedule.client.company}
+                                                            {schedule.client.name}
                                                         </span>
                                                     )}
                                                 </div>

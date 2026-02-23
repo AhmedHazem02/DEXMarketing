@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useTransition } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useLocale } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { format } from 'date-fns'
@@ -43,11 +44,15 @@ import { TaskFiltersComponent } from '@/components/tasks/task-filters'
 import { getColumnConfig, getPriorityConfig } from '@/types/task'
 import type { TaskFilters, TaskWithRelations } from '@/types/task'
 import { cn } from '@/lib/utils'
+import { ensureClientRecord } from '@/lib/actions/users'
 
 export default function ClientTasksPage() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const router = useRouter()
+    const queryClient = useQueryClient()
+    const [isPending, startTransition] = useTransition()
+    const [fixError, setFixError] = useState<string | null>(null)
 
     // Auth
     const { data: currentUser, isLoading: isUserLoading } = useCurrentUser()
@@ -99,16 +104,33 @@ export default function ClientTasksPage() {
     }
 
     if (!profile) {
+        const handleFix = () => {
+            startTransition(async () => {
+                setFixError(null)
+                const result = await ensureClientRecord()
+                if (result.success) {
+                    queryClient.invalidateQueries({ queryKey: ['client-portal'] })
+                } else {
+                    setFixError(result.error || 'فشل إنشاء ملف العميل')
+                }
+            })
+        }
         return (
             <div className="p-8 text-center border rounded-xl bg-orange-50">
                 <h2 className="text-xl font-bold mb-2 text-orange-800">
                     {isAr ? 'حسابك غير مرتبط بملف عميل' : 'Account not linked to a Client Profile'}
                 </h2>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground mb-4">
                     {isAr
                         ? 'يرجى التواصل مع الإدارة لربط وتفعيل حسابك كعميل.'
                         : 'Please contact administration to activate your client account.'}
                 </p>
+                <Button onClick={handleFix} disabled={isPending} variant="default">
+                    {isPending
+                        ? (isAr ? 'جاري الإنشاء...' : 'Creating...')
+                        : (isAr ? 'إنشاء ملف العميل تلقائياً' : 'Auto-create Client Record')}
+                </Button>
+                {fixError && <p className="text-red-500 text-sm mt-2">{fixError}</p>}
             </div>
         )
     }

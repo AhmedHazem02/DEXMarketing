@@ -38,7 +38,7 @@ export function useSchedules(filters: ScheduleFilters = {}) {
                 .select(`
                     *,
                     team_leader:users!schedules_team_leader_id_fkey(id, name, avatar_url),
-                    client:clients!schedules_client_id_fkey(id, name, company),
+                    client:clients!schedules_client_id_fkey(id, name),
                     project:projects!schedules_project_id_fkey(id, name),
                     task:tasks!schedules_task_id_fkey(id, title)
                 `)
@@ -88,7 +88,7 @@ export function useCalendarSchedules(teamLeaderId: string, year: number, month: 
                 .select(`
                     *,
                     team_leader:users!schedules_team_leader_id_fkey(id, name, avatar_url),
-                    client:clients!schedules_client_id_fkey(id, name, company),
+                    client:clients!schedules_client_id_fkey(id, name),
                     project:projects!schedules_project_id_fkey(id, name),
                     task:tasks!schedules_task_id_fkey(id, title)
                 `)
@@ -136,7 +136,7 @@ export function useMySchedules(userId: string, year: number, month: number) {
                 .select(`
                     *,
                     team_leader:users!schedules_team_leader_id_fkey(id, name, avatar_url),
-                    client:clients!schedules_client_id_fkey(id, name, company),
+                    client:clients!schedules_client_id_fkey(id, name),
                     project:projects!schedules_project_id_fkey(id, name)
                 `)
                 .in('task_id', taskIds)
@@ -168,7 +168,7 @@ export function useClientSchedules(clientId: string, year: number, month: number
                 .select(`
                     *,
                     team_leader:users!schedules_team_leader_id_fkey(id, name, avatar_url),
-                    client:clients!schedules_client_id_fkey(id, name, company),
+                    client:clients!schedules_client_id_fkey(id, name),
                     project:projects!schedules_project_id_fkey(id, name)
                 `)
                 .eq('client_id', clientId)
@@ -199,7 +199,7 @@ export function useScheduleDetail(id: string) {
                 .select(`
                     *,
                     team_leader:users!schedules_team_leader_id_fkey(id, name, avatar_url),
-                    client:clients!schedules_client_id_fkey(id, name, company),
+                    client:clients!schedules_client_id_fkey(id, name),
                     project:projects!schedules_project_id_fkey(id, name)
                 `)
                 .eq('id', id)
@@ -350,7 +350,7 @@ export function useContentSchedules(year: number, month: number) {
                 .select(`
                     *,
                     team_leader:users!schedules_team_leader_id_fkey(id, name, avatar_url),
-                    client:clients!schedules_client_id_fkey(id, name, company),
+                    client:clients!schedules_client_id_fkey(id, name),
                     project:projects!schedules_project_id_fkey(id, name),
                     task:tasks!schedules_task_id_fkey(id, title)
                 `)

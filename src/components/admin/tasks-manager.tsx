@@ -500,7 +500,7 @@ export function TasksManager() {
                                         </TableCell>
                                         <TableCell>
                                             <span className="font-medium text-sm">
-                                                {task.client?.name || task.client?.company || task.project?.client?.name || task.project?.client?.company || task.company_name || '-'}
+                                                {task.client?.name || task.project?.client?.name || task.company_name || '-'}
                                             </span>
                                         </TableCell>
                                         <TableCell className="hidden lg:table-cell">
@@ -718,7 +718,7 @@ const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: TaskWithRe
                 </div>
                 <div className="flex items-center gap-1.5 col-span-2">
                     <span className="text-muted-foreground shrink-0">{t('clientLabel')}</span>
-                    <span className="truncate font-medium">{task.client?.name || task.client?.company || task.project?.client?.name || task.project?.client?.company || task.company_name || '-'}</span>
+                    <span className="truncate font-medium">{task.client?.name || task.project?.client?.name || task.company_name || '-'}</span>
                 </div>
                 {/* Assigned */}
                 <div className="flex items-center gap-1.5">

@@ -57,7 +57,7 @@ export default function ClientSchedulePage() {
                     <SelectContent>
                         {/* Current client as default */}
                         <SelectItem value={clientProfile.id}>
-                            {clientProfile.company || clientProfile.name || (isAr ? 'الحساب الحالي' : 'Current Account')}
+                            {clientProfile.name || (isAr ? 'الحساب الحالي' : 'Current Account')}
                         </SelectItem>
                         
                         {clientsLoading ? (
@@ -69,7 +69,7 @@ export default function ClientSchedulePage() {
                                 ?.filter(c => c.id !== clientProfile.id)
                                 .map((client) => (
                                     <SelectItem key={client.id} value={client.id}>
-                                        {client.company || client.name}
+                                        {client.name}
                                     </SelectItem>
                                 ))
                         )}

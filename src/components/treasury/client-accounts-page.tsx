@@ -10,7 +10,7 @@ import {
     ChevronUp,
     MoreHorizontal,
     Trash2,
-    DollarSign,
+    Banknote,
     Pencil,
     FileDown,
     FileText,
@@ -205,7 +205,7 @@ export function ClientAccountsPage() {
                         variant="outline"
                         size="sm"
                     >
-                        <DollarSign className="me-2 h-4 w-4" />
+                        <Banknote className="me-2 h-4 w-4" />
                         {isAr ? 'معاملة جديدة' : 'New Transaction'}
                     </Button>
                 </div>
@@ -230,7 +230,7 @@ export function ClientAccountsPage() {
                         <SelectItem value="__all__">{isAr ? 'الكل' : 'All'}</SelectItem>
                         {clients?.map((client) => (
                             <SelectItem key={client.id} value={client.id}>
-                                {(client as any).user?.name || client.company || client.name}
+                                {(client as any).user?.name || client.name}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -268,7 +268,7 @@ export function ClientAccountsPage() {
                             clientAccounts.map((account) => {
                                 const isExpanded = expandedAccountId === account.id
                                 const userName = (account.client as any)?.user?.name
-                                const clientName = userName || account.client?.company || account.client?.name || 'N/A'
+                                const clientName = userName || account.client?.name || 'N/A'
                                 const packageName = isAr
                                     ? (account.package_name_ar || account.package_name)
                                     : account.package_name
@@ -337,7 +337,7 @@ export function ClientAccountsPage() {
                                                         <DropdownMenuItem
                                                             onClick={() => handleAddTransaction(account.id)}
                                                         >
-                                                            <DollarSign className="me-2 h-4 w-4" />
+                                                            <Banknote className="me-2 h-4 w-4" />
                                                             {isAr ? 'إضافة معاملة' : 'Add Transaction'}
                                                         </DropdownMenuItem>
                                                         {!isAccountant && (

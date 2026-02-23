@@ -144,7 +144,7 @@ export function AddUserDialog() {
                                         </FormControl>
                                         <SelectContent>
                                             <SelectItem value="admin">مدير (Admin)</SelectItem>
-                                            <SelectItem value="account_manager">مدير حسابات (Account Manager)</SelectItem>
+                                            <SelectItem value="account_manager">مدير المحتوي (Content Manager)</SelectItem>
                                             <SelectItem value="team_leader">قائد فريق (تصوير)</SelectItem>
                                             <SelectItem value="accountant">محاسب</SelectItem>
                                             <SelectItem value="creator">صانع محتوى</SelectItem>

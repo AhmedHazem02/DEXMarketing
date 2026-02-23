@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useLocale } from 'next-intl'
 import { format } from 'date-fns'
-import { Package as PackageIcon, DollarSign, Calendar } from 'lucide-react'
+import { Package as PackageIcon, Calendar } from 'lucide-react'
 
 import {
     Card,
@@ -189,7 +189,7 @@ export function ClientAccountPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="flex items-center gap-2">
-                                <DollarSign className="h-5 w-5 text-primary" />
+                                <span className="text-lg font-bold text-primary select-none">ج.م</span>
                                 <div>
                                     <p className="text-2xl font-bold text-primary">
                                         {selectedAccount.package_price?.toLocaleString()} ج.م
@@ -210,7 +210,7 @@ export function ClientAccountPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="flex items-center gap-2">
-                                <DollarSign className="h-5 w-5 text-primary" />
+                                <span className="text-lg font-bold text-primary select-none">ج.م</span>
                                 <div>
                                     <p
                                         className={cn(

@@ -336,7 +336,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                 </SelectItem>
                                 {clients?.map(client => (
                                     <SelectItem key={client.id} value={client.id}>
-                                        {client.name || client.company}
+                                        {client.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -599,8 +599,18 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                                                 'w-1 h-1 rounded-full shrink-0',
                                                                 getStatusDot(s.status, overdue)
                                                             )} />
+                                                            {s.schedule_type && (
+                                                                <span className={cn(
+                                                                    'shrink-0 text-[9px] px-1 rounded font-bold leading-tight',
+                                                                    s.schedule_type === 'reels'
+                                                                        ? 'bg-violet-500/20 text-violet-400'
+                                                                        : 'bg-blue-500/20 text-blue-400'
+                                                                )}>
+                                                                    {s.schedule_type === 'reels' ? 'R' : 'P'}
+                                                                </span>
+                                                            )}
                                                             <span className="truncate">
-                                                                {s.start_time?.slice(0, 5)} {s.schedule_type ? (s.schedule_type === 'reels' ? 'ðŸ“¹' : 'ðŸ“') + ' ' : ''}{s.title}
+                                                                {s.start_time?.slice(0, 5)} {s.title}
                                                             </span>
                                                         </div>
                                                     )

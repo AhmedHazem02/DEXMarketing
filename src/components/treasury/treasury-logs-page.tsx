@@ -210,7 +210,7 @@ export function TreasuryLogsPage() {
                                 <SelectItem value="__all__">{isAr ? 'الكل' : 'All'}</SelectItem>
                                 {clients?.map((client) => (
                                     <SelectItem key={client.id} value={client.id}>
-                                        {(client as any).user?.name || client.company || client.name}
+                                        {(client as any).user?.name || client.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -323,7 +323,7 @@ export function TreasuryLogsPage() {
                                         {log.performer?.name || log.performer?.email || 'N/A'}
                                     </TableCell>
                                     <TableCell>
-                                        {log.client?.user?.name || log.client?.company || log.client?.name || '-'}
+                                        {log.client?.user?.name || log.client?.name || '-'}
                                     </TableCell>
                                     <TableCell>
                                         {log.transaction_id ? (
@@ -373,7 +373,7 @@ export function TreasuryLogsPage() {
                                                             </div>
                                                             <div className="space-y-1">
                                                                 <span className="text-muted-foreground">{isAr ? 'العميل' : 'Client'}</span>
-                                                                <div className="font-medium">{log.client?.user?.name || log.client?.company || log.client?.name || '-'}</div>
+                                                                <div className="font-medium">{log.client?.user?.name || log.client?.name || '-'}</div>
                                                             </div>
                                                             <div className="space-y-1">
                                                                 <span className="text-muted-foreground">{isAr ? 'التاريخ' : 'Date'}</span>

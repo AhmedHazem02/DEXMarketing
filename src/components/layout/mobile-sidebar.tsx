@@ -23,6 +23,7 @@ export function MobileSidebar({ role, department }: { role?: string; department?
 
     const isAr = pathname.startsWith('/ar')
     const routes = getRoutes(role || 'guest', isAr, department)
+    const pathWithoutLocale = pathname.replace(/^\/(en|ar)/, '') || '/'
 
     const handleLogout = useLogout()
 
@@ -47,7 +48,7 @@ export function MobileSidebar({ role, department }: { role?: string; department?
                         <nav className="space-y-1 px-2">
                             {routes.map((route) => {
                                 const Icon = route.icon
-                                const isActive = pathname.startsWith(route.href)
+                                const isActive = pathWithoutLocale === route.href || pathWithoutLocale.startsWith(route.href + '/')
                                 return (
                                     <Link
                                         key={route.href}

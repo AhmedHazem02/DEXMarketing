@@ -282,7 +282,6 @@ export interface ClientAccountExportData {
     id: string
     client: {
         user?: { name: string | null }
-        company?: string | null
         name?: string | null
     } | null
     package_name: string | null
@@ -311,7 +310,7 @@ export function exportClientAccountsToCSV(
     // Map rows
     const rows = accounts.map(account => {
         const userName = account.client?.user?.name
-        const clientName = userName || account.client?.company || account.client?.name || 'N/A'
+        const clientName = userName || account.client?.name || 'N/A'
         const packageName = isAr
             ? (account.package_name_ar || account.package_name)
             : account.package_name
@@ -379,7 +378,7 @@ export async function exportClientAccountsToPDF(
 
         const tableData = accounts.map(account => {
             const userName = account.client?.user?.name
-            const clientName = userName || account.client?.company || account.client?.name || 'N/A'
+            const clientName = userName || account.client?.name || 'N/A'
             const packageName = isAr
                 ? (account.package_name_ar || account.package_name)
                 : account.package_name
@@ -513,7 +512,6 @@ export interface TaskExportData {
         name: string
         client?: {
             name?: string
-            company?: string
         }
     }
 }
@@ -576,7 +574,8 @@ export function exportTasksToCSV(
             `"${(task.title || '').replace(/"/g, '""')}"`,
             `"${deptLabel}"`,
             `"${task.project?.name || '-'}"`,
-            `"${task.project?.client?.name || task.project?.client?.company || '-'}"`,
+            `"${task.project?.client?.name || '-'}"`,
+
             `"${task.creator?.name || '-'}"`,
             `"${task.assigned_user?.name || 'غير معين'}"`,
             `"${statusLabel}"`,
@@ -680,7 +679,7 @@ export async function exportTasksToPDF(
                 priorityLabel,
                 task.assigned_user?.name || 'غير معين',
                 task.creator?.name || '-',
-                task.project?.client?.name || task.project?.client?.company || '-',
+                task.project?.client?.name || '-',
                 task.project?.name || 'بدون مشروع',
                 deptLabel,
                 task.title

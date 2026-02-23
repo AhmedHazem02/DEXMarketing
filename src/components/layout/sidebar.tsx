@@ -20,6 +20,8 @@ export function Sidebar({ role, department }: { role?: string; department?: Depa
 
     const handleLogout = useLogout()
 
+    const pathWithoutLocale = pathname.replace(/^\/(en|ar)/, '') || '/'
+
     return (
         <div className="hidden h-full w-64 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">
             <div className="flex h-16 items-center border-b px-6">
@@ -32,7 +34,7 @@ export function Sidebar({ role, department }: { role?: string; department?: Depa
                 <nav className="space-y-1 px-2">
                     {routes.map((route) => {
                         const Icon = route.icon
-                        const isActive = pathname.startsWith(route.href)
+                        const isActive = pathWithoutLocale === route.href || pathWithoutLocale.startsWith(route.href + '/')
                         return (
                             <Link
                                 key={route.href}

@@ -209,7 +209,7 @@ export function useMyDepartmentLeader(department?: Department | null) {
  */
 export function getRoleLabel(role: string, isAr: boolean): string {
     const labels: Record<string, { en: string; ar: string }> = {
-        account_manager: { en: 'Account Manager', ar: 'مدير حسابات' },
+        account_manager: { en: 'Content Manager', ar: 'مدير المحتوي' },
         designer: { en: 'Designer', ar: 'مصمم' },
         videographer: { en: 'Videographer', ar: 'مصور فيديو' },
         photographer: { en: 'Photographer', ar: 'مصور' },

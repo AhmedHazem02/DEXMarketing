@@ -32,13 +32,13 @@ export function useClients(filters?: ClientFilters) {
           *,
           user:users(id, name, email, role)
         `)
-        .order('company', { ascending: true })
+        .order('name', { ascending: true })
 
       if (filters?.search) {
         const safe = sanitizeSearch(filters.search)
         if (safe) {
           query = query.or(
-            `company.ilike.%${safe}%,name.ilike.%${safe}%`
+            `name.ilike.%${safe}%`
           )
         }
       }

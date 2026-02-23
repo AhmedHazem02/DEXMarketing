@@ -80,9 +80,20 @@ export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onSt
                         </div>
 
                         {schedule.schedule_type && (
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                                <span>{schedule.schedule_type === 'reels' ? '📹' : '📝'}</span>
-                                <span className="truncate">{schedule.schedule_type === 'reels' ? (isAr ? 'ريلز' : 'Reels') : (isAr ? 'بوست' : 'Post')}</span>
+                            <div className="mb-1.5">
+                                <Badge
+                                    variant="outline"
+                                    className={cn(
+                                        'text-[10px] px-2 py-0 h-5 rounded-md border font-semibold',
+                                        schedule.schedule_type === 'reels'
+                                            ? 'bg-violet-500/10 text-violet-500 border-violet-500/30'
+                                            : 'bg-blue-500/10 text-blue-500 border-blue-500/30'
+                                    )}
+                                >
+                                    {schedule.schedule_type === 'reels'
+                                        ? (isAr ? '📹 ريلز' : '📹 Reel')
+                                        : (isAr ? '📝 بوست' : '📝 Post')}
+                                </Badge>
                             </div>
                         )}
                     </div>
@@ -140,7 +151,7 @@ export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onSt
                     {schedule.client && (
                         <div className="flex items-center gap-1 text-xs bg-primary/5 text-primary px-2 py-1 rounded-lg">
                             <Building2 className="h-3 w-3" />
-                            <span className="truncate max-w-[120px]">{schedule.client?.name || schedule.client?.company}</span>
+                            <span className="truncate max-w-[120px]">{schedule.client?.name}</span>
                         </div>
                     )}
                 </div>

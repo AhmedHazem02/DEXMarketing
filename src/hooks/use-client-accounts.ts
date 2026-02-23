@@ -26,7 +26,7 @@ export function useClientAccounts(filters?: {
                 .from('client_accounts')
                 .select(`
                     *,
-                    client:clients(id, name, email, company, user:users(id, name, email)),
+                    client:clients(id, name, email, user:users(id, name, email)),
                     package:packages(id, name, name_ar),
                     transactions:transactions(*)
                 `)
@@ -52,7 +52,6 @@ export function useClientAccounts(filters?: {
                 results = results.filter(
                     (account) =>
                         account.client?.name?.toLowerCase().includes(searchLower) ||
-                        account.client?.company?.toLowerCase().includes(searchLower) ||
                         account.package_name?.toLowerCase().includes(searchLower)
                 )
             }
@@ -78,7 +77,7 @@ export function useClientAccount(id: string | undefined) {
                 .from('client_accounts')
                 .select(`
                     *,
-                    client:clients(id, name, email, company, phone),
+                    client:clients(id, name, email, phone),
                     package:packages(id, name, name_ar, price, duration_days),
                     transactions:transactions(*)
                 `)

@@ -523,9 +523,9 @@ export function TaskDetails({
                                     </span>
                                     <div className="flex items-center gap-2">
                                         <div className="h-6 w-6 rounded-full bg-indigo-500/10 flex items-center justify-center text-xs font-medium text-indigo-500">
-                                            {(task.client.company || task.client.name).charAt(0).toUpperCase()}
+                                            {task.client.name?.charAt(0).toUpperCase()}
                                         </div>
-                                        <span className="font-medium">{task.client.company || task.client.name}</span>
+                                        <span className="font-medium">{task.client.name}</span>
                                     </div>
                                 </div>
                             )}

@@ -403,9 +403,9 @@ export function TaskForm({
                                                 <SelectItem key={client.id} value={client.id}>
                                                     <span className="flex items-center gap-2">
                                                         <span className="w-6 h-6 rounded-full bg-indigo-500/10 flex items-center justify-center text-xs text-indigo-500">
-                                                            {(client.company || client.name).charAt(0)}
+                                                            {client.name?.charAt(0)}
                                                         </span>
-                                                        {client.company || client.name}
+                                                        {client.name}
                                                     </span>
                                                 </SelectItem>
                                             ))}

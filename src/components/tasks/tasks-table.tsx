@@ -212,10 +212,10 @@ export function TasksTable({ projectId, department, readOnly, onTaskClick, onCre
                     return (
                         <div className="flex items-center gap-2">
                             <div className="h-6 w-6 rounded-full bg-indigo-500/10 flex items-center justify-center text-xs text-indigo-500">
-                                {(client.company || client.name).charAt(0).toUpperCase()}
+                                {client.name?.charAt(0).toUpperCase()}
                             </div>
                             <span className="text-sm truncate max-w-[120px]">
-                                {client.company || client.name}
+                                {client.name}
                             </span>
                         </div>
                     )

@@ -79,7 +79,6 @@ export function ClientAssignmentManager() {
         const q = searchQuery.toLowerCase()
         return allClients.filter(c =>
             (c.name || '').toLowerCase().includes(q) ||
-            (c.company || '').toLowerCase().includes(q) ||
             (c.email || '').toLowerCase().includes(q)
         )
     }, [allClients, searchQuery])
@@ -373,7 +372,7 @@ export function ClientAssignmentManager() {
                                                                 'text-[10px] font-bold',
                                                                 isAssigned ? 'bg-primary/20 text-primary' : 'bg-muted'
                                                             )}>
-                                                                {(client.name || client.company)?.charAt(0)?.toUpperCase() || '?'}
+                                                                {client.name?.charAt(0)?.toUpperCase() || '?'}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         {isAssigned && (
@@ -387,10 +386,10 @@ export function ClientAssignmentManager() {
                                                             'font-medium text-xs truncate',
                                                             isAssigned ? 'text-primary' : 'text-foreground'
                                                         )}>
-                                                            {client.name || client.company}
+                                                            {client.name}
                                                         </div>
                                                         <div className="text-[10px] text-muted-foreground truncate">
-                                                            {client.company || client.email || (isAr ? 'بدون شركة' : 'No company')}
+                                                            {client.email || (isAr ? 'بدون بريد' : 'No email')}
                                                         </div>
                                                     </div>
                                                     {client.user_id && (
