@@ -61,6 +61,7 @@ import { cn } from '@/lib/utils'
 
 const transactionSchema = z.object({
     type: z.enum(['income', 'expense']),
+    payment_method: z.enum(['cash', 'transfer']).default('cash'),
     amount: z.coerce.number().min(0, 'Amount cannot be negative'),
     description: z.string().optional(),
     category: z.string().min(1, 'Category is required'),
@@ -91,6 +92,7 @@ export function TransactionForm() {
         resolver: zodResolver(transactionSchema) as any,
         defaultValues: {
             type: 'expense',
+            payment_method: 'cash',
             amount: 0,
             description: '',
             category: '',
@@ -119,15 +121,16 @@ export function TransactionForm() {
         }
 
         try {
+            const { date, ...rest } = values
             const payload: any = {
-                ...values,
+                ...rest,
                 created_by: currentUser.id,
                 sub_category: values.sub_category || null,
             }
 
-            // Only include date if admin and date is provided
-            if (isAdmin && values.date) {
-                payload.transaction_date = values.date.toISOString().split('T')[0]
+            // Only include transaction_date if admin and date is provided
+            if (isAdmin && date) {
+                payload.transaction_date = date.toISOString().split('T')[0]
             }
 
             await createTransaction.mutateAsync(payload)
@@ -146,8 +149,8 @@ export function TransactionForm() {
                     {isAr ? 'معاملة جديدة' : 'New Transaction'}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-[500px] flex flex-col max-h-[90vh]">
+                <DialogHeader className="shrink-0">
                     <DialogTitle>
                         {isAr ? 'إضافة معاملة مالية' : 'Add Financial Transaction'}
                     </DialogTitle>
@@ -160,7 +163,8 @@ export function TransactionForm() {
                 </DialogHeader>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0 flex-1">
+                        <div className="flex-1 overflow-y-auto space-y-6 px-1 py-1">
                         {/* Type Toggle */}
                         <FormField
                             control={form.control}
@@ -201,6 +205,29 @@ export function TransactionForm() {
                                             />
                                         </div>
                                     </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Payment Method */}
+                        <FormField
+                            control={form.control}
+                            name="payment_method"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{isAr ? 'طريقة الدفع' : 'Payment Method'} *</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="cash">{isAr ? 'نقد' : 'Cash'}</SelectItem>
+                                            <SelectItem value="transfer">{isAr ? 'محفظة إلكترونية' : 'Mobile Wallet'}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -326,7 +353,8 @@ export function TransactionForm() {
                             </div>
                         </div>
 
-                        <DialogFooter>
+                        </div>
+                        <DialogFooter className="shrink-0 pt-4 border-t mt-2">
                             <Button type="submit" disabled={createTransaction.isPending || !currentUser}>
                                 {createTransaction.isPending && (
                                     <Loader2 className="me-2 h-4 w-4 animate-spin" />

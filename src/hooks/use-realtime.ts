@@ -1,10 +1,29 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { taskKeys } from './use-tasks'
 import { NOTIFICATIONS_KEY } from './use-notifications'
+
+/**
+ * Returns a debounced version of `fn` that batches rapid calls.
+ * The function runs at most once per `delay` ms.
+ */
+function useDebouncedCallback<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const fnRef = useRef(fn)
+    fnRef.current = fn
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return useCallback(((...args: any[]) => {
+        if (timerRef.current) return // already scheduled — skip
+        timerRef.current = setTimeout(() => {
+            timerRef.current = null
+            fnRef.current(...args)
+        }, delay)
+    }) as unknown as T, [delay])
+}
 
 /**
  * Hook to subscribe to real-time updates for a table
@@ -89,50 +108,72 @@ export function useNotificationsRealtime(userId: string) {
 /**
  * Hook to subscribe to task updates for a specific user
  * Also listens to comments and attachments changes
+ *
+ * IMPORTANT: Uses a global singleton subscription + debounced invalidation
+ * to prevent the cascade: realtime event → invalidateQueries → refetch →
+ * React re-render → RSC payload fetch → dev server logs GET.
+ * Multiple components calling this hook share ONE set of channels.
  */
+
+// Global ref-count to ensure only one set of channels exists at a time
+let _tasksRealtimeSubscribers = 0
+let _tasksRealtimeCleanup: (() => void) | null = null
+
 export function useTasksRealtime() {
     const supabase = createClient()
     const queryClient = useQueryClient()
 
+    // Debounce: batch all realtime events into a single invalidation
+    // every 2 seconds instead of firing on every row change
+    const debouncedInvalidate = useDebouncedCallback(() => {
+        queryClient.invalidateQueries({ queryKey: taskKeys.all })
+    }, 2000)
+
     useEffect(() => {
-        // Create channels for each table separately
-        const tasksChannel = supabase
-            .channel('db-tasks')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'tasks' },
-                () => {
-                    queryClient.invalidateQueries({ queryKey: taskKeys.all })
-                }
-            )
-            .subscribe()
+        _tasksRealtimeSubscribers++
 
-        const commentsChannel = supabase
-            .channel('db-comments')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'comments' },
-                () => {
-                    queryClient.invalidateQueries({ queryKey: taskKeys.all })
-                }
-            )
-            .subscribe()
+        // Only create channels for the first subscriber
+        if (_tasksRealtimeSubscribers === 1) {
+            const tasksChannel = supabase
+                .channel('db-tasks')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'tasks' },
+                    () => { debouncedInvalidate() }
+                )
+                .subscribe()
 
-        const attachmentsChannel = supabase
-            .channel('db-attachments')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'attachments' },
-                () => {
-                    queryClient.invalidateQueries({ queryKey: taskKeys.all })
-                }
-            )
-            .subscribe()
+            const commentsChannel = supabase
+                .channel('db-comments')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'comments' },
+                    () => { debouncedInvalidate() }
+                )
+                .subscribe()
+
+            const attachmentsChannel = supabase
+                .channel('db-attachments')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'attachments' },
+                    () => { debouncedInvalidate() }
+                )
+                .subscribe()
+
+            _tasksRealtimeCleanup = () => {
+                supabase.removeChannel(tasksChannel)
+                supabase.removeChannel(commentsChannel)
+                supabase.removeChannel(attachmentsChannel)
+            }
+        }
 
         return () => {
-            supabase.removeChannel(tasksChannel)
-            supabase.removeChannel(commentsChannel)
-            supabase.removeChannel(attachmentsChannel)
+            _tasksRealtimeSubscribers--
+            if (_tasksRealtimeSubscribers === 0 && _tasksRealtimeCleanup) {
+                _tasksRealtimeCleanup()
+                _tasksRealtimeCleanup = null
+            }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queryClient])

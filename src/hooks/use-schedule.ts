@@ -221,9 +221,21 @@ export function useCreateSchedule() {
 
     return useMutation({
         mutationFn: async (input: CreateScheduleInput & { team_leader_id: string; task_id?: string; assigned_members?: string[] }) => {
+            // Grab the current user's ID to set as created_by (required for RLS)
+            const { data: { user } } = await supabase.auth.getUser()
+            const userId = user?.id
+
+            if (!userId) {
+                throw new Error('Not authenticated')
+            }
+
+            // Strip fields not in the DB schema
+            const { company_name, ...rest } = input as any
+
             const insertPayload = {
-                ...input,
-                assigned_members: input.assigned_members || [],
+                ...rest,
+                assigned_members: rest.assigned_members || [],
+                created_by: userId,
             }
 
             const { data: schedule, error } = await (supabase
@@ -253,7 +265,9 @@ export function useUpdateSchedule() {
 
     return useMutation({
         mutationFn: async (input: UpdateScheduleInput & { assigned_members?: string[] }) => {
-            const { id, ...updates } = input
+            const { id, ...rawUpdates } = input
+            // Strip fields not in the DB schema
+            const { company_name, ...updates } = rawUpdates as any
             const { data: schedule, error } = await (supabase
                 .from('schedules') as any)
                 .update({ ...updates, updated_at: new Date().toISOString() })

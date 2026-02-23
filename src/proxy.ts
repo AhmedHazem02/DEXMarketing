@@ -47,31 +47,29 @@ export async function proxy(request: NextRequest) {
         }
     )
 
-    // 4. For protected routes, verify auth and redirect if unauthenticated
+    // 4. Refresh session (local JWT check — no network call).
+    //    getSession() reads the token from cookies and refreshes it only when
+    //    the access-token is expired, avoiding the ~130 ms round-trip that
+    //    getUser() requires on every single request.
+    //    The dashboard layout's server component still calls getUser() for a
+    //    full server-side validation, so security is not compromised.
     if (isProtectedRoute) {
         try {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
-                // Redirect to login — determine locale from the pathname
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) {
                 const localeMatch = pathname.match(/^\/(en|ar)/)
                 const locale = localeMatch ? localeMatch[1] : defaultLocale
                 return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
             }
         } catch {
-            // Supabase unreachable — redirect to login as a safety measure
             const localeMatch = pathname.match(/^\/(en|ar)/)
             const locale = localeMatch ? localeMatch[1] : defaultLocale
             return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
         }
     } else {
-        // For non-protected routes, still refresh the token silently
-        // Calling getUser() triggers the token refresh if needed.
-        // We don't need the result — just the side-effect of refreshing cookies.
-        // Wrapped in try/catch so a temporary Supabase network outage doesn't
-        // crash the middleware — the dashboard layout will independently verify
-        // auth and redirect unauthenticated users.
+        // For non-protected routes, still refresh the token silently.
         try {
-            await supabase.auth.getUser()
+            await supabase.auth.getSession()
         } catch {
             // fetch failed / network timeout — silently continue
         }

@@ -26,7 +26,7 @@ export interface CreateScheduleInput {
     title: string
     description?: string
     scheduled_date: string
-    start_time: string
+    start_time?: string | null
     end_time?: string
     location?: string
     client_id?: string
@@ -49,8 +49,8 @@ export interface UpdateScheduleInput {
     title?: string
     description?: string
     scheduled_date?: string
-    start_time?: string
-    end_time?: string
+    start_time?: string | null
+    end_time?: string | null
     location?: string
     status?: ScheduleStatus
     client_id?: string

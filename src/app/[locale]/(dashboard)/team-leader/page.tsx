@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useLocale } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import {
     KanbanBoard,
     TasksTable,
@@ -22,26 +21,14 @@ import { useCurrentUser } from '@/hooks/use-users'
 export default function TeamLeaderDashboard() {
     const locale = useLocale()
     const isAr = locale === 'ar'
-    const [userId, setUserId] = useState<string | null>(null)
     const { data: currentUser } = useCurrentUser()
+    const userId = currentUser?.id ?? null
     const myDepartment = currentUser?.department as Department | undefined
     const otherDepartment: Department | undefined = myDepartment === 'photography' ? 'content' : myDepartment === 'content' ? 'photography' : undefined
 
     // Department filter: 'mine' = my department, 'other' = the other department
     const [deptFilter, setDeptFilter] = useState<'mine' | 'other'>('mine')
     const activeDepartment = deptFilter === 'mine' ? myDepartment : otherDepartment
-
-    // Fetch current user
-    useEffect(() => {
-        const fetchUser = async () => {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-                setUserId(user.id)
-            }
-        }
-        fetchUser()
-    }, [])
 
     // Enable realtime updates for tasks, comments, and attachments
     useTasksRealtime()

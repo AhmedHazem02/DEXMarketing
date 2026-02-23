@@ -193,9 +193,14 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
         try {
             await createSchedule.mutateAsync(input)
             setFormOpen(false)
-            toast.success(isAr ? 'âœ… ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø© Ø¨Ù†Ø¬Ø§Ø­' : 'âœ… Schedule created successfully')
+            toast.success(isAr ? '✅ تم إنشاء الجدولة بنجاح' : '✅ Schedule created successfully')
         } catch (error: any) {
-            toast.error(isAr ? 'âŒ ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©' : 'âŒ Failed to create schedule')
+            console.error('❌ Create schedule error:', error?.message, error?.code, error?.details, error?.hint, error)
+            toast.error(
+                isAr
+                    ? `❌ فشل إنشاء الجدولة: ${error?.message || error?.code || 'خطأ غير معروف'}`
+                    : `❌ Failed to create schedule: ${error?.message || error?.code || 'Unknown error'}`
+            )
         }
     }
 
@@ -203,9 +208,9 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
         try {
             await createSchedule.mutateAsync(input)
             setMissingFormOpen(false)
-            toast.success(isAr ? 'âœ… ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ù†ÙˆØ§Ù‚Øµ Ø¨Ù†Ø¬Ø§Ø­' : 'âœ… Missing items reported successfully')
+            toast.success(isAr ? '✅ تم إرسال النواقص بنجاح' : '✅ Missing items reported successfully')
         } catch (error: any) {
-            toast.error(isAr ? 'âŒ ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ù†ÙˆØ§Ù‚Øµ' : 'âŒ Failed to report missing items')
+            toast.error(isAr ? '❌ فشل إرسال النواقص' : '❌ Failed to report missing items')
         }
     }
 
@@ -215,9 +220,9 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
             await updateSchedule.mutateAsync({ id: editingSchedule.id, ...input })
             setEditingSchedule(null)
             setFormOpen(false)
-            toast.success(isAr ? 'âœ… ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø© Ø¨Ù†Ø¬Ø§Ø­' : 'âœ… Schedule updated successfully')
+            toast.success(isAr ? '✅ تم تحديث الجدولة بنجاح' : '✅ Schedule updated successfully')
         } catch (error) {
-            toast.error(isAr ? 'âŒ ÙØ´Ù„ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©' : 'âŒ Failed to update schedule')
+            toast.error(isAr ? '❌ فشل تحديث الجدولة' : '❌ Failed to update schedule')
             console.error('Update schedule error:', error)
         }
     }
@@ -233,9 +238,9 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
             await deleteSchedule.mutateAsync(scheduleToDelete)
             setDeleteDialogOpen(false)
             setScheduleToDelete(null)
-            toast.success(isAr ? 'âœ… ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø© Ø¨Ù†Ø¬Ø§Ø­' : 'âœ… Schedule deleted successfully')
+            toast.success(isAr ? '✅ تم حذف الجدولة بنجاح' : '✅ Schedule deleted successfully')
         } catch (error) {
-            toast.error(isAr ? 'âŒ ÙØ´Ù„ Ø­Ø°Ù Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©' : 'âŒ Failed to delete schedule')
+            toast.error(isAr ? '❌ فشل حذف الجدولة' : '❌ Failed to delete schedule')
             console.error('Delete schedule error:', error)
         }
     }
@@ -243,9 +248,9 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
     const handleStatusChange = async (id: string, status: ScheduleStatus) => {
         try {
             await updateStatus.mutateAsync({ id, status })
-            toast.success(isAr ? 'âœ… ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø©' : 'âœ… Status updated')
+            toast.success(isAr ? '✅ تم تحديث الحالة' : '✅ Status updated')
         } catch (error) {
-            toast.error(isAr ? 'âŒ ÙØ´Ù„ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø©' : 'âŒ Failed to update status')
+            toast.error(isAr ? '❌ فشل تحديث الحالة' : '❌ Failed to update status')
             console.error('Update status error:', error)
         }
     }
@@ -254,10 +259,10 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
         try {
             await approveSchedule.mutateAsync({ id, approval_status, manager_notes })
             toast.success(isAr
-                ? (approval_status === 'approved' ? 'âœ… ØªÙ…Øª Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©' : 'âŒ ØªÙ… Ø±ÙØ¶ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©')
-                : (approval_status === 'approved' ? 'âœ… Schedule approved' : 'âŒ Schedule rejected'))
+                ? (approval_status === 'approved' ? '✅ تمت الموافقة على الجدولة' : '❌ تم رفض الجدولة')
+                : (approval_status === 'approved' ? '✅ Schedule approved' : '❌ Schedule rejected'))
         } catch (error) {
-            toast.error(isAr ? 'âŒ ÙØ´Ù„ ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø©' : 'âŒ Failed to update approval status')
+            toast.error(isAr ? '❌ فشل تحديث حالة الموافقة' : '❌ Failed to update approval status')
             console.error('Approval error:', error)
         }
     }
@@ -269,7 +274,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
 
     const weekDays = useMemo(() => {
         const days = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri']
-        const daysAr = ['Ø³Ø¨Øª', 'Ø£Ø­Ø¯', 'Ø§Ø«Ù†ÙŠÙ†', 'Ø«Ù„Ø§Ø«Ø§Ø¡', 'Ø£Ø±Ø¨Ø¹Ø§Ø¡', 'Ø®Ù…ÙŠØ³', 'Ø¬Ù…Ø¹Ø©']
+        const daysAr = ['سبت', 'أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة']
         return isAr ? daysAr : days
     }, [isAr])
 
@@ -311,7 +316,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                             onClick={() => { setCurrentDate(new Date()); setSelectedDate(new Date()) }}
                         >
                             <CalendarDays className="h-3.5 w-3.5 me-1.5" />
-                            {isAr ? 'Ø§Ù„ÙŠÙˆÙ…' : 'Today'}
+                            {isAr ? 'اليوم' : 'Today'}
                         </Button>
                     </div>
 
@@ -322,12 +327,12 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                             <SelectTrigger className="w-full sm:w-[180px] h-9 rounded-xl border-border">
                                 <div className="flex items-center gap-2">
                                     <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                    <SelectValue placeholder={isAr ? 'ÙƒÙ„ Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡' : 'All Clients'} />
+                                    <SelectValue placeholder={isAr ? 'كل العملاء' : 'All Clients'} />
                                 </div>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">
-                                    {isAr ? 'ÙƒÙ„ Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡' : 'All Clients'}
+                                    {isAr ? 'كل العملاء' : 'All Clients'}
                                 </SelectItem>
                                 {clients?.map(client => (
                                     <SelectItem key={client.id} value={client.id}>
@@ -380,10 +385,10 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                             <Button
                                 size="sm"
                                 className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
-                                onClick={() => { setEditingSchedule(null); setFormOpen(true) }}
+                                onClick={() => { setEditingSchedule(null); if (!selectedDate) setSelectedDate(new Date()); setFormOpen(true) }}
                             >
                                 <Plus className="h-4 w-4 me-1.5" />
-                                {isAr ? 'Ø¬Ø¯ÙˆÙ„Ø© Ø¬Ø¯ÙŠØ¯Ø©' : 'New Schedule'}
+                                {isAr ? 'جدولة جديدة' : 'New Schedule'}
                             </Button>
                         )}
 
@@ -393,13 +398,13 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                 <DialogHeader>
                                     <DialogTitle className="text-lg">
                                         {editingSchedule
-                                            ? (isAr ? 'âœï¸ ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø¬Ø¯ÙˆÙ„' : 'âœï¸ Edit Schedule')
-                                            : (isAr ? 'ðŸ“… Ø¬Ø¯ÙˆÙ„Ø© Ø¬Ø¯ÙŠØ¯Ø©' : 'ðŸ“… New Schedule')}
+                                            ? (isAr ? '✏️ تعديل الجدول' : '✏️ Edit Schedule')
+                                            : (isAr ? '📅 جدولة جديدة' : '📅 New Schedule')}
                                     </DialogTitle>
                                     <DialogDescription>
                                         {editingSchedule
-                                            ? (isAr ? 'ØªØ¹Ø¯ÙŠÙ„ ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©' : 'Edit schedule details')
-                                            : (isAr ? 'Ø¥Ø¶Ø§ÙØ© Ø¬Ø¯ÙˆÙ„Ø© Ø¬Ø¯ÙŠØ¯Ø© Ù„Ù„ÙØ±ÙŠÙ‚' : 'Add a new schedule for your team')}
+                                            ? (isAr ? 'تعديل تفاصيل الجدولة' : 'Edit schedule details')
+                                            : (isAr ? 'إضافة جدولة جديدة للفريق' : 'Add a new schedule for your team')}
                                     </DialogDescription>
                                 </DialogHeader>
                                 <ScheduleForm
@@ -425,16 +430,16 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                     className="rounded-xl border-amber-500/30 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400"
                                 >
                                     <AlertTriangle className="h-4 w-4 me-1.5" />
-                                    {isAr ? 'Ù†ÙˆØ§Ù‚Øµ' : 'Missing Items'}
+                                    {isAr ? 'نواقص' : 'Missing Items'}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-lg border-amber-500/20">
                                 <DialogHeader>
                                     <DialogTitle className="text-lg">
-                                        {isAr ? 'âš ï¸ Ø¥Ø¨Ù„Ø§Øº Ø¹Ù† Ù†ÙˆØ§Ù‚Øµ' : 'âš ï¸ Report Missing Items'}
+                                        {isAr ? '⚠️ إبلاغ عن نواقص' : '⚠️ Report Missing Items'}
                                     </DialogTitle>
                                     <DialogDescription>
-                                        {isAr ? 'Ø£Ø¶Ù Ø§Ù„Ù†ÙˆØ§Ù‚Øµ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© ÙˆØ³ÙŠØªÙ… Ø¥Ø±Ø³Ø§Ù„Ù‡Ø§ Ù„Ù„Ù…Ø³Ø¤ÙˆÙ„' : 'Add required missing items and they will be sent to the manager'}
+                                        {isAr ? 'أضف النواقص المطلوبة وسيتم إرسالها للمسؤول' : 'Add required missing items and they will be sent to the manager'}
                                     </DialogDescription>
                                 </DialogHeader>
                                 <MissingItemsForm
@@ -455,7 +460,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <StatsCard
                     icon={<CalendarIcon className="h-5 w-5" />}
-                    label={isAr ? 'Ø¥Ø¬Ù…Ø§Ù„ÙŠ' : 'Total'}
+                    label={isAr ? 'إجمالي' : 'Total'}
                     value={monthStats.total}
                     color="primary"
                     active={statusFilter === 'all'}
@@ -463,7 +468,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                 />
                 <StatsCard
                     icon={<Timer className="h-5 w-5" />}
-                    label={isAr ? 'Ù…Ø¬Ø¯ÙˆÙ„' : 'Scheduled'}
+                    label={isAr ? 'مجدول' : 'Scheduled'}
                     value={monthStats.upcoming}
                     color="sky"
                     active={statusFilter === 'scheduled'}
@@ -471,7 +476,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                 />
                 <StatsCard
                     icon={<AlertTriangle className="h-5 w-5" />}
-                    label={isAr ? 'Ø§Ù„Ù†ÙˆØ§Ù‚Øµ' : 'Missing'}
+                    label={isAr ? 'النواقص' : 'Missing'}
                     value={monthStats.missingItems}
                     color="amber"
                     active={false}
@@ -480,7 +485,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                 />
                 <StatsCard
                     icon={<CheckCircle2 className="h-5 w-5" />}
-                    label={isAr ? 'Ù…ÙƒØªÙ…Ù„' : 'Done'}
+                    label={isAr ? 'مكتمل' : 'Done'}
                     value={monthStats.completed}
                     color="emerald"
                     active={statusFilter === 'completed'}
@@ -488,7 +493,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                 />
                 <StatsCard
                     icon={<AlertTriangle className="h-5 w-5" />}
-                    label={isAr ? 'Ù…ØªØ£Ø®Ø±' : 'Overdue'}
+                    label={isAr ? 'متأخر' : 'Overdue'}
                     value={monthStats.overdue}
                     color="red"
                     active={false}
@@ -602,7 +607,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                                 })}
                                                 {daySchedules.length > 2 && (
                                                     <div className="text-[10px] text-muted-foreground/60 font-medium px-1.5">
-                                                        +{daySchedules.length - 2} {isAr ? 'Ø£Ø®Ø±Ù‰' : 'more'}
+                                                        +{daySchedules.length - 2} {isAr ? 'أخرى' : 'more'}
                                                     </div>
                                                 )}
                                             </div>
@@ -642,7 +647,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10">
-                                            {selectedSchedules.length} {isAr ? 'Ù…ÙˆØ§Ø¹ÙŠØ¯' : 'events'}
+                                            {selectedSchedules.length} {isAr ? 'مواعيد' : 'events'}
                                         </Badge>
                                         <Button
                                             variant="ghost"
@@ -662,7 +667,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                             <CalendarIcon className="h-6 w-6 text-muted-foreground/30" />
                                         </div>
                                         <p className="text-sm text-muted-foreground font-semibold">
-                                            {isAr ? 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…ÙˆØ§Ø¹ÙŠØ¯ ÙÙŠ Ù‡Ø°Ø§ Ø§Ù„ÙŠÙˆÙ…' : 'No events scheduled for this day'}
+                                            {isAr ? 'لا توجد مواعيد في هذا اليوم' : 'No events scheduled for this day'}
                                         </p>
                                         {canCreate && (
                                             <Button
@@ -672,7 +677,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                                 onClick={() => { setEditingSchedule(null); setFormOpen(true) }}
                                             >
                                                 <Plus className="h-3.5 w-3.5 me-1.5" />
-                                                {isAr ? 'Ø¥Ø¶Ø§ÙØ© Ø¬Ø¯ÙˆÙ„Ø©' : 'Add Schedule'}
+                                                {isAr ? 'إضافة جدولة' : 'Add Schedule'}
                                             </Button>
                                         )}
                                     </div>
@@ -717,17 +722,17 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>
-                            {isAr ? 'âš ï¸ ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø­Ø°Ù' : 'âš ï¸ Confirm Deletion'}
+                            {isAr ? '⚠️ تأكيد الحذف' : '⚠️ Confirm Deletion'}
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                             {isAr 
-                                ? 'Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø­Ø°Ù Ù‡Ø°Ù‡ Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©ØŸ Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø§Ù„ØªØ±Ø§Ø¬Ø¹ Ø¹Ù† Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡.'
+                                ? 'هل أنت متأكد من حذف هذه الجدولة؟ لا يمكن التراجع عن هذا الإجراء.'
                                 : 'Are you sure you want to delete this schedule? This action cannot be undone.'}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>
-                            {isAr ? 'Ø¥Ù„ØºØ§Ø¡' : 'Cancel'}
+                            {isAr ? 'إلغاء' : 'Cancel'}
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDelete}
@@ -736,7 +741,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                             {deleteSchedule.isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                                isAr ? 'Ø­Ø°Ù' : 'Delete'
+                                isAr ? 'حذف' : 'Delete'
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>

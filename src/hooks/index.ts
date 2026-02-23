@@ -117,6 +117,15 @@ export {
     useUpdateClient,
     useDeleteClient,
 } from './use-clients'
+// Client assignment hooks
+export {
+    clientAssignmentKeys,
+    useMyAssignedClients,
+    useTeamClientAssignments,
+    useAssignClient,
+    useUnassignClient,
+    useSyncClientAssignments,
+} from './use-client-assignments'
 // Project hooks
 export {
     projectKeys,

@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useLocale } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -18,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useEditorTasks, useMarkTaskComplete, useAddAttachment } from '@/hooks/use-tasks'
 import { useTasksRealtime } from '@/hooks/use-realtime'
+import { useCurrentUser } from '@/hooks/use-users'
 import { FileUploadZone } from '@/components/tasks'
 import type { TaskWithRelations } from '@/types/task'
 import { getWorkflowStageConfig } from '@/types/task'
@@ -26,17 +26,9 @@ import type { WorkflowStage } from '@/types/database'
 export default function EditorDashboard() {
     const locale = useLocale()
     const isAr = locale === 'ar'
-    const [userId, setUserId] = useState<string | null>(null)
+    const { data: currentUser } = useCurrentUser()
+    const userId = currentUser?.id ?? null
     const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null)
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) setUserId(user.id)
-        }
-        fetchUser()
-    }, [])
 
     useTasksRealtime()
 

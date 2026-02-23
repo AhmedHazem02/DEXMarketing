@@ -23,13 +23,16 @@ export function useCurrentUser() {
     return useQuery({
         queryKey: CURRENT_USER_KEY,
         queryFn: async () => {
-            const { data: { user: authUser } } = await supabase.auth.getUser()
-            if (!authUser) throw new Error('Not authenticated')
+            // Use getSession() (local JWT) instead of getUser() (network call)
+            // to avoid ~130ms latency. The dashboard layout already validates
+            // the user server-side via getUser().
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session?.user) throw new Error('Not authenticated')
 
             const { data, error } = await supabase
                 .from('users')
                 .select('*')
-                .eq('id', authUser.id)
+                .eq('id', session.user.id)
                 .single()
 
             if (error) throw error

@@ -1,15 +1,18 @@
 'use client'
 
+import { useState } from 'react'
 import { useLocale } from 'next-intl'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, FileText, UserPlus } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/use-users'
-import { ScheduleCalendar } from '@/components/schedule'
+import { ScheduleCalendar, ClientAssignmentManager } from '@/components/schedule'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 export default function AccountManagerSchedulePage() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const { data: currentUser, isLoading } = useCurrentUser()
+    const [activeTab, setActiveTab] = useState<'schedule' | 'assignments'>('schedule')
 
     if (isLoading || !currentUser) {
         return (
@@ -43,7 +46,42 @@ export default function AccountManagerSchedulePage() {
                 </div>
             </div>
 
-            <ScheduleCalendar teamLeaderId={currentUser.id} canCreate={false} />
+            {/* Tabs */}
+            <div className="flex gap-2 border-b border-border/50 pb-1">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('schedule')}
+                    className={cn(
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-xl transition-colors',
+                        activeTab === 'schedule'
+                            ? 'bg-primary/10 text-primary border-b-2 border-primary'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                >
+                    <FileText className="h-4 w-4" />
+                    {isAr ? 'جدول المحتوى' : 'Content Schedule'}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('assignments')}
+                    className={cn(
+                        'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-xl transition-colors',
+                        activeTab === 'assignments'
+                            ? 'bg-primary/10 text-primary border-b-2 border-primary'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                >
+                    <UserPlus className="h-4 w-4" />
+                    {isAr ? 'تعيين العملاء' : 'Client Assignments'}
+                </button>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'schedule' ? (
+                <ScheduleCalendar teamLeaderId={currentUser.id} canCreate={false} />
+            ) : (
+                <ClientAssignmentManager />
+            )}
         </div>
     )
 }

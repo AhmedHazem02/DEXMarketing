@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useLocale } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
@@ -40,6 +39,7 @@ import {
 import { TaskDetails, FileUploadZone, getColumnConfig, getPriorityConfig } from '@/components/tasks'
 import { useMyTasks, useUpdateTask } from '@/hooks/use-tasks'
 import { useTasksRealtime } from '@/hooks/use-realtime'
+import { useCurrentUser } from '@/hooks/use-users'
 import type { TaskWithRelations } from '@/types/task'
 import type { TaskStatus } from '@/types/database'
 
@@ -222,19 +222,11 @@ function CreatorTaskCard({ task, onView, onSubmit, isSubmitting, currentUserId }
 export default function CreatorDashboard() {
     const locale = useLocale()
     const isAr = locale === 'ar'
-    const [userId, setUserId] = useState<string | null>(null)
 
-    // Fetch current user
-    useEffect(() => {
-        const fetchUser = async () => {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-                setUserId(user.id)
-            }
-        }
-        fetchUser()
-    }, [])
+    // Use cached React Query hook — avoids the useState+useEffect
+    // double-render that triggers an extra RSC payload fetch.
+    const { data: currentUser } = useCurrentUser()
+    const userId = currentUser?.id ?? null
 
     const [searchQuery, setSearchQuery] = useState('')
     const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active')

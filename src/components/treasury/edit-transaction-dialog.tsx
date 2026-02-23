@@ -53,6 +53,7 @@ import type { Transaction } from '@/types/database'
 
 const editTransactionSchema = z.object({
     type: z.enum(['income', 'expense']),
+    payment_method: z.enum(['cash', 'transfer']),
     category: z.string().min(1, 'Category is required'),
     sub_category: z.string().optional(),
     amount: z.number().min(0, 'Amount cannot be negative'),
@@ -90,6 +91,7 @@ export function EditTransactionDialog({
         resolver: zodResolver(editTransactionSchema),
         defaultValues: {
             type: 'income',
+            payment_method: 'cash' as const,
             category: '',
             sub_category: '',
             amount: 0,
@@ -122,6 +124,7 @@ export function EditTransactionDialog({
 
             form.reset({
                 type: transaction.type,
+                payment_method: ((transaction as any).payment_method as 'cash' | 'transfer') || 'cash',
                 category: transaction.category || '',
                 sub_category: transaction.sub_category || '',
                 amount: transaction.amount,
@@ -171,8 +174,8 @@ export function EditTransactionDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-[500px] flex flex-col max-h-[90vh]">
+                <DialogHeader className="shrink-0">
                     <DialogTitle>
                         {isAr ? 'تعديل المعاملة' : 'Edit Transaction'}
                     </DialogTitle>
@@ -185,7 +188,8 @@ export function EditTransactionDialog({
                 </DialogHeader>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0 flex-1">
+                        <div className="flex-1 overflow-y-auto space-y-4 px-1 py-1">
                         {/* Type Selection */}
                         <FormField
                             control={form.control}
@@ -212,6 +216,29 @@ export function EditTransactionDialog({
                                             <SelectItem value="expense">
                                                 {isAr ? 'مصروف' : 'Expense'}
                                             </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Payment Method */}
+                        <FormField
+                            control={form.control}
+                            name="payment_method"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{isAr ? 'طريقة الدفع' : 'Payment Method'} *</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent position="popper">
+                                            <SelectItem value="cash">{isAr ? 'نقد' : 'Cash'}</SelectItem>
+                                            <SelectItem value="transfer">{isAr ? 'محفظة إلكترونية' : 'Mobile Wallet'}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -366,7 +393,8 @@ export function EditTransactionDialog({
                             )}
                         />
 
-                        <DialogFooter>
+                        </div>
+                        <DialogFooter className="shrink-0 pt-4 border-t mt-2">
                             <Button
                                 type="button"
                                 variant="outline"

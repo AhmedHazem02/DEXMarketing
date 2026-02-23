@@ -131,8 +131,8 @@ export function PackageFormDialog({ open, onOpenChange, package: pkg }: PackageF
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-[500px] flex flex-col max-h-[90vh]">
+                <DialogHeader className="shrink-0">
                     <DialogTitle>
                         {pkg
                             ? (isAr ? 'تعديل الباقة' : 'Edit Package')
@@ -148,7 +148,8 @@ export function PackageFormDialog({ open, onOpenChange, package: pkg }: PackageF
                 </DialogHeader>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0 flex-1">
+                        <div className="flex-1 overflow-y-auto space-y-4 px-1 py-1">
                         {/* Package Name (English) */}
                         <FormField
                             control={form.control}
@@ -275,7 +276,8 @@ export function PackageFormDialog({ open, onOpenChange, package: pkg }: PackageF
                             )}
                         />
 
-                        <DialogFooter className="gap-2">
+                        </div>
+                        <DialogFooter className="gap-2 shrink-0 pt-4 border-t mt-2">
                             <Button
                                 type="button"
                                 variant="outline"

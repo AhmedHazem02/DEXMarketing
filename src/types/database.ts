@@ -59,6 +59,20 @@ export interface Client {
     created_at: string
 }
 
+export interface ClientAssignment {
+    id: string
+    client_id: string
+    user_id: string
+    assigned_by: string
+    created_at: string
+}
+
+export interface ClientAssignmentWithRelations extends ClientAssignment {
+    client?: Client | null
+    user?: Pick<User, 'id' | 'name' | 'email' | 'role' | 'avatar_url' | 'department'> | null
+    assigner?: Pick<User, 'id' | 'name' | 'role'> | null
+}
+
 export interface Project {
     id: string
     client_id: string | null
@@ -127,9 +141,12 @@ export interface Treasury {
     updated_at: string
 }
 
+export type PaymentMethod = 'cash' | 'transfer' | 'check'
+
 export interface Transaction {
     id: string
     type: TransactionType
+    payment_method: PaymentMethod
     amount: number
     description: string | null
     category: string | null

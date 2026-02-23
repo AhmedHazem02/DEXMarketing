@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useLocale } from 'next-intl'
-import { createClient } from '@/lib/supabase/client'
 import {
     KanbanBoard,
     TasksTable,
@@ -14,22 +13,15 @@ import { PendingRequests } from '@/components/tasks/pending-requests'
 import type { TaskStatus } from '@/types/database'
 import { Loader2, LayoutGrid, Table2 } from 'lucide-react'
 import { useTasksRealtime } from '@/hooks/use-realtime'
+import { useCurrentUser } from '@/hooks/use-users'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function AccountManagerDashboard() {
     const locale = useLocale()
     const isAr = locale === 'ar'
-    const [userId, setUserId] = useState<string | null>(null)
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) setUserId(user.id)
-        }
-        fetchUser()
-    }, [])
+    const { data: currentUser } = useCurrentUser()
+    const userId = currentUser?.id ?? null
 
     useTasksRealtime()
 

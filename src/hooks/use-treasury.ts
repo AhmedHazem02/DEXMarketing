@@ -144,6 +144,7 @@ export function useTransactionSummary(period?: 'day' | 'week' | 'month' | 'year'
 
 interface CreateTransactionInput {
     type: TransactionType
+    payment_method?: 'cash' | 'transfer' | 'check'
     amount: number
     description?: string
     category?: string

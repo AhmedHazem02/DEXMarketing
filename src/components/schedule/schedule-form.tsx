@@ -23,6 +23,7 @@ import { LinksInput } from '@/components/ui/links-input'
 import { ImageUploader } from '@/components/ui/image-uploader'
 
 import { useClients } from '@/hooks/use-clients'
+import { useMyAssignedClients } from '@/hooks/use-client-assignments'
 import { useCurrentUser, useTeamMembers, getRoleLabel } from '@/hooks/use-users'
 import {
     SCHEDULE_STATUS_CONFIG, SCHEDULE_TYPE_CONFIG,
@@ -47,11 +48,17 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
     const isAr = locale === 'ar'
 
     const { data: currentUser } = useCurrentUser()
-    const { data: clients } = useClients()
+    const { data: allClients } = useClients()
+    const { data: assignedClients } = useMyAssignedClients(currentUser?.id)
     const { data: teamMembers } = useTeamMembers(teamLeaderId)
 
+    // Team members (creator, designer, videographer, photographer, editor) see only assigned clients
+    // Leaders (team_leader, account_manager) and admin see all clients
+    const isTeamMember = ['creator', 'designer', 'videographer', 'photographer', 'editor'].includes(currentUser?.role || '')
+    const clients = isTeamMember ? assignedClients : allClients
+
     const [title, setTitle] = useState(schedule?.title || '')
-    const [date] = useState(schedule?.scheduled_date || initialDate || '')
+    const [date] = useState(schedule?.scheduled_date || initialDate || format(new Date(), 'yyyy-MM-dd'))
     const [time, setTime] = useState(schedule?.start_time?.slice(0, 5) || '')
     const [endTime, setEndTime] = useState(schedule?.end_time?.slice(0, 5) || '')
     const [location, setLocation] = useState(schedule?.location || '')
@@ -96,9 +103,9 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
             title,
             company_name: companyName,
             scheduled_date: date,
-            start_time: time || null,
-            end_time: endTime || null,
-            location: location || null,
+            start_time: isSimplified ? '00:00' : (time || '00:00'),
+            end_time: isSimplified ? null : (endTime || null),
+            location: isSimplified ? null : (location || null),
             description: description || null,
             notes: notes || null,
             status,
@@ -107,10 +114,10 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
             assigned_members: assignedMembers,
             team_leader_id: teamLeaderId,
             schedule_type: scheduleType,
-            missing_items: missingItems || null,
-            missing_items_status: missingItems.trim() ? missingItemsStatus : 'not_applicable',
-            links: links.filter(l => l.url.trim()),
-            images,
+            missing_items: isSimplified ? null : (missingItems || null),
+            missing_items_status: isSimplified ? 'not_applicable' : (missingItems.trim() ? missingItemsStatus : 'not_applicable'),
+            links: isSimplified ? [] : links.filter(l => l.url.trim()),
+            images: isSimplified ? [] : images,
         })
     }
 
@@ -153,7 +160,7 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
             </div>
 
             {/* Date & Time */}
-            <div className={cn("grid gap-3", isSimplified ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-3")}>
+            <div className={cn("grid gap-3", isSimplified ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-3")}>
                 <div className="space-y-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         {isAr ? 'التاريخ' : 'Date'}
@@ -163,12 +170,14 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
                         <span>{date ? format(new Date(date + 'T00:00:00'), 'dd MMM yyyy', { locale: isAr ? ar : enUS }) : (isAr ? 'اختر من التقويم' : 'Select from calendar')}</span>
                     </div>
                 </div>
-                <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {isAr ? 'من' : 'From'}
-                    </Label>
-                    <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="rounded-xl" />
-                </div>
+                {!isSimplified && (
+                    <div className="space-y-2">
+                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            {isAr ? 'من' : 'From'}
+                        </Label>
+                        <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="rounded-xl" />
+                    </div>
+                )}
                 {!isSimplified && (
                     <div className="space-y-2">
                         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -257,10 +266,14 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
                                         <Users className="h-6 w-6 text-muted-foreground/30" />
                                     </div>
                                     <p className="text-xs text-muted-foreground mb-1 font-medium">
-                                        {isAr ? 'لا يوجد عملاء' : 'No clients yet'}
+                                        {isTeamMember
+                                            ? (isAr ? 'لا يوجد عملاء معيّنين لك' : 'No clients assigned to you')
+                                            : (isAr ? 'لا يوجد عملاء' : 'No clients yet')}
                                     </p>
                                     <p className="text-[10px] text-muted-foreground/60">
-                                        {isAr ? 'قم بإضافة عميل جديد أولاً' : 'Add a new client first'}
+                                        {isTeamMember
+                                            ? (isAr ? 'تواصل مع قائد الفريق لتعيين عملاء لك' : 'Contact your team leader to assign clients')
+                                            : (isAr ? 'قم بإضافة عميل جديد أولاً' : 'Add a new client first')}
                                     </p>
                                 </div>
                             )}
@@ -296,6 +309,7 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
                 </div>
 
             {/* Location */}
+            {!isSimplified && (
             <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {isAr ? 'الموقع' : 'Location'}
@@ -307,6 +321,7 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
                     placeholder={isAr ? 'عنوان أو رابط الموقع' : 'Address or location link'}
                 />
             </div>
+            )}
 
             {/* Team Members */}
             {!isSimplified && (
@@ -487,6 +502,7 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
             </div>
 
             {/* Missing Items */}
+            {!isSimplified && (
             <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                     <AlertTriangle className="h-3.5 w-3.5" />
@@ -523,20 +539,25 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
                     </Select>
                 )}
             </div>
+            )}
 
             {/* Links */}
+            {!isSimplified && (
             <LinksInput
                 value={links}
                 onChange={setLinks}
                 maxLinks={10}
             />
+            )}
 
             {/* Images */}
+            {!isSimplified && (
             <ImageUploader
                 value={images}
                 onChange={setImages}
                 maxImages={10}
             />
+            )}
 
             {/* Submit */}
             <Button

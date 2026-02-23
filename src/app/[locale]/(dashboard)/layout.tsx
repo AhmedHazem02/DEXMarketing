@@ -3,11 +3,6 @@ import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
-import { locales } from '@/i18n/config'
-
-export function generateStaticParams() {
-    return locales.map((locale) => ({ locale }))
-}
 
 /** Map each role to its allowed URL prefix(es) */
 const ROLE_PATH_MAP: Record<string, string[]> = {
@@ -51,6 +46,8 @@ export default async function DashboardLayout({
 
     try {
         const supabase = await createClient()
+        // Server Components MUST use getUser() — it verifies the JWT with
+        // Supabase Auth. getSession() only reads cookies and is insecure here.
         const { data: { user: authUser } } = await supabase.auth.getUser()
 
         if (!authUser) {

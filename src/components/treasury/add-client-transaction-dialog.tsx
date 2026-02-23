@@ -56,6 +56,7 @@ import { cn } from '@/lib/utils'
 const clientTransactionSchema = z.object({
     client_account_id: z.string().min(1, 'Client account is required'),
     type: z.enum(['income', 'expense']),
+    payment_method: z.enum(['cash', 'transfer']),
     amount: z.number().min(0, 'Amount cannot be negative'),
     description: z.string().optional(),
     date: z.date().optional(),
@@ -92,6 +93,7 @@ export function AddClientTransactionDialog({
         defaultValues: {
             client_account_id: defaultClientAccountId || '',
             type: 'income',
+            payment_method: 'cash',
             amount: 0,
             description: '',
             visible_to_client: true,
@@ -114,6 +116,7 @@ export function AddClientTransactionDialog({
                 client_account_id: values.client_account_id,
                 client_id: selectedAccount?.client_id || null,
                 type: values.type,
+                payment_method: values.payment_method,
                 amount: values.amount,
                 description: values.description || null,
                 visible_to_client: values.visible_to_client,
@@ -142,8 +145,8 @@ export function AddClientTransactionDialog({
                 form.reset()
             }
         }}>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-[600px] flex flex-col max-h-[90vh]">
+                <DialogHeader className="shrink-0">
                     <DialogTitle>
                         {isAr ? 'إضافة معاملة للعميل' : 'Add Client Transaction'}
                     </DialogTitle>
@@ -156,7 +159,8 @@ export function AddClientTransactionDialog({
                 </DialogHeader>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0 flex-1">
+                        <div className="flex-1 overflow-y-auto space-y-4 px-1 py-1">
                         {/* Client Account Selection */}
                         <FormField
                             control={form.control}
@@ -230,6 +234,30 @@ export function AddClientTransactionDialog({
                                                 <SelectItem value="expense">
                                                     {isAr ? 'صرف' : 'Expense'}
                                                 </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            {/* Payment Method */}
+                            <FormField
+                                control={form.control}
+                                name="payment_method"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{isAr ? 'طريقة الدفع' : 'Payment Method'} *</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent position="popper">
+                                                <SelectItem value="cash">{isAr ? 'نقد' : 'Cash'}</SelectItem>
+                                                <SelectItem value="transfer">{isAr ? 'محفظة إلكترونية' : 'Mobile Wallet'}</SelectItem>
+                                               
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -353,7 +381,8 @@ export function AddClientTransactionDialog({
                             )}
                         />
 
-                        <DialogFooter className="gap-2">
+                        </div>
+                        <DialogFooter className="gap-2 shrink-0 pt-4 border-t mt-2">
                             <Button
                                 type="button"
                                 variant="outline"
