@@ -45,7 +45,7 @@ export function DeleteAccountDialog({ open, onOpenChange, userId, userName }: De
             
             if (result.success) {
                 toast.success(t('accountDeletedSuccess'))
-                router.push('/auth/login')
+                router.push('/login')
             } else {
                 toast.error(result.error || t('updateError'))
             }

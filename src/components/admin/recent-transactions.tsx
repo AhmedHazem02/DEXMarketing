@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTransactions } from '@/hooks'
 import { ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react'
@@ -9,8 +9,9 @@ import { getFormatters } from '@/lib/constants/admin'
 
 export function RecentTransactions() {
     const t = useTranslations('recentTransactions')
+    const locale = useLocale()
     const { data: transactions, isLoading } = useTransactions({ limit: 5 })
-    const { formatCurrency, formatDate } = useMemo(() => getFormatters('ar'), [])
+    const { formatCurrency, formatDate } = useMemo(() => getFormatters(locale), [locale])
 
     if (isLoading) {
         return (

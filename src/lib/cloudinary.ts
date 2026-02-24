@@ -3,14 +3,34 @@
 // ============================================
 
 export const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || (() => {
-    if (process.env.NODE_ENV === 'development') console.warn('Missing NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, using fallback')
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME is required in production')
+    }
+    console.warn('Missing NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, using fallback')
     return 'demo'
 })()
 export const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || (() => {
-    if (process.env.NODE_ENV === 'development') console.warn('Missing NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET, using fallback')
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET is required in production')
+    }
+    console.warn('Missing NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET, using fallback')
     return 'dex_preset'
 })()
 export const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`
+
+/**
+ * Maximum file size allowed for upload (10MB)
+ */
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+
+/**
+ * Allowed MIME types for upload
+ */
+const ALLOWED_MIME_TYPES = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/avif',
+    'video/mp4', 'video/webm', 'video/quicktime',
+    'application/pdf',
+]
 
 /**
  * Upload a file to Cloudinary
@@ -19,6 +39,16 @@ export const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINA
  * @returns The secure URL of the uploaded file
  */
 export async function uploadToCloudinary(file: File, folder?: string): Promise<string> {
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File size exceeds ${MAX_FILE_SIZE / (1024 * 1024)}MB limit`)
+    }
+
+    // Validate file type
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        throw new Error(`File type "${file.type}" is not allowed`)
+    }
+
     const formData = new FormData()
     formData.append('file', file)
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)

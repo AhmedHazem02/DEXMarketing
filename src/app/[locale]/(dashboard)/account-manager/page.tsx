@@ -5,15 +5,17 @@ import { useLocale } from 'next-intl'
 import {
     KanbanBoard,
     TasksTable,
+    TaskForm,
     TaskDetails,
     type TaskWithRelations
 } from '@/components/tasks'
 import { PendingRequests } from '@/components/tasks/pending-requests'
-import type { Department } from '@/types/database'
-import { Loader2, LayoutGrid, Table2 } from 'lucide-react'
+import type { Department, TaskStatus } from '@/types/database'
+import { Loader2, LayoutGrid, Table2, Plus } from 'lucide-react'
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import { useCurrentUser } from '@/hooks/use-users'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function AccountManagerDashboard() {
@@ -24,14 +26,33 @@ export default function AccountManagerDashboard() {
 
     useTasksRealtime()
 
+    const [isFormOpen, setIsFormOpen] = useState(false)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null)
+    const [defaultStatus, setDefaultStatus] = useState<TaskStatus>('new')
     const [viewMode, setViewMode] = useState<'kanban' | 'table'>('table')
     const [deptFilter, setDeptFilter] = useState<Department>('content')
 
     const handleTaskClick = useCallback((task: TaskWithRelations) => {
         setSelectedTask(task)
         setIsDetailsOpen(true)
+    }, [])
+
+    const handleCreateTask = useCallback((status?: TaskStatus) => {
+        setDefaultStatus(status ?? 'new')
+        setSelectedTask(null)
+        setIsFormOpen(true)
+    }, [])
+
+    const handleEditTask = useCallback((task: TaskWithRelations) => {
+        setSelectedTask(task)
+        setIsDetailsOpen(false)
+        setIsFormOpen(true)
+    }, [])
+
+    const handleFormSuccess = useCallback(() => {
+        setIsFormOpen(false)
+        setSelectedTask(null)
     }, [])
 
     if (!userId) {
@@ -83,6 +104,12 @@ export default function AccountManagerDashboard() {
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
+
+                    {/* Add Task Button */}
+                    <Button onClick={() => handleCreateTask()} className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        {isAr ? 'إضافة مهمة' : 'Add Task'}
+                    </Button>
                 </div>
             </div>
 
@@ -94,25 +121,35 @@ export default function AccountManagerDashboard() {
                 <TasksTable
                     projectId={undefined}
                     department={deptFilter}
-                    readOnly
                     onTaskClick={handleTaskClick}
+                    onCreateTask={() => handleCreateTask()}
                 />
             ) : (
                 <KanbanBoard
                     projectId={undefined}
                     department={deptFilter}
-                    readOnly
                     onTaskClick={handleTaskClick}
+                    onCreateTask={handleCreateTask}
                 />
             )}
+
+            {/* Task Form Modal */}
+            <TaskForm
+                open={isFormOpen}
+                onOpenChange={setIsFormOpen}
+                task={selectedTask}
+                defaultStatus={defaultStatus}
+                currentUserId={userId}
+                onSuccess={handleFormSuccess}
+            />
 
             <TaskDetails
                 open={isDetailsOpen}
                 onOpenChange={setIsDetailsOpen}
                 taskId={selectedTask?.id ?? null}
                 currentUserId={userId}
-                onEdit={undefined}
-                canReturn={false}
+                onEdit={handleEditTask}
+                canReturn={true}
             />
         </div>
     )

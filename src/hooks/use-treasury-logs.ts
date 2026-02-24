@@ -67,25 +67,19 @@ export function useTreasuryLogs(filters?: TreasuryLogsFilters) {
                 query = query.lte('created_at', filters.endDate)
             }
 
+            // Server-side search filter using ilike (searches before limit is applied)
+            if (filters?.search) {
+                const searchTerm = `%${filters.search}%`
+                query = query.or(
+                    `client_name.ilike.${searchTerm},description.ilike.${searchTerm},category.ilike.${searchTerm}`
+                )
+            }
+
             const { data, error } = await query
 
             if (error) throw error
 
-            // Client-side search filter
-            let results = data as unknown as TreasuryLogWithRelations[]
-
-            if (filters?.search) {
-                const searchLower = filters.search.toLowerCase()
-                results = results.filter(
-                    (log) =>
-                        log.client_name?.toLowerCase().includes(searchLower) ||
-                        log.description?.toLowerCase().includes(searchLower) ||
-                        log.category?.toLowerCase().includes(searchLower) ||
-                        log.performer?.name?.toLowerCase().includes(searchLower)
-                )
-            }
-
-            return results
+            return data as unknown as TreasuryLogWithRelations[]
         },
         staleTime: 60 * 1000, // 1 minute
         gcTime: 5 * 60 * 1000, // 5 minutes
@@ -156,34 +150,46 @@ export function useTreasuryActivityStats(startDate?: string, endDate?: string) {
     return useQuery({
         queryKey: [...TREASURY_LOGS_KEY, 'stats', { startDate, endDate }],
         queryFn: async () => {
-            let query = supabase
-                .from('treasury_logs')
-                .select('action, amount')
+            // Server-side count using head: true (no row data transferred)
+            const buildCountQuery = (action?: string) => {
+                let q = supabase
+                    .from('treasury_logs')
+                    .select('*', { count: 'exact', head: true })
 
-            if (startDate) {
-                query = query.gte('created_at', startDate)
+                if (action) {
+                    q = q.eq('action', action)
+                }
+                if (startDate) {
+                    q = q.gte('created_at', startDate)
+                }
+                if (endDate) {
+                    q = q.lte('created_at', endDate)
+                }
+                return q
             }
 
-            if (endDate) {
-                query = query.lte('created_at', endDate)
+            const [total, creates, updates, deletes, approvals, rejections] = await Promise.all([
+                buildCountQuery(),
+                buildCountQuery('create'),
+                buildCountQuery('update'),
+                buildCountQuery('delete'),
+                buildCountQuery('approve'),
+                buildCountQuery('reject'),
+            ])
+
+            // Check for errors
+            for (const result of [total, creates, updates, deletes, approvals, rejections]) {
+                if (result.error) throw result.error
             }
 
-            const { data, error } = await query
-
-            if (error) throw error
-
-            // Calculate statistics
-            const logs = data as any[] || []
-            const stats = {
-                total: logs.length,
-                creates: logs.filter(log => log.action === 'create').length,
-                updates: logs.filter(log => log.action === 'update').length,
-                deletes: logs.filter(log => log.action === 'delete').length,
-                approvals: logs.filter(log => log.action === 'approve').length,
-                rejections: logs.filter(log => log.action === 'reject').length,
+            return {
+                total: total.count ?? 0,
+                creates: creates.count ?? 0,
+                updates: updates.count ?? 0,
+                deletes: deletes.count ?? 0,
+                approvals: approvals.count ?? 0,
+                rejections: rejections.count ?? 0,
             }
-
-            return stats
         },
         staleTime: 5 * 60 * 1000, // 5 minutes
     })

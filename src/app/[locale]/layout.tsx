@@ -28,6 +28,7 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://dex-erp.com'),
   title: "DEX ERP",
   description: "Digital Command Center for Marketing Agencies",
 };

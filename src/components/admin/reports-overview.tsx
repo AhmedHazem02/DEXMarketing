@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -21,7 +21,8 @@ export function ReportsOverview() {
     const { data: users } = useUsers()
     const { data: tasks } = useTasks()
 
-    const { formatCurrency } = useMemo(() => getFormatters('ar'), [])
+    const locale = useLocale()
+    const { formatCurrency } = useMemo(() => getFormatters(locale), [locale])
 
     const periodLabel = t(period === 'week' ? 'thisWeek' : period === 'month' ? 'thisMonth' : 'thisYear')
 
@@ -33,24 +34,32 @@ export function ReportsOverview() {
     const totalTasks = tasks?.length || 0
 
     const handleExport = () => {
+        // Sanitize CSV cell to prevent formula injection
+        const sanitizeCell = (value: unknown): string | number => {
+            if (typeof value === 'number') return value
+            const str = String(value ?? '')
+            if (/^[=+\-@\t\r]/.test(str)) return `'${str}`
+            return str
+        }
+
         // Create CSV data
         const csvData = [
-            [t('financialReport') + ' - ' + periodLabel],
+            [sanitizeCell(t('financialReport') + ' - ' + periodLabel)],
             [''],
-            [t('item'), t('value')],
-            [t('treasuryBalance'), treasury?.current_balance || 0],
-            [t('revenue'), summary?.totalIncome || 0],
-            [t('expenses'), summary?.totalExpense || 0],
-            [t('netProfit'), summary?.netBalance || 0],
+            [sanitizeCell(t('item')), sanitizeCell(t('value'))],
+            [sanitizeCell(t('treasuryBalance')), treasury?.current_balance || 0],
+            [sanitizeCell(t('revenue')), summary?.totalIncome || 0],
+            [sanitizeCell(t('expenses')), summary?.totalExpense || 0],
+            [sanitizeCell(t('netProfit')), summary?.netBalance || 0],
             [''],
-            [t('usersStats')],
-            [t('totalUsers'), totalUsers],
-            [t('activeUsers'), activeUsers],
+            [sanitizeCell(t('usersStats'))],
+            [sanitizeCell(t('totalUsers')), totalUsers],
+            [sanitizeCell(t('activeUsers')), activeUsers],
             [''],
-            [t('tasksStats')],
-            [t('totalTasks'), totalTasks],
-            [t('completed'), completedTasks],
-            [t('inProgress'), pendingTasks],
+            [sanitizeCell(t('tasksStats'))],
+            [sanitizeCell(t('totalTasks')), totalTasks],
+            [sanitizeCell(t('completed')), completedTasks],
+            [sanitizeCell(t('inProgress')), pendingTasks],
         ]
 
         const csvContent = csvData.map(row => row.join(',')).join('\n')
@@ -60,7 +69,8 @@ export function ReportsOverview() {
         link.href = url
         link.download = `report-${period}-${new Date().toISOString().split('T')[0]}.csv`
         link.click()
-        URL.revokeObjectURL(url)
+        // Delay revoke to ensure download starts
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
     }
 
     const isLoading = treasuryLoading || summaryLoading

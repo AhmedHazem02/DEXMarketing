@@ -31,27 +31,13 @@ export function useTeamActivityLog(teamLeaderId: string, limit = 100) {
             if (leaderErr) throw leaderErr
             if (!leader?.department) return []
 
-            // 2. Get all team member IDs in the same department
-            const { data: members, error: membersErr } = await supabase
-                .from('users')
-                .select('id')
-                .eq('department', leader.department)
-                .eq('is_active', true) as { data: { id: string }[] | null; error: unknown }
-
-            if (membersErr) throw membersErr
-            if (!members || members.length === 0) return []
-
-            const memberIds = members.map(m => m.id)
-            // Include the leader themselves
-            if (!memberIds.includes(teamLeaderId)) {
-                memberIds.push(teamLeaderId)
-            }
-
-            // 3. Fetch activity logs for these members
-            const { data, error } = await supabase
-                .from('activity_log')
-                .select('*, user:users(id, name, email)')
-                .in('user_id', memberIds)
+            // 2. Single query: fetch activity logs with inner join on users filtered by department
+            // Combines the previous member IDs query + activity logs query into one
+            const { data, error } = await (supabase
+                .from('activity_log') as any)
+                .select('*, user:users!inner(id, name, email)')
+                .eq('users.department', leader.department)
+                .eq('users.is_active', true)
                 .order('created_at', { ascending: false })
                 .limit(limit)
 

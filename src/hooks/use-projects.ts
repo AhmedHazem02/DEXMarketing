@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import type { Project, Client } from '@/types/database'
 
 // Query keys
@@ -95,6 +96,9 @@ export function useCreateProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all })
     },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create project')
+    },
   })
 }
 
@@ -125,6 +129,9 @@ export function useUpdateProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all })
     },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update project')
+    },
   })
 }
 
@@ -142,6 +149,9 @@ export function useDeleteProject() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.all })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete project')
     },
   })
 }

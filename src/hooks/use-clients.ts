@@ -26,33 +26,41 @@ export function useClients(filters?: ClientFilters) {
     queryFn: async () => {
       const supabase = createClient()
 
-      let query = supabase
-        .from('clients')
-        .select(`
-          *,
-          user:users(id, name, email, role)
-        `)
-        .order('name', { ascending: true })
-
-      if (filters?.search) {
-        const safe = sanitizeSearch(filters.search)
-        if (safe) {
-          query = query.or(
-            `name.ilike.%${safe}%`
-          )
+      const applySearch = (q: any) => {
+        if (filters?.search) {
+          const safe = sanitizeSearch(filters.search)
+          if (safe) {
+            q = q.or(`name.ilike.%${safe}%`)
+          }
         }
+        return q.order('name', { ascending: true })
       }
 
-      const { data, error } = await query
+      // Server-side role filtering using two parallel queries
+      const [withUsers, withoutUsers] = await Promise.all([
+        // Clients with user role = 'client' or 'admin'
+        applySearch(
+          (supabase.from('clients') as any)
+            .select('*, user:users!inner(id, name, email, role)')
+            .in('users.role', ['client', 'admin'])
+        ),
+        // Clients without a linked user account
+        applySearch(
+          (supabase.from('clients') as any)
+            .select('*')
+            .is('user_id', null)
+        ),
+      ])
 
-      if (error) throw error
-      
-      // Filter to show clients with role = 'client' or 'admin', or clients without user accounts
-      const clientsOnly = (data || []).filter((client: any) => 
-        !client.user || client.user?.role === 'client' || client.user?.role === 'admin'
-      )
-      
-      return clientsOnly as (Client & { user?: { id: string; name: string | null; email: string; role: string } | null })[]
+      if (withUsers.error) throw withUsers.error
+      if (withoutUsers.error) throw withoutUsers.error
+
+      const combined = [
+        ...(withUsers.data || []),
+        ...(withoutUsers.data || []).map((c: any) => ({ ...c, user: null })),
+      ].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+
+      return combined as (Client & { user?: { id: string; name: string | null; email: string; role: string } | null })[]
     },
   })
 }

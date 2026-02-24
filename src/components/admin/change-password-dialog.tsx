@@ -67,7 +67,14 @@ export function ChangePasswordDialog({
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+                if (!isOpen) {
+                    setNewPassword('')
+                    setConfirmPassword('')
+                    setShowPassword(false)
+                }
+                onOpenChange(isOpen)
+            }}>
             <DialogContent>
                 <form onSubmit={handleSubmit}>
                     <DialogHeader>
@@ -97,6 +104,7 @@ export function ChangePasswordDialog({
                                     size="sm"
                                     className="absolute left-0 top-0 h-full px-3"
                                     onClick={() => setShowPassword(!showPassword)}
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                                 >
                                     {showPassword ? (
                                         <EyeOff className="h-4 w-4" />

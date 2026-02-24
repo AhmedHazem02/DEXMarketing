@@ -21,7 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useContentSchedules } from '@/hooks/use-schedule'
-import { getScheduleStatusConfig, isScheduleOverdue, OVERDUE_CONFIG, SCHEDULE_TYPE_CONFIG } from '@/types/schedule'
+import { getScheduleStatusConfig, isScheduleOverdue, OVERDUE_CONFIG } from '@/types/schedule'
 import type { ScheduleWithRelations } from '@/types/schedule'
 
 // ============================================
@@ -150,7 +150,7 @@ export function ContentScheduleReadOnly() {
 
                             return (
                                 <button
-                                    key={i}
+                                    key={dayStr}
                                     type="button"
                                     onClick={() => setSelectedDate(day)}
                                     className={cn(
@@ -175,9 +175,17 @@ export function ContentScheduleReadOnly() {
                                                 className="flex items-center gap-1 text-[10px] leading-tight truncate mb-0.5"
                                             >
                                                 <div className={cn('w-1 h-1 rounded-full shrink-0', getStatusDot(s.status, overdue))} />
-                                                <span className="truncate">
-                                                    {s.schedule_type ? (s.schedule_type === 'reels' ? '📹' : '📝') + ' ' : ''}{s.title}
-                                                </span>
+                                                {s.schedule_type && (
+                                                    <span className={cn(
+                                                        'shrink-0 text-[9px] px-1 rounded font-bold leading-tight',
+                                                        s.schedule_type === 'reels'
+                                                            ? 'bg-violet-500/20 text-violet-400'
+                                                            : 'bg-blue-500/20 text-blue-400'
+                                                    )}>
+                                                        {s.schedule_type === 'reels' ? 'R' : 'P'}
+                                                    </span>
+                                                )}
+                                                <span className="truncate">{s.title}</span>
                                             </div>
                                         )
                                     })}
@@ -211,8 +219,6 @@ export function ContentScheduleReadOnly() {
                                     {schedulesForDate.map(schedule => {
                                         const overdue = isScheduleOverdue({ scheduled_date: schedule.scheduled_date, status: schedule.status })
                                         const statusCfg = overdue ? OVERDUE_CONFIG : getScheduleStatusConfig(schedule.status)
-                                        const typeCfg = SCHEDULE_TYPE_CONFIG.find(t => t.id === schedule.schedule_type)
-
                                         return (
                                             <div
                                                 key={schedule.id}
@@ -221,17 +227,27 @@ export function ContentScheduleReadOnly() {
                                                 {/* Header */}
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            {typeCfg && (
-                                                                <span className="text-sm">{typeCfg.icon}</span>
-                                                            )}
-                                                            <h5 className="font-semibold text-sm truncate">{schedule.title}</h5>
-                                                        </div>
+                                                        <h5 className="font-semibold text-sm truncate mb-1">{schedule.title}</h5>
                                                         {schedule.description && (
                                                             <p className="text-xs text-muted-foreground line-clamp-2">{schedule.description}</p>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                                                        {schedule.schedule_type && (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={cn(
+                                                                    'text-[10px] px-2 py-0 h-5 rounded-md border font-semibold',
+                                                                    schedule.schedule_type === 'reels'
+                                                                        ? 'bg-violet-500/10 text-violet-500 border-violet-500/30'
+                                                                        : 'bg-blue-500/10 text-blue-500 border-blue-500/30'
+                                                                )}
+                                                            >
+                                                                {schedule.schedule_type === 'reels'
+                                                                    ? (isAr ? '📹 ريلز' : '📹 Reel')
+                                                                    : (isAr ? '📝 بوست' : '📝 Post')}
+                                                            </Badge>
+                                                        )}
                                                         <Badge
                                                             variant="outline"
                                                             className={cn(

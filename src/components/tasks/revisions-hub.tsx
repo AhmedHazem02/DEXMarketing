@@ -32,6 +32,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+import { toast } from 'sonner'
 import { useRevisionsTasks, useUpdateTask, useAssignTask } from '@/hooks/use-tasks'
 import { useUsers, useCurrentUser } from '@/hooks/use-users'
 import { useTasksRealtime } from '@/hooks/use-realtime'
@@ -365,10 +366,14 @@ export function RevisionsHub({ onTaskClick, onReassign }: RevisionsHubProps) {
     }
 
     const handleStartWork = async (task: TaskWithRelations) => {
-        await updateTask.mutateAsync({
-            id: task.id,
-            status: 'in_progress',
-        })
+        try {
+            await updateTask.mutateAsync({
+                id: task.id,
+                status: 'in_progress',
+            })
+        } catch (error) {
+            toast.error(isAr ? 'فشل في بدء العمل' : 'Failed to start work')
+        }
     }
 
     // Stats (scoped to department)

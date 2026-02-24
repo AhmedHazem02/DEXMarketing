@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useLogout } from './use-logout'
 import type { User } from '@supabase/supabase-js'
 
 interface UseAuthDashboardLinkReturn {
@@ -27,6 +28,7 @@ export function useAuthDashboardLink(
   const [user, setUser] = useState<User | null>(initialUser ?? null)
   const [role, setRole] = useState<string | undefined>(initialRole)
   const supabase = createClient()
+  const handleLogout = useLogout()
 
   useEffect(() => {
     let cancelled = false
@@ -76,17 +78,6 @@ export function useAuthDashboardLink(
   }, [user, role])
 
   const dashboardLink = role ? ROLE_DASHBOARD_MAP[role] ?? '/profile' : '/profile'
-
-  const handleLogout = async () => {
-    // Log activity before signing out (consistent with use-logout.ts)
-    if (user) {
-      await supabase.from('activity_log').insert({ user_id: user.id, action: 'logout' } as never)
-    }
-    await supabase.auth.signOut()
-    setUser(null)
-    setRole(undefined)
-    window.location.href = '/'
-  }
 
   return {
     user,

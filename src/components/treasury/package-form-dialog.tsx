@@ -39,7 +39,7 @@ const packageSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     name_ar: z.string().optional().nullable(),
     price: z.number().min(0, 'Price cannot be negative'),
-    duration_days: z.number().min(0, 'Duration cannot be negative'),
+    duration_days: z.number().min(1, 'Duration must be at least 1 day'),
     description: z.string().optional().nullable(),
     description_ar: z.string().optional().nullable(),
 })

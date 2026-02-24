@@ -14,7 +14,7 @@ export type Json =
 export type UserRole = 'admin' | 'accountant' | 'team_leader' | 'account_manager' | 'creator' | 'designer' | 'client' | 'videographer' | 'editor' | 'photographer'
 export type Department = 'photography' | 'content'
 export type ProjectStatus = 'active' | 'completed' | 'on_hold' | 'cancelled'
-export type TaskStatus = 'new' | 'in_progress' | 'review' | 'client_review' | 'revision' | 'approved' | 'rejected'
+export type TaskStatus = 'new' | 'in_progress' | 'review' | 'client_review' | 'revision' | 'approved' | 'rejected' | 'completed'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskType = 'video' | 'photo' | 'editing' | 'content' | 'general'
 export type WorkflowStage = 'filming' | 'filming_done' | 'editing' | 'editing_done' | 'final_review' | 'shooting' | 'shooting_done' | 'delivered' | 'none'
@@ -26,6 +26,7 @@ export type RequestStatus = 'pending_approval' | 'approved' | 'rejected'
 export type MissingItemsStatus = 'pending' | 'resolved' | 'not_applicable'
 export type ScheduleType = 'reels' | 'post'
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+export type AdvanceRecipientType = 'employee' | 'owner'
 
 export interface ScheduleLink {
     url: string
@@ -141,6 +142,17 @@ export interface Treasury {
 }
 
 export type PaymentMethod = 'cash' | 'transfer' | 'check'
+
+export interface Advance {
+    id: string
+    recipient_type: AdvanceRecipientType
+    recipient_name: string
+    amount: number
+    notes: string | null
+    transaction_id: string | null
+    created_by: string | null
+    created_at: string
+}
 
 export interface Transaction {
     id: string
@@ -466,6 +478,11 @@ export interface Database {
                 Insert: Omit<ClientAccount, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string }
                 Update: Partial<Omit<ClientAccount, 'id'>>
             }
+            advances: {
+                Row: Advance
+                Insert: Omit<Advance, 'id' | 'created_at'> & { id?: string; created_at?: string }
+                Update: Partial<Omit<Advance, 'id'>>
+            }
         }
         Enums: {
             user_role: UserRole
@@ -480,6 +497,7 @@ export interface Database {
             transaction_type: TransactionType
             request_type: RequestType
             request_status: RequestStatus
+            advance_recipient_type: AdvanceRecipientType
         }
     }
 }

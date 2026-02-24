@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from 'react'
 import { useLocale } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-    Upload, X, FileText, Image, Video, FileArchive,
+    Upload, X,
     Loader2, CheckCircle, AlertCircle, Cloud
 } from 'lucide-react'
 
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useAddAttachment } from '@/hooks/use-tasks'
 import { CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_UPLOAD_URL } from '@/lib/cloudinary'
+import { getFileIcon, formatFileSize } from '@/lib/file-utils'
 
 // ============================================
 // Types
@@ -41,19 +42,6 @@ interface FileUploadZoneProps {
 // ============================================
 // Helper Functions
 // ============================================
-
-function getFileIcon(type: string) {
-    if (type.startsWith('image/')) return Image
-    if (type.startsWith('video/')) return Video
-    if (type.includes('zip') || type.includes('rar') || type.includes('7z')) return FileArchive
-    return FileText
-}
-
-function formatFileSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 function generateId(): string {
     return Math.random().toString(36).substring(2, 9)

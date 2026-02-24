@@ -10,7 +10,7 @@ import type { UserRole } from '@/types/database'
 export function useCurrentRole(): { role: UserRole | null; isAdmin: boolean; isAccountant: boolean; isClient: boolean; isLoading: boolean } {
     const { data: user, isLoading } = useCurrentUser()
 
-    const role = user?.role || null
+    const role = user?.role ?? null
     const isAdmin = role === 'admin'
     const isAccountant = role === 'accountant'
     const isClient = role === 'client'

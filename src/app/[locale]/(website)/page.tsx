@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import {
     HeroSection,
     AboutSection,
@@ -10,14 +11,17 @@ import {
     BrandsMarquee,
     ProcessSection,
 } from '@/components/landing'
-import { locales } from '@/i18n/config'
 import { setRequestLocale } from 'next-intl/server'
 
-export function generateStaticParams() {
-    return locales.map((locale) => ({ locale }))
-}
-
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+    title: 'DEX Marketing - Digital Marketing & Content Production Agency',
+    description: 'Digital marketing and content production agency',
+    alternates: {
+        canonical: '/',
+    },
+}
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params

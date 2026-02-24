@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, type DragEvent } from 'react'
 import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -35,6 +35,7 @@ export function MediaUpload({
     const inputRef = useRef<HTMLInputElement>(null)
     const [isUploading, setIsUploading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [isDragging, setIsDragging] = useState(false)
 
     const acceptStr = accept === 'image'
         ? 'image/*'
@@ -100,6 +101,26 @@ export function MediaUpload({
         setError(null)
     }, [onChange])
 
+    const handleDragOver = useCallback((e: DragEvent<HTMLButtonElement>) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(true)
+    }, [])
+
+    const handleDragLeave = useCallback((e: DragEvent<HTMLButtonElement>) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(false)
+    }, [])
+
+    const handleDrop = useCallback((e: DragEvent<HTMLButtonElement>) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(false)
+        const file = e.dataTransfer.files?.[0]
+        if (file) handleUpload(file)
+    }, [handleUpload])
+
     return (
         <div className={cn('space-y-2', className)}>
             <input
@@ -161,10 +182,14 @@ export function MediaUpload({
                 <button
                     type="button"
                     onClick={() => inputRef.current?.click()}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
                     disabled={isUploading}
                     className={cn(
                         'w-full h-32 rounded-lg border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary/50 hover:text-primary',
-                        isUploading && 'opacity-60 cursor-wait'
+                        isUploading && 'opacity-60 cursor-wait',
+                        isDragging && 'border-primary bg-primary/5 text-primary'
                     )}
                 >
                     {isUploading ? (

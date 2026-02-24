@@ -45,7 +45,7 @@ export function TreasuryStats() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-3xl font-bold text-white">
-                        ${currentBalance.toLocaleString()}
+                        {currentBalance.toLocaleString()} ج.م
                     </div>
                     <p className="text-xs text-white/55 mt-1">
                         {isAr ? 'صافي السيولة المتاحة' : 'Net available liquidity'}
@@ -65,7 +65,7 @@ export function TreasuryStats() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold text-green-500">
-                        +${income.toLocaleString()}
+                        +{income.toLocaleString()} ج.م
                     </div>
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
                         <TrendingUp className="h-3 w-3 me-1 text-green-500" />
@@ -86,7 +86,7 @@ export function TreasuryStats() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold text-red-500">
-                        -${expense.toLocaleString()}
+                        -{expense.toLocaleString()} ج.م
                     </div>
                     <div className="flex items-center text-xs text-muted-foreground mt-1">
                         <TrendingDown className="h-3 w-3 me-1 text-red-500" />

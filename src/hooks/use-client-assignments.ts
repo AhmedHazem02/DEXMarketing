@@ -23,7 +23,7 @@ export const clientAssignmentKeys = {
  */
 export function useMyAssignedClients(userId?: string) {
     return useQuery({
-        queryKey: clientAssignmentKeys.byUser(userId || ''),
+        queryKey: clientAssignmentKeys.byUser(userId!),
         enabled: !!userId,
         staleTime: 2 * 60 * 1000,
         queryFn: async () => {

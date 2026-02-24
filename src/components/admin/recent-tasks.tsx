@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useTasks } from '@/hooks'
@@ -10,9 +10,10 @@ import { STATUS_CONFIG, getFormatters } from '@/lib/constants/admin'
 
 export function RecentTasks() {
     const t = useTranslations('recentTasks')
+    const locale = useLocale()
     const { data: tasks, isLoading } = useTasks({}, 5)
 
-    const { formatDate } = useMemo(() => getFormatters('ar'), [])
+    const { formatDate } = useMemo(() => getFormatters(locale), [locale])
 
     if (isLoading) {
         return (

@@ -52,13 +52,13 @@ function RequestCard({
     isAr,
     onApprove,
     onReject,
-    isApproving,
+    approvingId,
 }: {
     request: ClientRequestWithDetails
     isAr: boolean
     onApprove: (id: string) => void
     onReject: (id: string) => void
-    isApproving: boolean
+    approvingId: string | null
 }) {
     const [expanded, setExpanded] = useState(false)
     const config = getRequestStatusConfig(request.request_status)
@@ -239,9 +239,9 @@ function RequestCard({
                                                 size="sm"
                                                 className="bg-green-600 hover:bg-green-700 text-white"
                                                 onClick={() => onApprove(request.id)}
-                                                disabled={isApproving}
+                                                disabled={approvingId === request.id}
                                             >
-                                                {isApproving ? (
+                                                {approvingId === request.id ? (
                                                     <Loader2 className="h-4 w-4 animate-spin me-1" />
                                                 ) : (
                                                     <CheckCircle className="h-4 w-4 me-1" />
@@ -252,7 +252,7 @@ function RequestCard({
                                                 size="sm"
                                                 variant="destructive"
                                                 onClick={() => onReject(request.id)}
-                                                disabled={isApproving}
+                                                disabled={approvingId === request.id}
                                             >
                                                 <XCircle className="h-4 w-4 me-1" />
                                                 {isAr ? 'رفض' : 'Reject'}
@@ -288,15 +288,19 @@ export function PendingRequests({ teamLeaderId, className }: PendingRequestsProp
     const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
     const [rejectingId, setRejectingId] = useState<string | null>(null)
     const [rejectionReason, setRejectionReason] = useState('')
+    const [approvingId, setApprovingId] = useState<string | null>(null)
 
     const pendingRequests = requests?.filter(r => r.request_status === 'pending_approval') ?? []
     const processedRequests = requests?.filter(r => r.request_status !== 'pending_approval') ?? []
 
     const handleApprove = async (requestId: string) => {
+        setApprovingId(requestId)
         try {
             await approveRequest.mutateAsync(requestId)
         } catch (error) {
             console.error('Failed to approve:', error)
+        } finally {
+            setApprovingId(null)
         }
     }
 
@@ -364,7 +368,7 @@ export function PendingRequests({ teamLeaderId, className }: PendingRequestsProp
                             isAr={isAr}
                             onApprove={handleApprove}
                             onReject={handleRejectClick}
-                            isApproving={approveRequest.isPending}
+                            approvingId={approvingId}
                         />
                     ))}
                 </div>
@@ -383,7 +387,7 @@ export function PendingRequests({ teamLeaderId, className }: PendingRequestsProp
                             isAr={isAr}
                             onApprove={handleApprove}
                             onReject={handleRejectClick}
-                            isApproving={false}
+                            approvingId={null}
                         />
                     ))}
                 </div>

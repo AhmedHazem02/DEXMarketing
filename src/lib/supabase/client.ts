@@ -83,15 +83,25 @@ export function createClient(): BrowserClient {
     const existing = getGlobalClient()
     if (existing) return existing
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl) {
+        throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL. Please set it in your .env.local file.')
+    }
+    if (!supabaseAnonKey) {
+        throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY. Please set it in your .env.local file.')
+    }
+
     const client = createBrowserClient<Database>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        supabaseUrl,
+        supabaseAnonKey,
         {
             auth: {
                 persistSession: true,
                 autoRefreshToken: true,
                 detectSessionInUrl: true,
-                storageKey: `sb-${new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split('.')[0]}-auth-token`,
+                storageKey: `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`,
                 lock: resilientNavigatorLock,
             },
         }

@@ -35,15 +35,18 @@ const updatePasswordSchema = z.object({
 
 async function getCurrentUser() {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+
+    // Get user ID from session cookie (no network call) to enable parallel requests
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) return null
+
+    // Parallelize: server-side auth validation + profile lookup run simultaneously
+    const [{ data: { user } }, { data: profile }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('users').select('role').eq('id', session.user.id).single()
+    ])
+
     if (!user) return null
-    
-    const { data: profile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-    
     return { id: user.id, role: (profile as any)?.role as string | undefined }
 }
 

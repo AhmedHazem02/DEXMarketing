@@ -26,7 +26,7 @@ export function StorageSettingsCard() {
 
     const handleSliderChange = (value: number[]) => {
         setAutoDeleteMonths(value[0])
-        setHasChanges(true)
+        setHasChanges(value[0] !== (settings?.auto_delete_months ?? 0))
     }
 
     const handleSave = async () => {

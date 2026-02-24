@@ -186,13 +186,13 @@ export function UsersTable() {
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem onClick={() => handleToggleActive(user.id, user.is_active)}>
                                                 {user.is_active ? (
-                                                    <><Shield className="mr-2 h-4 w-4" /> {t('deactivateAccount')}</>
+                                                    <><Shield className="me-2 h-4 w-4" /> {t('deactivateAccount')}</>
                                                 ) : (
-                                                    <><Shield className="mr-2 h-4 w-4" /> {t('activateAccount')}</>
+                                                    <><Shield className="me-2 h-4 w-4" /> {t('activateAccount')}</>
                                                 )}
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => setPasswordChangeTarget({ id: user.id, name: user.name || user.email })}>
-                                                <Key className="mr-2 h-4 w-4" /> {t('changePassword')}
+                                                <Key className="me-2 h-4 w-4" /> {t('changePassword')}
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuLabel>{t('changeRole')}</DropdownMenuLabel>
@@ -208,7 +208,7 @@ export function UsersTable() {
                                             <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'client')}>{t('roleClient')}</DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(user.id)}>
-                                                <UserX className="mr-2 h-4 w-4" />
+                                                <UserX className="me-2 h-4 w-4" />
                                                 {t('deleteUser')}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>

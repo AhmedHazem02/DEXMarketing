@@ -14,8 +14,6 @@ interface FooterProps {
     initialRole?: string
 }
 
-const CURRENT_YEAR = new Date().getFullYear()
-
 const QUICK_LINKS_AR = ['الرئيسية', 'من نحن', 'خدماتنا', 'أعمالنا', 'تواصل معنا'] as const
 const QUICK_LINKS_EN = ['Home', 'About Us', 'Services', 'Portfolio', 'Contact Us'] as const
 const QUICK_LINK_HREFS = ['/', '/about', '/services', '/portfolio', '/contact'] as const
@@ -205,7 +203,7 @@ export function Footer({ initialUser, initialRole }: FooterProps) {
                 {/* Footer Bottom */}
                 <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
                     <p className="text-gray-500 text-sm font-medium">
-                        &copy; {CURRENT_YEAR} DEX Advertising. {isAr ? 'جميع الحقوق محفوظة' : 'All rights reserved.'}
+                        &copy; {new Date().getFullYear()} DEX Advertising. {isAr ? 'جميع الحقوق محفوظة' : 'All rights reserved.'}
                     </p>
                     <div className="flex items-center gap-6 text-sm font-medium text-gray-500">
                         <span>Designed & Developed by DEX Tech Team</span>

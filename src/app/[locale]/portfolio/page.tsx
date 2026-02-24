@@ -10,6 +10,9 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     const t = await getTranslations({ locale, namespace: 'common' })
     return {
         title: t('portfolio') + ' - DEX',
+        alternates: {
+            canonical: '/portfolio',
+        },
     }
 }
 

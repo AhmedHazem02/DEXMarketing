@@ -47,16 +47,13 @@ export async function proxy(request: NextRequest) {
         }
     )
 
-    // 4. Refresh session (local JWT check — no network call).
-    //    getSession() reads the token from cookies and refreshes it only when
-    //    the access-token is expired, avoiding the ~130 ms round-trip that
-    //    getUser() requires on every single request.
-    //    The dashboard layout's server component still calls getUser() for a
-    //    full server-side validation, so security is not compromised.
+    // 4. Validate session server-side using getUser().
+    //    getUser() validates the JWT with the Supabase auth server,
+    //    preventing forged tokens from bypassing authentication.
     if (isProtectedRoute) {
         try {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!session) {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
                 const localeMatch = pathname.match(/^\/(en|ar)/)
                 const locale = localeMatch ? localeMatch[1] : defaultLocale
                 return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
@@ -69,7 +66,7 @@ export async function proxy(request: NextRequest) {
     } else {
         // For non-protected routes, still refresh the token silently.
         try {
-            await supabase.auth.getSession()
+            await supabase.auth.getUser()
         } catch {
             // fetch failed / network timeout — silently continue
         }

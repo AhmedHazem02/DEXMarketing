@@ -11,7 +11,7 @@ import {
 } from '@/components/tasks'
 import { PendingRequests } from '@/components/tasks/pending-requests'
 import type { TaskStatus, Department } from '@/types/database'
-import { Loader2, LayoutGrid, Table2 } from 'lucide-react'
+import { Loader2, LayoutGrid, Table2, Plus } from 'lucide-react'
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -124,6 +124,14 @@ export default function TeamLeaderDashboard() {
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
+
+                    {/* Add Task Button */}
+                    {!isOtherDept && (
+                        <Button onClick={() => handleCreateTask()} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            {isAr ? 'إضافة مهمة' : 'Add Task'}
+                        </Button>
+                    )}
                 </div>
             </div>
 

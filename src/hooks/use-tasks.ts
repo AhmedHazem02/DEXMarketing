@@ -121,12 +121,17 @@ export function useTasksKanban(projectId?: string, department?: Department) {
                 revision: [],
                 approved: [],
                 rejected: [],
+                completed: [],
             }
 
                 // Group tasks by status
                 ; (data as unknown as TaskWithRelations[])?.forEach((task) => {
                     if (columns[task.status]) {
                         columns[task.status].push(task)
+                    } else {
+                        // Fallback: put tasks with unexpected status into 'new'
+                        console.warn(`[useTasksKanban] Unknown task status "${task.status}" for task ${task.id}, falling back to "new"`)
+                        columns.new.push(task)
                     }
                 })
 
@@ -402,46 +407,9 @@ export function useUpdateTaskStatus() {
             if (error) throw error
             return { id, status: finalStatus }
         },
-        // Optimistic update for smooth drag experience
-        onMutate: async ({ id, status }) => {
-            // Cancel outgoing refetches
-            await queryClient.cancelQueries({ queryKey: taskKeys.kanban() })
-
-            // Snapshot previous value
-            const previousData = queryClient.getQueryData(taskKeys.kanban())
-
-            // Optimistically update
-            queryClient.setQueryData(
-                taskKeys.kanban(),
-                (old: TasksByStatus | undefined) => {
-                    if (!old) return old
-
-                    const newData = { ...old }
-                    // Find task and move it
-                    for (const key of Object.keys(newData) as TaskStatus[]) {
-                        const taskIndex = newData[key].findIndex((t) => t.id === id)
-                        if (taskIndex !== -1) {
-                            const [task] = newData[key].splice(taskIndex, 1)
-                            task.status = status
-                            task.updated_at = new Date().toISOString()
-                            newData[status].unshift(task)
-                            break
-                        }
-                    }
-                    return newData
-                }
-            )
-
-            return { previousData }
-        },
-        onError: (_, __, context) => {
-            // Rollback on error
-            if (context?.previousData) {
-                queryClient.setQueryData(taskKeys.kanban(), context.previousData)
-            }
-        },
-        onSettled: () => {
-            // Refetch to sync with server
+        onSuccess: () => {
+            // Invalidate to sync with server (no optimistic update to avoid
+            // stale status when server reroutes e.g. approved -> client_review)
             queryClient.invalidateQueries({ queryKey: taskKeys.all })
         },
     })
@@ -507,9 +475,13 @@ export function useDeleteTask() {
     return useMutation({
         mutationFn: async (taskId: string) => {
             // Delete attachments first (cascade might not be set)
-            await supabase.from('attachments').delete().eq('task_id', taskId)
+            const { error: attachError } = await supabase.from('attachments').delete().eq('task_id', taskId)
+            if (attachError) console.warn('Failed to delete attachments:', attachError)
+
             // Delete comments
-            await supabase.from('comments').delete().eq('task_id', taskId)
+            const { error: commentError } = await supabase.from('comments').delete().eq('task_id', taskId)
+            if (commentError) console.warn('Failed to delete comments:', commentError)
+
             // Delete task
             const { error } = await supabase.from('tasks').delete().eq('id', taskId)
 
@@ -739,7 +711,10 @@ function applyTaskFilters(query: any, filters: TaskFilters) {
         query = query.eq('project_id', filters.project_id)
     }
     if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
+        const safe = sanitizeSearch(filters.search)
+        if (safe) {
+            query = query.or(`title.ilike.%${safe}%,description.ilike.%${safe}%`)
+        }
     }
     if (filters.dateFrom) {
         query = query.gte('created_at', filters.dateFrom)
@@ -805,12 +780,17 @@ export function useAdminTasksStats(filters: TaskFilters = {}) {
         queryKey: [...taskKeys.all, 'admin-stats', filters],
         queryFn: async () => {
             // Create base query helper
+            // When a per-column statusFilter is provided, exclude the global status
+            // filter from applyTaskFilters to avoid conflicting .eq('status', ...) calls
             const createCountQuery = (statusFilter?: string) => {
+                const filtersForQuery = statusFilter
+                    ? { ...filters, status: undefined }
+                    : filters
                 let query = supabase
                     .from('tasks')
                     .select('*', { count: 'exact', head: true })
                 
-                query = applyTaskFilters(query, filters)
+                query = applyTaskFilters(query, filtersForQuery)
                 
                 if (statusFilter) {
                     query = query.eq('status', statusFilter)

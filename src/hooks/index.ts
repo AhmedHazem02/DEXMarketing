@@ -168,6 +168,12 @@ export {
 // Auth hooks
 export { useLogout } from './use-logout'
 
+// Advances hooks
+export {
+    useAdvances,
+    useCreateAdvance,
+    useDeleteAdvance
+} from './use-advances'
 
 // Team activity hooks
 export { useTeamActivityLog } from './use-team-logs'

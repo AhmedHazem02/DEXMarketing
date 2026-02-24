@@ -12,14 +12,19 @@ export function useLogout() {
     const router = useRouter()
 
     const handleLogout = useCallback(async () => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-            await supabase.from('activity_log').insert({ user_id: user.id, action: 'logout' } as never)
+        try {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                await supabase.from('activity_log').insert({ user_id: user.id, action: 'logout' } as never)
+            }
+            await supabase.auth.signOut()
+            router.push('/login')
+        } catch (error) {
+            console.error('Logout failed:', error)
+            // Force redirect even on error
+            window.location.href = '/login'
         }
-        await supabase.auth.signOut()
-        router.refresh()
-        router.push('/login')
     }, [router])
 
     return handleLogout

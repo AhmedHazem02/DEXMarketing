@@ -38,7 +38,6 @@ const editClientAccountSchema = z.object({
     package_name: z.string().min(1, 'Package name is required'),
     package_name_ar: z.string().optional(),
     package_price: z.number().min(0, 'Price must be positive'),
-    remaining_balance: z.number(),
     is_active: z.boolean(),
 })
 
@@ -66,7 +65,6 @@ export function EditClientAccountDialog({ open, onOpenChange, account }: EditCli
             package_name: '',
             package_name_ar: '',
             package_price: 0,
-            remaining_balance: 0,
             is_active: true,
         },
     })
@@ -78,7 +76,6 @@ export function EditClientAccountDialog({ open, onOpenChange, account }: EditCli
                 package_name: account.package_name || '',
                 package_name_ar: account.package_name_ar || '',
                 package_price: account.package_price || 0,
-                remaining_balance: account.remaining_balance || 0,
                 is_active: account.is_active,
             })
         }
@@ -94,7 +91,6 @@ export function EditClientAccountDialog({ open, onOpenChange, account }: EditCli
                     package_name: values.package_name,
                     package_name_ar: values.package_name_ar || null,
                     package_price: values.package_price,
-                    remaining_balance: values.remaining_balance,
                     is_active: values.is_active,
                 },
             })
@@ -173,22 +169,7 @@ export function EditClientAccountDialog({ open, onOpenChange, account }: EditCli
                             )}
                         />
 
-                        {/* Remaining Balance */}
-                        <FormField
-                            control={form.control}
-                            name="remaining_balance"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{isAr ? 'الرصيد المتبقي (ج.م)' : 'Remaining Balance (EGP)'}</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" step="0.01" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* Is Active */}
+                        {/* Package Price */}
                         <FormField
                             control={form.control}
                             name="is_active"

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTreasury, useTransactionSummary, useUsers } from '@/hooks'
 import { DollarSign, Users, TrendingUp, TrendingDown, Loader2, ArrowUp, ArrowDown } from 'lucide-react'
@@ -44,11 +44,12 @@ function StatCard({ title, value, change, trend, icon, loading }: StatCardProps)
 
 export function AdminStats() {
     const t = useTranslations('adminStats')
+    const locale = useLocale()
     const { data: treasury, isLoading: treasuryLoading } = useTreasury()
     const { data: summary, isLoading: summaryLoading } = useTransactionSummary('month')
     const { data: users, isLoading: usersLoading } = useUsers()
 
-    const { formatCurrency } = useMemo(() => getFormatters('ar'), [])
+    const { formatCurrency } = useMemo(() => getFormatters(locale), [locale])
 
     const activeUsers = users?.filter(u => u.is_active).length || 0
 

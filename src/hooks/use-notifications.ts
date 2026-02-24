@@ -6,11 +6,11 @@ import type { Notification } from '@/types/database'
 
 export const NOTIFICATIONS_KEY = ['notifications']
 
-export function useNotifications(userId?: string) {
+export function useNotifications(userId?: string, limit = 20) {
     const supabase = createClient()
 
     return useQuery({
-        queryKey: [...NOTIFICATIONS_KEY, userId],
+        queryKey: [...NOTIFICATIONS_KEY, userId, limit],
         staleTime: 30 * 1000,
         queryFn: async () => {
             if (!userId) return []
@@ -20,7 +20,7 @@ export function useNotifications(userId?: string) {
                 .select('*')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
-                .limit(20)
+                .limit(limit)
 
             if (error) throw error
             return data as unknown as Notification[]
@@ -44,6 +44,9 @@ export function useMarkNotificationRead() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_KEY })
+        },
+        onError: (error: Error) => {
+            console.error('Failed to mark notification as read:', error)
         }
     })
 }

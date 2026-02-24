@@ -7,6 +7,7 @@ import {
     Loader2, CheckCircle2, XCircle, UserPlus
 } from 'lucide-react'
 
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -137,18 +138,22 @@ export function ClientAssignmentManager() {
     const saveChanges = async (memberId: string) => {
         if (!currentUser?.id || !pendingChanges[memberId]) return
 
-        await syncMutation.mutateAsync({
-            userId: memberId,
-            clientIds: [...pendingChanges[memberId]],
-            assignedBy: currentUser.id,
-        })
+        try {
+            await syncMutation.mutateAsync({
+                userId: memberId,
+                clientIds: [...pendingChanges[memberId]],
+                assignedBy: currentUser.id,
+            })
 
-        // Clear pending changes for this member after successful save
-        setPendingChanges(prev => {
-            const copy = { ...prev }
-            delete copy[memberId]
-            return copy
-        })
+            // Clear pending changes for this member after successful save
+            setPendingChanges(prev => {
+                const copy = { ...prev }
+                delete copy[memberId]
+                return copy
+            })
+        } catch (error) {
+            toast.error(isAr ? 'فشل في حفظ التغييرات' : 'Failed to save changes')
+        }
     }
 
     if (isLoading) {

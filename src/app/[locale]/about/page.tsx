@@ -10,6 +10,9 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     const t = await getTranslations({ locale, namespace: 'common' })
     return {
         title: (locale === 'ar' ? 'من نحن' : 'About Us') + ' - DEX',
+        alternates: {
+            canonical: '/about',
+        },
     }
 }
 

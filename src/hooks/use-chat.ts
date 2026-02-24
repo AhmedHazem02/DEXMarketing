@@ -298,7 +298,7 @@ export function useUnreadCount(userId: string) {
         queryKey: chatKeys.unreadCount(),
         enabled: !!userId,
         queryFn: async () => {
-            // Get all conversation IDs
+            // Get all conversation IDs with last_read_at
             const { data: participations } = await (supabase
                 .from('conversation_participants') as any)
                 .select('conversation_id, last_read_at')
@@ -306,31 +306,24 @@ export function useUnreadCount(userId: string) {
 
             if (!participations?.length) return 0
 
-            const convIds = participations.map((p: any) => p.conversation_id)
-
-            // Bulk fetch all unread messages across all conversations at once
-            const { data: allUnreadMessages } = await (supabase
-                .from('messages') as any)
-                .select('id, conversation_id, created_at')
-                .in('conversation_id', convIds)
-                .neq('sender_id', userId)
-
-            if (!allUnreadMessages?.length) return 0
-
-            // Build a map of conversation_id -> last_read_at
-            const lastReadMap = new Map<string, string | null>()
-            for (const p of participations) {
-                lastReadMap.set(p.conversation_id, p.last_read_at)
-            }
-
-            // Count unread messages per conversation
+            // Count unread per conversation using head-only queries (no data transfer)
             let total = 0
-            for (const msg of allUnreadMessages) {
-                const lastReadAt = lastReadMap.get(msg.conversation_id)
-                if (!lastReadAt || msg.created_at > lastReadAt) {
-                    total++
-                }
-            }
+            await Promise.all(
+                participations.map(async (p: any) => {
+                    let query = (supabase
+                        .from('messages') as any)
+                        .select('id', { count: 'exact', head: true })
+                        .eq('conversation_id', p.conversation_id)
+                        .neq('sender_id', userId)
+
+                    if (p.last_read_at) {
+                        query = query.gt('created_at', p.last_read_at)
+                    }
+
+                    const { count } = await query
+                    total += count ?? 0
+                })
+            )
 
             return total
         },

@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { taskKeys } from './use-tasks'
 import { NOTIFICATIONS_KEY } from './use-notifications'
+import { CLIENT_ACCOUNTS_KEY } from './use-client-accounts'
 
 /**
  * Returns a debounced version of `fn` that batches rapid calls.
@@ -14,6 +15,16 @@ function useDebouncedCallback<T extends (...args: any[]) => void>(fn: T, delay: 
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const fnRef = useRef(fn)
     fnRef.current = fn
+
+    // Clean up timer on unmount to prevent stale callbacks
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current)
+                timerRef.current = null
+            }
+        }
+    }, [])
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     return useCallback(((...args: any[]) => {
@@ -92,8 +103,11 @@ export function useNotificationsRealtime(userId: string) {
                         if (exists) return old
                         return [payload.new, ...old].slice(0, 50)
                     })
-                    // Also invalidate to ensure fresh data
-                    queryClient.invalidateQueries({ queryKey: [...NOTIFICATIONS_KEY, userId] })
+                    // Delay invalidation so the optimistic update is visible
+                    // before being replaced by the server response
+                    setTimeout(() => {
+                        queryClient.invalidateQueries({ queryKey: [...NOTIFICATIONS_KEY, userId] })
+                    }, 1000)
                 }
             )
             .subscribe()
@@ -115,13 +129,16 @@ export function useNotificationsRealtime(userId: string) {
  * Multiple components calling this hook share ONE set of channels.
  */
 
-// Global ref-count to ensure only one set of channels exists at a time
-let _tasksRealtimeSubscribers = 0
-let _tasksRealtimeCleanup: (() => void) | null = null
+// Singleton state wrapped in an object to avoid separate mutable module-level lets
+// that can desync under React Strict Mode's double-invoke.
+const _tasksRealtime = { subscribers: 0, cleanup: null as (() => void) | null }
 
 export function useTasksRealtime() {
     const supabase = createClient()
     const queryClient = useQueryClient()
+    // Guard: track whether this instance has already subscribed to prevent
+    // double-counting when Strict Mode re-fires the effect without cleanup.
+    const subscribedRef = useRef(false)
 
     // Debounce: batch all realtime events into a single invalidation
     // every 2 seconds instead of firing on every row change
@@ -130,10 +147,12 @@ export function useTasksRealtime() {
     }, 2000)
 
     useEffect(() => {
-        _tasksRealtimeSubscribers++
+        if (subscribedRef.current) return // already subscribed in this instance
+        subscribedRef.current = true
+        _tasksRealtime.subscribers++
 
         // Only create channels for the first subscriber
-        if (_tasksRealtimeSubscribers === 1) {
+        if (_tasksRealtime.subscribers === 1) {
             const tasksChannel = supabase
                 .channel('db-tasks')
                 .on(
@@ -161,7 +180,7 @@ export function useTasksRealtime() {
                 )
                 .subscribe()
 
-            _tasksRealtimeCleanup = () => {
+            _tasksRealtime.cleanup = () => {
                 supabase.removeChannel(tasksChannel)
                 supabase.removeChannel(commentsChannel)
                 supabase.removeChannel(attachmentsChannel)
@@ -169,10 +188,11 @@ export function useTasksRealtime() {
         }
 
         return () => {
-            _tasksRealtimeSubscribers--
-            if (_tasksRealtimeSubscribers === 0 && _tasksRealtimeCleanup) {
-                _tasksRealtimeCleanup()
-                _tasksRealtimeCleanup = null
+            subscribedRef.current = false
+            _tasksRealtime.subscribers--
+            if (_tasksRealtime.subscribers === 0 && _tasksRealtime.cleanup) {
+                _tasksRealtime.cleanup()
+                _tasksRealtime.cleanup = null
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -186,7 +206,6 @@ export function useTasksRealtime() {
 export function useClientAccountsRealtimeSync() {
     const supabase = createClient()
     const queryClient = useQueryClient()
-    const { CLIENT_ACCOUNTS_KEY } = require('./use-client-accounts')
 
     useEffect(() => {
         // Listen to client_accounts changes

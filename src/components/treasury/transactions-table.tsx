@@ -764,7 +764,14 @@ export function TransactionsTable() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 {/* View Receipt - Available to Everyone */}
-                                                <DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => {
+                                                        if (tx.receipt_url) {
+                                                            window.open(tx.receipt_url, '_blank', 'noopener,noreferrer')
+                                                        }
+                                                    }}
+                                                    disabled={!tx.receipt_url}
+                                                >
                                                     <FileText className="me-2 h-4 w-4" />
                                                     {isAr ? 'عرض الإيصال' : 'View Receipt'}
                                                 </DropdownMenuItem>

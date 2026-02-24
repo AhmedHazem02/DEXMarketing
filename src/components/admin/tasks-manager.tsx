@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { useAdminTasks, useAdminTasksStats, useAdminTasksExport } from '@/hooks/use-tasks'
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import { useDebounce } from '@/hooks'
@@ -48,10 +48,8 @@ import {
     STATUS_OPTIONS,
     PRIORITY_OPTIONS,
     TASK_TYPE_OPTIONS,
-    STATUS_CONFIG,
-    PRIORITY_STYLE_CONFIG,
-    DEPARTMENT_BADGE_CONFIG,
 } from '@/lib/constants/admin'
+import { StatusBadge, PriorityBadge, DepartmentBadge } from '@/components/shared/task-badges'
 
 // ============================================
 // Utility Functions
@@ -94,6 +92,7 @@ const ROWS_PER_PAGE = 15
 
 export function TasksManager() {
     const t = useTranslations('tasksManager')
+    const locale = useLocale() as 'ar' | 'en'
     // Real-time subscription for live task updates
     useTasksRealtime()
 
@@ -199,15 +198,15 @@ export function TasksManager() {
     useEffect(() => {
         if (isExporting && exportData && exportData.length > 0) {
             if (isExporting === 'csv') {
-                exportTasksToCSV(exportData as TaskExportData[])
+                exportTasksToCSV(exportData as TaskExportData[], undefined, locale)
                 setIsExporting(null)
             } else if (isExporting === 'pdf') {
-                exportTasksToPDF(exportData as TaskExportData[], undefined, stats)
+                exportTasksToPDF(exportData as TaskExportData[], undefined, stats, locale)
                     .catch((error) => console.error('Error exporting PDF:', error))
                     .finally(() => setIsExporting(null))
             }
         }
-    }, [isExporting, exportData, stats])
+    }, [isExporting, exportData, stats, locale])
 
     if (isLoading) {
         return <div className="flex justify-center p-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
@@ -752,38 +751,4 @@ const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: TaskWithRe
     )
 })
 
-// ============================================
-// Sub-components — React.memo for render optimization
-// ============================================
-
-const StatusBadge = memo(function StatusBadge({ status }: { status: string }) {
-    const config = STATUS_CONFIG[status] || STATUS_CONFIG['new']
-    return (
-        <Badge variant="outline" className={`${config.style} whitespace-nowrap text-[10px] sm:text-xs`}>
-            {config.label}
-        </Badge>
-    )
-})
-
-const PriorityBadge = memo(function PriorityBadge({ priority }: { priority: string }) {
-    const config = PRIORITY_STYLE_CONFIG[priority] || PRIORITY_STYLE_CONFIG['medium']
-    return (
-        <Badge variant="outline" className={`${config.style} whitespace-nowrap text-[10px] sm:text-xs`}>
-            {config.label}
-        </Badge>
-    )
-})
-
-const DepartmentBadge = memo(function DepartmentBadge({ department }: { department: string | null }) {
-    if (!department) {
-        return <span className="text-[10px] sm:text-xs text-muted-foreground">—</span>
-    }
-
-    const config = DEPARTMENT_BADGE_CONFIG[department] || { label: department, className: 'bg-gray-100 text-gray-800 border-gray-200' }
-
-    return (
-        <Badge variant="outline" className={`${config.className} whitespace-nowrap text-[10px] sm:text-xs`}>
-            {config.label}
-        </Badge>
-    )
-})
+// StatusBadge, PriorityBadge, DepartmentBadge imported from @/components/shared/task-badges

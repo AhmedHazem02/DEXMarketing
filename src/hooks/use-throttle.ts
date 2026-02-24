@@ -12,7 +12,7 @@ import { useCallback, useRef, useEffect } from 'react'
 export function useThrottle<T extends (...args: any[]) => any>(
   callback: T,
   delay: number = 150
-): T {
+): (...args: Parameters<T>) => void {
   const lastRan = useRef<number>(0)
   const trailingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastArgs = useRef<Parameters<T> | null>(null)
@@ -56,7 +56,7 @@ export function useThrottle<T extends (...args: any[]) => any>(
           trailingTimeout.current = null
         }, remaining)
       }
-    }) as T,
+    }),
     [delay]
-  )
+  ) as (...args: Parameters<T>) => void
 }

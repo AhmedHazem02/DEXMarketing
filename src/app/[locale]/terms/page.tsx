@@ -10,6 +10,9 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     return {
         title: (isAr ? 'الشروط والأحكام' : 'Terms & Conditions') + ' - DEX',
         description: isAr ? 'الشروط والأحكام الخاصة باستخدام خدمات DEX' : 'Terms and conditions for using DEX services',
+        alternates: {
+            canonical: '/terms',
+        },
     }
 }
 

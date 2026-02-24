@@ -36,11 +36,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
     DASHBOARD_DEPARTMENT_OPTIONS,
     PERIOD_OPTIONS,
-    STATUS_CONFIG,
-    PRIORITY_STYLE_CONFIG,
     getFormatters,
     type Period,
 } from '@/lib/constants/admin'
+import { StatusBadge as TaskStatusBadge, PriorityDot } from '@/components/shared/task-badges'
 
 // ============================================
 // Loading Skeleton
@@ -446,7 +445,7 @@ export function AdminDashboardClient() {
                                                 <p className="font-medium text-sm truncate">{task.title}</p>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                                                <TaskStatusBadge status={task.status} />
+                                                <TaskStatusBadge status={task.status} className="text-[10px] px-1.5 py-0" />
                                                 {task.department && (
                                                     <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                                                         {task.department === 'content' ? t('content') : t('photography')}
@@ -659,21 +658,4 @@ const RoleStat = memo(function RoleStat({
     )
 })
 
-const TaskStatusBadge = memo(function TaskStatusBadge({ status }: { status: TaskStatus }) {
-    const c = STATUS_CONFIG[status] || STATUS_CONFIG.new
-    return (
-        <Badge variant="outline" className={`${c.style} text-[10px] px-1.5 py-0`}>
-            {c.label}
-        </Badge>
-    )
-})
-
-const PriorityDot = memo(function PriorityDot({ priority }: { priority: string }) {
-    const config = PRIORITY_STYLE_CONFIG[priority] || PRIORITY_STYLE_CONFIG.medium
-    return (
-        <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground" title={config.label}>
-            <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
-            <span className="hidden sm:inline">{config.label}</span>
-        </span>
-    )
-})
+// TaskStatusBadge and PriorityDot imported from @/components/shared/task-badges

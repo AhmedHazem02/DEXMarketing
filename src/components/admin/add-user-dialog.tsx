@@ -13,21 +13,40 @@ import { UserPlus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createUser } from '@/lib/actions/users'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 
 const DEPARTMENT_REQUIRED_ROLES = ['team_leader', 'account_manager', 'videographer', 'editor', 'photographer', 'creator', 'designer'] as const
 
-const formSchema = z.object({
-    name: z.string().min(2, 'الاسم يجب أن يكون حرفين على الأقل'),
-    email: z.string().email('بريد إلكتروني غير صالح'),
-    password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'),
-    role: z.enum(['admin', 'accountant', 'team_leader', 'account_manager', 'creator', 'designer', 'client', 'videographer', 'editor', 'photographer']),
-    department: z.enum(['photography', 'content']).nullable().optional(),
-})
+function createFormSchema(t: ReturnType<typeof useTranslations<'addUser'>>) {
+    return z.object({
+        name: z.string().min(2, t('nameMin')),
+        email: z.string().email(t('emailInvalid')),
+        password: z.string().min(8, t('passwordMin')).regex(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+            t('passwordComplexity')
+        ),
+        role: z.enum(['admin', 'accountant', 'team_leader', 'account_manager', 'creator', 'designer', 'client', 'videographer', 'editor', 'photographer']),
+        department: z.enum(['photography', 'content']).nullable().optional(),
+    }).superRefine((data, ctx) => {
+        if (
+            DEPARTMENT_REQUIRED_ROLES.includes(data.role as any) &&
+            !data.department
+        ) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: t('departmentRequired'),
+                path: ['department'],
+            })
+        }
+    })
+}
 
 export function AddUserDialog() {
+    const t = useTranslations('addUser')
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const queryClient = useQueryClient()
+    const formSchema = createFormSchema(t)
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -60,15 +79,15 @@ export function AddUserDialog() {
         try {
             const res = await createUser({ ...values, department: department ?? undefined })
             if (res.success) {
-                toast.success('تم إنشاء المستخدم بنجاح')
+                toast.success(t('success'))
                 setOpen(false)
                 form.reset()
                 queryClient.invalidateQueries({ queryKey: ['users'] })
             } else {
-                toast.error(res.error || 'فشل إنشاء المستخدم')
+                toast.error(res.error || t('error'))
             }
         } catch (err) {
-            toast.error('حدث خطأ غير متوقع')
+            toast.error(t('unexpectedError'))
         } finally {
             setIsLoading(false)
         }
@@ -79,14 +98,14 @@ export function AddUserDialog() {
             <DialogTrigger asChild>
                 <Button>
                     <UserPlus className="h-4 w-4 me-2" />
-                    إضافة عضو
+                    {t('addMember')}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>إضافة مستخدم جديد</DialogTitle>
+                    <DialogTitle>{t('title')}</DialogTitle>
                     <DialogDescription>
-                        سيتم إنشاء حساب جديد وتفعيله فوراً.
+                        {t('description')}
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -96,9 +115,9 @@ export function AddUserDialog() {
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>الاسم</FormLabel>
+                                    <FormLabel>{t('name')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="الاسم الكامل" {...field} />
+                                        <Input placeholder={t('namePlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -109,7 +128,7 @@ export function AddUserDialog() {
                             name="email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>البريد الإلكتروني</FormLabel>
+                                    <FormLabel>{t('email')}</FormLabel>
                                     <FormControl>
                                         <Input type="email" placeholder="example@dex.com" {...field} />
                                     </FormControl>
@@ -122,9 +141,9 @@ export function AddUserDialog() {
                             name="password"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>كلمة المرور</FormLabel>
+                                    <FormLabel>{t('password')}</FormLabel>
                                     <FormControl>
-                                        <Input type="password" placeholder="8 أحرف على الأقل" {...field} />
+                                        <Input type="password" placeholder={t('passwordPlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -135,24 +154,24 @@ export function AddUserDialog() {
                             name="role"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>الدور</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormLabel>{t('role')}</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="اختر الدور" />
+                                                <SelectValue placeholder={t('rolePlaceholder')} />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="admin">مدير (Admin)</SelectItem>
-                                            <SelectItem value="account_manager">مدير المحتوي (Content Manager)</SelectItem>
-                                            <SelectItem value="team_leader">قائد فريق (تصوير)</SelectItem>
-                                            <SelectItem value="accountant">محاسب</SelectItem>
-                                            <SelectItem value="creator">صانع محتوى</SelectItem>
-                                            <SelectItem value="designer">مصمم</SelectItem>
-                                            <SelectItem value="videographer">مصور فيديو</SelectItem>
-                                            <SelectItem value="editor">مونتير</SelectItem>
-                                            <SelectItem value="photographer">مصور فوتوغرافي</SelectItem>
-                                            <SelectItem value="client">عميل</SelectItem>
+                                            <SelectItem value="admin">{t('roles.admin')}</SelectItem>
+                                            <SelectItem value="account_manager">{t('roles.account_manager')}</SelectItem>
+                                            <SelectItem value="team_leader">{t('roles.team_leader')}</SelectItem>
+                                            <SelectItem value="accountant">{t('roles.accountant')}</SelectItem>
+                                            <SelectItem value="creator">{t('roles.creator')}</SelectItem>
+                                            <SelectItem value="designer">{t('roles.designer')}</SelectItem>
+                                            <SelectItem value="videographer">{t('roles.videographer')}</SelectItem>
+                                            <SelectItem value="editor">{t('roles.editor')}</SelectItem>
+                                            <SelectItem value="photographer">{t('roles.photographer')}</SelectItem>
+                                            <SelectItem value="client">{t('roles.client')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -166,16 +185,16 @@ export function AddUserDialog() {
                                 name="department"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>القسم</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                                        <FormLabel>{t('department')}</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="اختر القسم" />
+                                                    <SelectValue placeholder={t('departmentPlaceholder')} />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="photography">قسم التصوير</SelectItem>
-                                                <SelectItem value="content">قسم المحتوى</SelectItem>
+                                                <SelectItem value="photography">{t('departmentPhotography')}</SelectItem>
+                                                <SelectItem value="content">{t('departmentContent')}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -186,7 +205,7 @@ export function AddUserDialog() {
                         <DialogFooter className="pt-4">
                             <Button type="submit" disabled={isLoading} className="w-full">
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                إنشاء الحساب
+                                {t('createAccount')}
                             </Button>
                         </DialogFooter>
                     </form>

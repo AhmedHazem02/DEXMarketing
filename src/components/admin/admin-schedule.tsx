@@ -23,9 +23,10 @@ export function AdminScheduleView() {
     const [selectedDepartment, setSelectedDepartment] = useState<Department | 'all'>('all')
 
     // Get all team leaders (memoized filter)
+    // Content dept leader = account_manager, Photography dept leader = team_leader
     const { data: users } = useUsers()
     const teamLeaders = useMemo(() => 
-        users?.filter(u => u.role === 'team_leader') || [], 
+        users?.filter(u => u.role === 'team_leader' || u.role === 'account_manager') || [], 
         [users]
     )
 
@@ -126,7 +127,7 @@ export function AdminScheduleView() {
 
             {/* Calendar View */}
             {selectedTeamLeader && selectedTeamLeader !== 'all' ? (
-                <ScheduleCalendar teamLeaderId={selectedTeamLeader} />
+                <ScheduleCalendar teamLeaderId={selectedTeamLeader} canCreate={false} />
             ) : (
                 <Card>
                     <CardContent className="py-12">

@@ -70,13 +70,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </svg>
             </div>
             <p className="text-sm text-muted-foreground">
-              Something went wrong in this section.
+              {typeof document !== 'undefined' && document.documentElement.lang === 'ar'
+                ? 'حدث خطأ في هذا القسم.'
+                : 'Something went wrong in this section.'}
             </p>
             <button
               onClick={this.handleReset}
               className="text-xs px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
             >
-              Retry
+              {typeof document !== 'undefined' && document.documentElement.lang === 'ar'
+                ? 'إعادة المحاولة'
+                : 'Retry'}
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { sanitizeSearch } from '@/lib/utils'
 import type { ClientAccount, Client, Package, ClientAccountWithRelations } from '@/types/database'
 import { useCurrentUser } from './use-users'
 import { toast } from 'sonner'
@@ -26,7 +27,7 @@ export function useClientAccounts(filters?: {
                 .from('client_accounts')
                 .select(`
                     *,
-                    client:clients(id, name, email, user:users(id, name, email)),
+                    client:clients!inner(id, name, email, user:users(id, name, email)),
                     package:packages(id, name, name_ar),
                     transactions:transactions(*)
                 `)
@@ -40,23 +41,19 @@ export function useClientAccounts(filters?: {
                 query = query.eq('is_active', filters.isActive)
             }
 
+            // Server-side search filter
+            if (filters?.search) {
+                const safe = sanitizeSearch(filters.search)
+                if (safe) {
+                    query = query.or(`package_name.ilike.%${safe}%,package_name_ar.ilike.%${safe}%,clients.name.ilike.%${safe}%`)
+                }
+            }
+
             const { data, error } = await query
 
             if (error) throw error
 
-            // Client-side search filter
-            let results = data as unknown as ClientAccountWithRelations[]
-
-            if (filters?.search) {
-                const searchLower = filters.search.toLowerCase()
-                results = results.filter(
-                    (account) =>
-                        account.client?.name?.toLowerCase().includes(searchLower) ||
-                        account.package_name?.toLowerCase().includes(searchLower)
-                )
-            }
-
-            return results
+            return data as unknown as ClientAccountWithRelations[]
         },
         staleTime: 30 * 1000, // 30 seconds
     })

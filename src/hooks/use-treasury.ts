@@ -100,13 +100,16 @@ export function useTransactionSummary(period?: 'day' | 'week' | 'month' | 'year'
                     startDate.setHours(0, 0, 0, 0)
                     break
                 case 'week':
-                    startDate.setDate(startDate.getDate() - 7)
+                    startDate.setDate(startDate.getDate() - startDate.getDay())
+                    startDate.setHours(0, 0, 0, 0)
                     break
                 case 'month':
-                    startDate.setMonth(startDate.getMonth() - 1)
+                    startDate.setDate(1)
+                    startDate.setHours(0, 0, 0, 0)
                     break
                 case 'year':
-                    startDate.setFullYear(startDate.getFullYear() - 1)
+                    startDate.setMonth(0, 1)
+                    startDate.setHours(0, 0, 0, 0)
                     break
                 default:
                     startDate = new Date(0) // All time
@@ -256,6 +259,7 @@ export function useApproveTransaction() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
             queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
+            queryClient.invalidateQueries({ queryKey: CLIENT_ACCOUNTS_KEY })
         },
     })
 }

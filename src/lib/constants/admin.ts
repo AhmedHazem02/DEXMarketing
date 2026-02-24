@@ -48,8 +48,10 @@ export const STATUS_OPTIONS = [
     { value: 'in_progress', label: 'قيد التنفيذ', labelEn: 'In Progress' },
     { value: 'review', label: 'مراجعة', labelEn: 'Review' },
     { value: 'revision', label: 'تعديل مطلوب', labelEn: 'Revision' },
+    { value: 'client_review', label: 'مراجعة العميل', labelEn: 'Client Review' },
     { value: 'approved', label: 'معتمد', labelEn: 'Approved' },
     { value: 'rejected', label: 'مرفوض', labelEn: 'Rejected' },
+    { value: 'completed', label: 'مكتمل', labelEn: 'Completed' },
 ] as const
 
 // ============================================
@@ -134,4 +136,27 @@ export function getFormatters(locale: string = 'ar') {
         formatCurrency: (amount: number) => formatters[key].currency.format(amount),
         formatDate: (date: string) => formatters[key].date.format(new Date(date)),
     }
+}
+
+// ============================================
+// Role Labels
+// ============================================
+
+/**
+ * Get human-readable role label for display
+ */
+export function getRoleLabel(role: string, isAr: boolean): string {
+    const labels: Record<string, { en: string; ar: string }> = {
+        account_manager: { en: 'Content Manager', ar: 'مدير المحتوي' },
+        designer: { en: 'Designer', ar: 'مصمم' },
+        videographer: { en: 'Videographer', ar: 'مصور فيديو' },
+        photographer: { en: 'Photographer', ar: 'مصور' },
+        editor: { en: 'Editor', ar: 'محرر' },
+        creator: { en: 'Creator', ar: 'صانع محتوى' },
+        team_leader: { en: 'Team Leader', ar: 'قائد فريق' },
+        admin: { en: 'Admin', ar: 'مسؤول' },
+        accountant: { en: 'Accountant', ar: 'محاسب' },
+        client: { en: 'Client', ar: 'عميل' },
+    }
+    return labels[role]?.[isAr ? 'ar' : 'en'] || role
 }

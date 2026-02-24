@@ -116,30 +116,17 @@ export function useMySchedules(userId: string, year: number, month: number) {
         queryKey: [...scheduleKeys.calendar(`user-${userId}-${year}-${month}`)],
         enabled: !!userId,
         queryFn: async () => {
-            // Get schedules where tasks assigned to this user
-            const { data: tasks, error: tasksError } = await (supabase
-                .from('tasks') as any)
-                .select('id')
-                .eq('assigned_to', userId)
-
-            if (tasksError) throw tasksError
-
-            const taskIds = (tasks || []).map((t: any) => t.id)
-
-            if (taskIds.length === 0) {
-                return [] as ScheduleWithRelations[]
-            }
-
-            // Get schedules linked to these tasks
+            // Single query: join schedules with tasks using !inner to filter by assigned_to
             const { data, error } = await (supabase
                 .from('schedules') as any)
                 .select(`
                     *,
+                    task:tasks!schedules_task_id_fkey!inner(id, title),
                     team_leader:users!schedules_team_leader_id_fkey(id, name, avatar_url),
                     client:clients!schedules_client_id_fkey(id, name),
                     project:projects!schedules_project_id_fkey(id, name)
                 `)
-                .in('task_id', taskIds)
+                .eq('tasks.assigned_to', userId)
                 .gte('scheduled_date', startDate)
                 .lt('scheduled_date', endDate)
                 .order('scheduled_date', { ascending: true })

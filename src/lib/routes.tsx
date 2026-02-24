@@ -17,6 +17,7 @@ import {
     Package,
     ScrollText,
     UserCircle,
+    Banknote,
 } from 'lucide-react'
 
 import type { Department } from '@/types/database'
@@ -43,6 +44,7 @@ export const getRoutes = (
                 { name: t('Packages', 'الباقات'), href: '/admin/treasury/packages', icon: Package },
                 { name: t('Client Accounts', 'حسابات العملاء'), href: '/admin/treasury/client-accounts', icon: UserCircle },
                 { name: t('Treasury Logs', 'سجل الخزينة'), href: '/admin/treasury/logs', icon: ScrollText },
+                { name: t('Advances', 'السلف'), href: '/admin/advances', icon: Banknote },
                 { name: t('Tasks', 'المهام'), href: '/admin/tasks', icon: CheckSquare },
                 { name: t('Schedule', 'الجداول'), href: '/admin/schedule', icon: CalendarDays },
                 { name: t('Content (CMS)', 'المحتوى'), href: '/admin/pages', icon: FileText },

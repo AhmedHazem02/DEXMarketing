@@ -57,7 +57,7 @@ const clientTransactionSchema = z.object({
     client_account_id: z.string().min(1, 'Client account is required'),
     type: z.enum(['income', 'expense']),
     payment_method: z.enum(['cash', 'transfer']),
-    amount: z.number().min(0, 'Amount cannot be negative'),
+    amount: z.number().min(0.01, 'Amount must be greater than zero'),
     description: z.string().optional(),
     date: z.date().optional(),
     visible_to_client: z.boolean(),
@@ -120,7 +120,7 @@ export function AddClientTransactionDialog({
                 amount: values.amount,
                 description: values.description || null,
                 visible_to_client: values.visible_to_client,
-                is_approved: true, // Auto-approve when admin/accountant creates directly
+                is_approved: false, // Route through approval workflow
             }
 
             // Only include date if admin and date is provided

@@ -10,13 +10,7 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     }
 }
 
-import { locales } from '@/i18n/config'
-
 export const dynamic = 'force-dynamic'
-
-export function generateStaticParams() {
-    return locales.map((locale) => ({ locale }))
-}
 
 export default function LoginPage() {
     return <LoginForm />

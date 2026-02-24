@@ -7,12 +7,13 @@ import { ar, enUS } from 'date-fns/locale'
 import {
     Calendar, Clock, User, MessageSquare, Paperclip, Send,
     Trash2, Download, ExternalLink, MoreHorizontal, Loader2,
-    FileText, Image, Video, FileArchive, Check, X, Edit2,
+    Check, X, Edit2,
     AlertTriangle, Star, CheckCircle, RotateCcw
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
+import { getFileIcon, formatFileSize } from '@/lib/file-utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -76,25 +77,6 @@ interface TaskDetailsProps {
     onEdit?: (task: TaskWithRelations) => void
     canSubmit?: boolean
     canReturn?: boolean
-}
-
-// ============================================
-// File Type Icon Helper
-// ============================================
-
-function getFileIcon(fileType?: string | null) {
-    if (!fileType) return FileText
-    if (fileType.startsWith('image/')) return Image
-    if (fileType.startsWith('video/')) return Video
-    if (fileType.includes('zip') || fileType.includes('rar')) return FileArchive
-    return FileText
-}
-
-function formatFileSize(bytes?: number | null): string {
-    if (!bytes) return ''
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 // ============================================

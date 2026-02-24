@@ -55,18 +55,23 @@ import type { TaskWithRelations, CreateTaskInput, UpdateTaskInput } from '@/type
 // Validation Schema
 // ============================================
 
-const taskFormSchema = z.object({
-    title: z.string().min(3, { message: 'العنوان يجب أن يكون 3 أحرف على الأقل' }).max(200),
-    description: z.string().optional(),
-    priority: z.enum(['low', 'medium', 'high', 'urgent']),
-    status: z.enum(['new', 'in_progress', 'review', 'client_review', 'revision', 'approved', 'rejected']),
-    assigned_to: z.string().optional(),
-    client_id: z.string().optional(),
-    project_id: z.string().optional(),
-    deadline: z.date().optional(),
-})
+function createTaskFormSchema(isAr: boolean) {
+    return z.object({
+        title: z.string().min(3, { message: isAr ? 'العنوان يجب أن يكون 3 أحرف على الأقل' : 'Title must be at least 3 characters' }).max(200),
+        description: z.string().optional(),
+        priority: z.enum(['low', 'medium', 'high', 'urgent']),
+        status: z.enum(['new', 'in_progress', 'review', 'client_review', 'revision', 'approved', 'rejected', 'completed']),
+        assigned_to: z.string().optional(),
+        client_id: z.string().optional(),
+        project_id: z.string().optional(),
+        deadline: z.date().optional().refine(
+            (date) => !date || date >= new Date(new Date().setHours(0, 0, 0, 0)),
+            { message: isAr ? 'لا يمكن اختيار تاريخ في الماضي' : 'Deadline cannot be in the past' }
+        ),
+    })
+}
 
-type TaskFormValues = z.infer<typeof taskFormSchema>
+type TaskFormValues = z.infer<ReturnType<typeof createTaskFormSchema>>
 
 // ============================================
 // Props
@@ -138,6 +143,7 @@ export function TaskForm({
     })()
 
     // Form setup
+    const taskFormSchema = createTaskFormSchema(isAr)
     const form = useForm<TaskFormValues>({
         resolver: zodResolver(taskFormSchema),
         defaultValues: {
@@ -206,6 +212,7 @@ export function TaskForm({
                     project_id: values.project_id || undefined,
                     deadline: values.deadline?.toISOString(),
                     created_by: currentUserId,
+                    department: currentUser?.department ?? undefined,
                 }
                 await createTask.mutateAsync(createInput)
             }

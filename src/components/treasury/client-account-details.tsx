@@ -163,7 +163,7 @@ export function ClientAccountDetails({
                                         </span>
                                     </div>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        {((totalSpent / packagePrice) * 100).toFixed(0)}%
+                                        {packagePrice > 0 ? ((totalSpent / packagePrice) * 100).toFixed(0) : 0}%
                                     </p>
                                 </CardContent>
                             </Card>

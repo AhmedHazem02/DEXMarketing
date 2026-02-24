@@ -1,11 +1,9 @@
 import { getTranslations } from 'next-intl/server'
 import { setRequestLocale } from 'next-intl/server'
 import { Navbar, Footer } from '@/components/landing'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Mail, Phone, MapPin, Send } from 'lucide-react'
+import { Mail, Phone, MapPin } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { ContactForm } from '@/components/landing/contact-form'
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
     const params = await props.params;
@@ -13,6 +11,9 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     const t = await getTranslations({ locale, namespace: 'common' })
     return {
         title: t('contact') + ' - DEX',
+        alternates: {
+            canonical: '/contact',
+        },
     }
 }
 
@@ -110,44 +111,7 @@ export default async function ContactPage(props: { params: Promise<{ locale: str
                             <h2 className="text-xl font-bold text-white mb-6 font-serif">
                                 {isAr ? 'أرسل لنا رسالة' : 'Send us a message'}
                             </h2>
-                            <form className="space-y-5">
-                                <div className="grid md:grid-cols-2 gap-5">
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs text-white/40">{isAr ? 'الاسم' : 'Name'}</label>
-                                        <Input
-                                            placeholder={isAr ? 'اسمك الكريم' : 'Your name'}
-                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[#F2CB05]/50 focus:ring-[#F2CB05]/20"
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs text-white/40">{isAr ? 'البريد الإلكتروني' : 'Email'}</label>
-                                        <Input
-                                            type="email"
-                                            placeholder="name@example.com"
-                                            dir="ltr"
-                                            className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[#F2CB05]/50 focus:ring-[#F2CB05]/20"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs text-white/40">{isAr ? 'الموضوع' : 'Subject'}</label>
-                                    <Input
-                                        placeholder={isAr ? 'عن ماذا تريد التحدث؟' : 'What is this about?'}
-                                        className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[#F2CB05]/50 focus:ring-[#F2CB05]/20"
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs text-white/40">{isAr ? 'الرسالة' : 'Message'}</label>
-                                    <Textarea
-                                        placeholder={isAr ? 'اكتب رسالتك هنا...' : 'Type your message here...'}
-                                        className="min-h-[140px] bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[#F2CB05]/50 focus:ring-[#F2CB05]/20 resize-none"
-                                    />
-                                </div>
-                                <Button size="lg" className="w-full bg-[#F2CB05] hover:bg-[#d4b204] text-[#022026] font-bold">
-                                    {isAr ? 'إرسال الرسالة' : 'Send Message'}
-                                    <Send className="ms-2 h-4 w-4" />
-                                </Button>
-                            </form>
+                            <ContactForm isAr={isAr} />
                         </div>
 
                     </div>

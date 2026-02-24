@@ -380,17 +380,19 @@ export function useUpdateMultipleSiteSettings() {
 
     return useMutation({
         mutationFn: async (settings: Record<string, any>) => {
-            const results = await Promise.all(
-                Object.entries(settings).map(([key, value]) =>
-                    supabase
-                        .from('site_settings')
-                        // @ts-ignore
-                        .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
-                )
-            )
-            const failed = results.filter(r => r.error)
-            if (failed.length > 0) {
-                throw new Error(`Failed to save ${failed.length} setting(s)`)
+            const rows = Object.entries(settings).map(([key, value]) => ({
+                key,
+                value,
+                updated_at: new Date().toISOString(),
+            }))
+
+            const { error } = await supabase
+                .from('site_settings')
+                // @ts-ignore — Supabase generated types may not include site_settings
+                .upsert(rows, { onConflict: 'key' })
+
+            if (error) {
+                throw new Error(`Failed to save settings: ${error.message}`)
             }
         },
         onSuccess: () => {

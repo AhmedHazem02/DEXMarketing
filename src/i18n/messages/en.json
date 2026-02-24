@@ -365,7 +365,18 @@
             "task_create": "New task",
             "task_update": "Task update",
             "user_update": "User update",
-            "user_delete": "User delete"
+            "user_delete": "User delete",
+            "user_create": "User create",
+            "task_delete": "Task delete",
+            "schedule_create": "Schedule create",
+            "schedule_update": "Schedule update",
+            "schedule_delete": "Schedule delete",
+            "client_create": "Client create",
+            "client_update": "Client update",
+            "client_delete": "Client delete",
+            "theme_update": "Theme update",
+            "transaction_update": "Transaction update",
+            "transaction_delete": "Transaction delete"
         }
     },
     "contactSettings": {
@@ -487,5 +498,42 @@
         "toggleError": "An error occurred",
         "english": "English",
         "arabic": "العربية"
+    },
+    "addUser": {
+        "addMember": "Add Member",
+        "title": "Add New User",
+        "description": "A new account will be created and activated immediately.",
+        "name": "Name",
+        "namePlaceholder": "Full Name",
+        "nameMin": "Name must be at least 2 characters",
+        "email": "Email",
+        "emailInvalid": "Invalid email address",
+        "password": "Password",
+        "passwordPlaceholder": "At least 8 characters",
+        "passwordMin": "Password must be at least 8 characters",
+        "passwordComplexity": "Password must contain at least one uppercase letter, one lowercase letter, and one digit",
+        "role": "Role",
+        "rolePlaceholder": "Select role",
+        "department": "Department",
+        "departmentPlaceholder": "Select department",
+        "departmentPhotography": "Photography Department",
+        "departmentContent": "Content Department",
+        "departmentRequired": "Department is required for this role",
+        "createAccount": "Create Account",
+        "success": "User created successfully",
+        "error": "Failed to create user",
+        "unexpectedError": "An unexpected error occurred",
+        "roles": {
+            "admin": "Admin",
+            "account_manager": "Content Manager",
+            "team_leader": "Team Leader (Photography)",
+            "accountant": "Accountant",
+            "creator": "Content Creator",
+            "designer": "Designer",
+            "videographer": "Videographer",
+            "editor": "Editor",
+            "photographer": "Photographer",
+            "client": "Client"
+        }
     }
 }

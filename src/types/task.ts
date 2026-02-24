@@ -314,7 +314,8 @@ export const STATUS_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
     review: ['approved', 'revision', 'in_progress', 'client_review'], // Leader can approve, send to client, return for revision, or request changes
     client_review: ['approved', 'revision'], // Client can approve or request modifications
     revision: ['in_progress'],
-    approved: [], // Final state
+    approved: ['completed'], // Can be completed
+    completed: [], // Final state
     rejected: ['in_progress'], // Can be reassigned
 }
 

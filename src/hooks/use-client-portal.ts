@@ -45,7 +45,7 @@ export function useClientProjects(clientId?: string) {
     const supabase = createClient()
 
     return useQuery({
-        queryKey: CLIENT_KEYS.projects((clientId ?? '') as string),
+        queryKey: CLIENT_KEYS.projects(clientId ?? ''),
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('projects')
@@ -250,7 +250,7 @@ export function useCreateClientRequest() {
             const { data: teamLeader } = await supabase
                 .from('users')
                 .select('id')
-                .eq('role', 'team_leader')
+                .eq('role', 'team-leader')
                 .eq('department', input.department)
                 .eq('is_active', true)
                 .limit(1)

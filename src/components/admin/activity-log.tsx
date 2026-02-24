@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useActivityLog } from '@/hooks/use-cms'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Loader2, Activity, User, Settings, FileText, DollarSign, CheckSquare } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ar } from 'date-fns/locale'
@@ -18,16 +18,26 @@ const actionIcons: Record<string, React.ReactNode> = {
     transaction_create: <DollarSign className="h-4 w-4" />,
     task_create: <CheckSquare className="h-4 w-4" />,
     task_update: <CheckSquare className="h-4 w-4" />,
+    task_delete: <CheckSquare className="h-4 w-4" />,
+    schedule_create: <FileText className="h-4 w-4" />,
+    schedule_update: <FileText className="h-4 w-4" />,
+    schedule_delete: <FileText className="h-4 w-4" />,
+    client_create: <User className="h-4 w-4" />,
+    client_update: <User className="h-4 w-4" />,
+    client_delete: <User className="h-4 w-4" />,
+    user_create: <User className="h-4 w-4" />,
+    theme_update: <Settings className="h-4 w-4" />,
+    transaction_update: <DollarSign className="h-4 w-4" />,
+    transaction_delete: <DollarSign className="h-4 w-4" />,
 }
-
-const ACTION_KEYS = ['login', 'logout', 'settings_update', 'page_update', 'transaction_create', 'task_create', 'task_update', 'user_update', 'user_delete'] as const
 
 export function ActivityLogViewer() {
     const t = useTranslations('activityLog')
+    const locale = useLocale()
     const { data: logs, isLoading } = useActivityLog(50)
 
     const formatDate = (date: string) => {
-        return formatDistanceToNow(new Date(date), { addSuffix: true, locale: ar })
+        return formatDistanceToNow(new Date(date), { addSuffix: true, locale: locale === 'ar' ? ar : undefined })
     }
 
     if (isLoading) {
@@ -56,7 +66,7 @@ export function ActivityLogViewer() {
                     <div className="space-y-4">
                         {logs?.length === 0 ? (
                             <p className="text-center text-muted-foreground py-8">
-                                لا يوجد نشاط بعد
+                                {t('noActivity')}
                             </p>
                         ) : (
                             logs?.map((log) => (
@@ -78,7 +88,7 @@ export function ActivityLogViewer() {
                                             </span>
                                             <Badge variant="outline" className="text-xs">
                                                 {actionIcons[log.action] || <Activity className="h-3 w-3" />}
-                                                <span className="ms-1">{t(`actions.${log.action}` as any) || log.action}</span>
+                                                <span className="ms-1">{t.has(`actions.${log.action}` as any) ? t(`actions.${log.action}` as any) : log.action}</span>
                                             </Badge>
                                         </div>
 

@@ -74,12 +74,13 @@ export function usePagination<T = any>({
 
     // Utility to paginate an array
     const paginateItems = useCallback((items: T[]): T[] => {
-        return items.slice(startIndex, endIndex)
-    }, [startIndex, endIndex])
+        const actualEnd = Math.min(startIndex + itemsPerPage, items.length)
+        return items.slice(startIndex, actualEnd)
+    }, [startIndex, itemsPerPage])
 
     // Check if can navigate
-    const canGoNext = currentPage < totalPages
-    const canGoPrev = currentPage > 1
+    const canGoNext = useMemo(() => currentPage < totalPages, [currentPage, totalPages])
+    const canGoPrev = useMemo(() => currentPage > 1, [currentPage])
 
     // Reset to page 1 if current page exceeds total pages
     useEffect(() => {

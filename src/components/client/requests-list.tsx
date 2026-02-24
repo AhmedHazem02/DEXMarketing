@@ -44,7 +44,7 @@ const STATUS_ICONS: Record<RequestStatus, typeof Clock> = {
 // Request Item Component
 // ============================================
 
-function RequestItem({ request, isAr }: { request: ClientRequestWithDetails; isAr: boolean }) {
+function RequestItem({ request, isAr, index = 0 }: { request: ClientRequestWithDetails; isAr: boolean; index?: number }) {
     const [expanded, setExpanded] = useState(false)
     const config = getRequestStatusConfig(request.request_status)
     const StatusIcon = STATUS_ICONS[request.request_status]
@@ -63,6 +63,7 @@ function RequestItem({ request, isAr }: { request: ClientRequestWithDetails; isA
         <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
         >
             <Card
                 className={cn(
@@ -252,11 +253,12 @@ export function RequestsList({ clientUserId, className }: RequestsListProps) {
 
     return (
         <div className={cn('space-y-3', className)}>
-            {requests.map(request => (
+            {requests.map((request, index) => (
                 <RequestItem
                     key={request.id}
                     request={request}
                     isAr={isAr}
+                    index={index}
                 />
             ))}
         </div>

@@ -204,21 +204,5 @@ export function useMyDepartmentLeader(department?: Department | null) {
     })
 }
 
-/**
- * Get human-readable role label for display
- */
-export function getRoleLabel(role: string, isAr: boolean): string {
-    const labels: Record<string, { en: string; ar: string }> = {
-        account_manager: { en: 'Content Manager', ar: 'مدير المحتوي' },
-        designer: { en: 'Designer', ar: 'مصمم' },
-        videographer: { en: 'Videographer', ar: 'مصور فيديو' },
-        photographer: { en: 'Photographer', ar: 'مصور' },
-        editor: { en: 'Editor', ar: 'محرر' },
-        creator: { en: 'Creator', ar: 'صانع محتوى' },
-        team_leader: { en: 'Team Leader', ar: 'قائد فريق' },
-        admin: { en: 'Admin', ar: 'مسؤول' },
-        accountant: { en: 'Accountant', ar: 'محاسب' },
-        client: { en: 'Client', ar: 'عميل' },
-    }
-    return labels[role]?.[isAr ? 'ar' : 'en'] || role
-}
+// Re-export getRoleLabel from its canonical location so existing consumers don't break
+export { getRoleLabel } from '@/lib/constants/admin'

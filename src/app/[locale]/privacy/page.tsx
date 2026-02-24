@@ -10,6 +10,9 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     return {
         title: (isAr ? 'سياسة الخصوصية' : 'Privacy Policy') + ' - DEX',
         description: isAr ? 'سياسة الخصوصية وكيفية تعاملنا مع بياناتك في DEX' : 'Privacy Policy and how we handle your data at DEX',
+        alternates: {
+            canonical: '/privacy',
+        },
     }
 }
 

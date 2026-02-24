@@ -16,7 +16,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/navigation'
 
 import { MobileSidebar } from '@/components/layout/mobile-sidebar'
 import type { Department } from '@/types/database'

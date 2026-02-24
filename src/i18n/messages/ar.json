@@ -365,7 +365,18 @@
             "task_create": "مهمة جديدة",
             "task_update": "تحديث مهمة",
             "user_update": "تحديث مستخدم",
-            "user_delete": "حذف مستخدم"
+            "user_delete": "حذف مستخدم",
+            "user_create": "إنشاء مستخدم",
+            "task_delete": "حذف مهمة",
+            "schedule_create": "إنشاء جدول",
+            "schedule_update": "تحديث جدول",
+            "schedule_delete": "حذف جدول",
+            "client_create": "إنشاء عميل",
+            "client_update": "تحديث عميل",
+            "client_delete": "حذف عميل",
+            "theme_update": "تحديث المظهر",
+            "transaction_update": "تحديث معاملة",
+            "transaction_delete": "حذف معاملة"
         }
     },
     "contactSettings": {
@@ -487,5 +498,42 @@
         "toggleError": "حدث خطأ",
         "english": "English",
         "arabic": "العربية"
+    },
+    "addUser": {
+        "addMember": "إضافة عضو",
+        "title": "إضافة مستخدم جديد",
+        "description": "سيتم إنشاء حساب جديد وتفعيله فوراً.",
+        "name": "الاسم",
+        "namePlaceholder": "الاسم الكامل",
+        "nameMin": "الاسم يجب أن يكون حرفين على الأقل",
+        "email": "البريد الإلكتروني",
+        "emailInvalid": "بريد إلكتروني غير صالح",
+        "password": "كلمة المرور",
+        "passwordPlaceholder": "8 أحرف على الأقل",
+        "passwordMin": "كلمة المرور يجب أن تكون 8 أحرف على الأقل",
+        "passwordComplexity": "كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم على الأقل",
+        "role": "الدور",
+        "rolePlaceholder": "اختر الدور",
+        "department": "القسم",
+        "departmentPlaceholder": "اختر القسم",
+        "departmentPhotography": "قسم التصوير",
+        "departmentContent": "قسم المحتوى",
+        "departmentRequired": "القسم مطلوب لهذا الدور",
+        "createAccount": "إنشاء الحساب",
+        "success": "تم إنشاء المستخدم بنجاح",
+        "error": "فشل إنشاء المستخدم",
+        "unexpectedError": "حدث خطأ غير متوقع",
+        "roles": {
+            "admin": "مدير (Admin)",
+            "account_manager": "مدير المحتوي (Content Manager)",
+            "team_leader": "قائد فريق (تصوير)",
+            "accountant": "محاسب",
+            "creator": "صانع محتوى",
+            "designer": "مصمم",
+            "videographer": "مصور فيديو",
+            "editor": "مونتير",
+            "photographer": "مصور فوتوغرافي",
+            "client": "عميل"
+        }
     }
 }

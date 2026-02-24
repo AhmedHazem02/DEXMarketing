@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { useLocale } from 'next-intl'
-import { format, isToday, isYesterday } from 'date-fns'
+import { toast } from 'sonner'
+import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -238,12 +239,16 @@ export function ChatWindow({ conversationId, userId, userName, onBack }: ChatWin
         setMessage('')
         setTyping(false)
 
-        await sendMessage.mutateAsync({
-            conversation_id: conversationId,
-            sender_id: userId,
-            content: trimmed,
-            message_type: 'text',
-        })
+        try {
+            await sendMessage.mutateAsync({
+                conversation_id: conversationId,
+                sender_id: userId,
+                content: trimmed,
+                message_type: 'text',
+            })
+        } catch {
+            toast.error(isAr ? 'فشل إرسال الرسالة' : 'Failed to send message')
+        }
 
         inputRef.current?.focus()
     }
@@ -552,6 +557,4 @@ function formatDateLabel(dateStr: string, isAr: boolean): string {
     return format(date, 'PPP', { locale: isAr ? ar : enUS })
 }
 
-function isSameDay(a: Date, b: Date): boolean {
-    return a.toDateString() === b.toDateString()
-}
+

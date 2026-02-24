@@ -28,8 +28,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { toast } from 'sonner'
 
-import { useTasksKanban, useUpdateTaskStatus, taskKeys } from '@/hooks/use-tasks'
+import { useTasksKanban, useUpdateTaskStatus, useDeleteTask, taskKeys } from '@/hooks/use-tasks'
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import {
     KANBAN_COLUMNS,
@@ -78,6 +79,7 @@ const TaskCard = memo(function TaskCard({ task, onClick, isDragging }: TaskCardP
     const locale = useLocale()
     const isAr = locale === 'ar'
     const priorityConfig = getPriorityConfig(task.priority)
+    const deleteTask = useDeleteTask()
 
     const deadline = task.deadline ? new Date(task.deadline) : null
     const isOverdue = deadline && deadline < new Date() && task.status !== 'approved'
@@ -126,10 +128,25 @@ const TaskCard = memo(function TaskCard({ task, onClick, isDragging }: TaskCardP
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem>{isAr ? 'تعديل' : 'Edit'}</DropdownMenuItem>
-                        <DropdownMenuItem>{isAr ? 'إعادة تعيين' : 'Reassign'}</DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onClick?.() }}>
+                            {isAr ? 'تعديل' : 'Edit'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onClick?.() }}>
+                            {isAr ? 'إعادة تعيين' : 'Reassign'}
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={async (e) => {
+                                e.stopPropagation()
+                                try {
+                                    await deleteTask.mutateAsync(task.id)
+                                    toast.success(isAr ? 'تم حذف المهمة' : 'Task deleted')
+                                } catch {
+                                    toast.error(isAr ? 'فشل حذف المهمة' : 'Failed to delete task')
+                                }
+                            }}
+                        >
                             {isAr ? 'حذف' : 'Delete'}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -355,6 +372,7 @@ export function KanbanBoard({ projectId, department, readOnly, onTaskClick, onCr
             client_review: [],
             approved: [],
             rejected: [],
+            completed: [],
         }
 
         for (const status of Object.keys(tasksByStatus) as TaskStatus[]) {

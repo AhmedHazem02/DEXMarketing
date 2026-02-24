@@ -58,18 +58,20 @@ import type { Department, RequestType } from '@/types/database'
 // Validation Schema
 // ============================================
 
-const requestFormSchema = z.object({
-    request_type: z.enum(['new_task', 'modification']),
-    title: z.string().min(3, { message: 'العنوان يجب أن يكون 3 أحرف على الأقل' }).max(200),
-    description: z.string().min(10, { message: 'الوصف يجب أن يكون 10 أحرف على الأقل' }),
-    department: z.enum(['photography', 'content']),
-    task_type: z.enum(['video', 'photo', 'editing', 'content', 'general']),
-    project_id: z.string().optional(),
-    original_task_id: z.string().optional(),
-    deadline: z.date().optional(),
-})
+function createRequestFormSchema(isAr: boolean) {
+    return z.object({
+        request_type: z.enum(['new_task', 'modification']),
+        title: z.string().min(3, { message: isAr ? 'العنوان يجب أن يكون 3 أحرف على الأقل' : 'Title must be at least 3 characters' }).max(200),
+        description: z.string().min(10, { message: isAr ? 'الوصف يجب أن يكون 10 أحرف على الأقل' : 'Description must be at least 10 characters' }),
+        department: z.enum(['photography', 'content']),
+        task_type: z.enum(['video', 'photo', 'editing', 'content', 'general']),
+        project_id: z.string().optional(),
+        original_task_id: z.string().optional(),
+        deadline: z.date().optional(),
+    })
+}
 
-type RequestFormValues = z.infer<typeof requestFormSchema>
+type RequestFormValues = z.infer<ReturnType<typeof createRequestFormSchema>>
 
 // ============================================
 // Props
@@ -114,6 +116,7 @@ export function RequestForm({
 
 
     // Form setup
+    const requestFormSchema = createRequestFormSchema(isAr)
     const form = useForm<RequestFormValues>({
         resolver: zodResolver(requestFormSchema),
         defaultValues: {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCurrentUser } from '@/hooks/use-users'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,13 +28,14 @@ export function ProfileClient() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
     // Update local state when user data loads
-    useState(() => {
+    // Using useEffect so it re-runs when user data arrives async
+    useEffect(() => {
         if (user) {
             setName(user.name || '')
             setPhone(user.phone || '')
             setAvatarUrl(user.avatar_url || '')
         }
-    })
+    }, [user])
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]

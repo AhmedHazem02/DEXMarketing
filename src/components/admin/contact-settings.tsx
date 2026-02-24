@@ -50,6 +50,27 @@ export function ContactSettings() {
     }, [allSettings])
 
     async function saveSettings() {
+        // Validate email format
+        if (settings.contact_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(settings.contact_email)) {
+            toast.error(t('invalidEmail') ?? 'Invalid email format')
+            return
+        }
+
+        // Validate social media URLs
+        const urlPattern = /^https?:\/\/.+/i
+        const socialFields = [
+            { key: 'social_facebook' as const, label: 'Facebook' },
+            { key: 'social_instagram' as const, label: 'Instagram' },
+            { key: 'social_twitter' as const, label: 'Twitter' },
+            { key: 'social_linkedin' as const, label: 'LinkedIn' },
+        ]
+        for (const { key, label } of socialFields) {
+            if (settings[key] && !urlPattern.test(settings[key])) {
+                toast.error(t('invalidUrl') ?? `Invalid URL for ${label}`)
+                return
+            }
+        }
+
         try {
             await updateSettings.mutateAsync(settings)
             toast.success(t('saveSuccess'))

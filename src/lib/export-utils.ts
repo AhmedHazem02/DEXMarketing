@@ -182,18 +182,21 @@ export async function exportToPDF(
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
-    let binary = ''
     const bytes = new Uint8Array(buffer)
-    const len = bytes.byteLength
-    for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i])
+    const CHUNK_SIZE = 0x8000 // 32KB chunks to avoid call stack overflow
+    const chunks: string[] = []
+    for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+        chunks.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK_SIZE)))
     }
-    return window.btoa(binary)
+    return window.btoa(chunks.join(''))
 }
 
 // ============================================
 // Shared PDF Helpers
 // ============================================
+
+// Module-level cache for the Arabic font to avoid re-fetching on every PDF export
+let cachedFontBase64: string | null = null
 
 interface PDFDocumentResult {
     doc: any
@@ -226,11 +229,15 @@ async function createPDFDocument(options?: {
     let fontStyle = defaultFontStyle
 
     try {
-        const response = await fetch('/fonts/Amiri-Regular.ttf')
-        if (response.ok) {
-            const fontBytes = await response.arrayBuffer()
-            const fontBase64 = arrayBufferToBase64(fontBytes)
-            doc.addFileToVFS('Amiri-Regular.ttf', fontBase64)
+        if (!cachedFontBase64) {
+            const response = await fetch('/fonts/Amiri-Regular.ttf')
+            if (response.ok) {
+                const fontBytes = await response.arrayBuffer()
+                cachedFontBase64 = arrayBufferToBase64(fontBytes)
+            }
+        }
+        if (cachedFontBase64) {
+            doc.addFileToVFS('Amiri-Regular.ttf', cachedFontBase64)
             doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal')
             fontName = 'Amiri'
             fontStyle = 'normal'
@@ -521,16 +528,21 @@ export interface TaskExportData {
  */
 export function exportTasksToCSV(
     tasks: TaskExportData[],
-    filename?: string
+    filename?: string,
+    locale: 'ar' | 'en' = 'ar'
 ): void {
     if (!tasks.length) return
 
-    // CSV Headers with BOM for proper Arabic rendering in Excel
+    const isAr = locale === 'ar'
+
+    // CSV Headers with BOM for proper rendering in Excel
     const BOM = '\uFEFF'
-    const headers = ['عنوان المهمة', 'القسم', 'المشروع', 'العميل', 'التيم ليدر', 'المصمم', 'الحالة', 'الأولوية', 'النوع', 'التاريخ', 'ملاحظات']
+    const headers = isAr
+        ? ['عنوان المهمة', 'القسم', 'المشروع', 'العميل', 'التيم ليدر', 'المصمم', 'الحالة', 'الأولوية', 'النوع', 'التاريخ', 'ملاحظات']
+        : ['Task Title', 'Department', 'Project', 'Client', 'Team Leader', 'Designer', 'Status', 'Priority', 'Type', 'Date', 'Notes']
 
     // Status labels mapping
-    const statusLabels: Record<string, string> = {
+    const statusLabels: Record<string, string> = isAr ? {
         'new': 'جديدة',
         'in_progress': 'قيد التنفيذ',
         'review': 'مراجعة',
@@ -538,37 +550,61 @@ export function exportTasksToCSV(
         'approved': 'معتمد',
         'rejected': 'مرفوض',
         'completed': 'مكتمل'
+    } : {
+        'new': 'New',
+        'in_progress': 'In Progress',
+        'review': 'Review',
+        'revision': 'Revision Required',
+        'approved': 'Approved',
+        'rejected': 'Rejected',
+        'completed': 'Completed'
     }
 
     // Priority labels mapping
-    const priorityLabels: Record<string, string> = {
+    const priorityLabels: Record<string, string> = isAr ? {
         'urgent': 'عاجل',
         'high': 'عالي',
         'medium': 'متوسط',
         'low': 'منخفض'
+    } : {
+        'urgent': 'Urgent',
+        'high': 'High',
+        'medium': 'Medium',
+        'low': 'Low'
     }
 
     // Department labels mapping
-    const departmentLabels: Record<string, string> = {
+    const departmentLabels: Record<string, string> = isAr ? {
         'content': 'محتوى',
         'photography': 'تصوير'
+    } : {
+        'content': 'Content',
+        'photography': 'Photography'
     }
 
     // Task type labels mapping
-    const taskTypeLabels: Record<string, string> = {
+    const taskTypeLabels: Record<string, string> = isAr ? {
         'video': 'فيديو',
         'photo': 'تصوير',
         'editing': 'مونتاج',
         'content': 'محتوى',
         'general': 'عام'
+    } : {
+        'video': 'Video',
+        'photo': 'Photo',
+        'editing': 'Editing',
+        'content': 'Content',
+        'general': 'General'
     }
+
+    const unassignedLabel = isAr ? 'غير معين' : 'Unassigned'
 
     // Map tasks to CSV rows
     const rows = tasks.map(task => {
         const deptLabel = task.department ? (departmentLabels[task.department] || task.department) : '-'
         const statusLabel = statusLabels[task.status] || task.status
         const priorityLabel = priorityLabels[task.priority] || task.priority
-        const taskTypeLabel = task.task_type ? (taskTypeLabels[task.task_type] || task.task_type) : 'عام'
+        const taskTypeLabel = task.task_type ? (taskTypeLabels[task.task_type] || task.task_type) : (isAr ? 'عام' : 'General')
 
         return [
             `"${(task.title || '').replace(/"/g, '""')}"`,
@@ -577,7 +613,7 @@ export function exportTasksToCSV(
             `"${task.project?.client?.name || '-'}"`,
 
             `"${task.creator?.name || '-'}"`,
-            `"${task.assigned_user?.name || 'غير معين'}"`,
+            `"${task.assigned_user?.name || unassignedLabel}"`,
             `"${statusLabel}"`,
             `"${priorityLabel}"`,
             `"${taskTypeLabel}"`,
@@ -609,9 +645,12 @@ export async function exportTasksToPDF(
         in_progress: number
         review: number
         approved: number
-    }
+    },
+    locale: 'ar' | 'en' = 'ar'
 ): Promise<void> {
     if (!tasks.length) return
+
+    const isAr = locale === 'ar'
 
     try {
         const { doc, autoTable, fontName, fontStyle, pageWidth } = await createPDFDocument({
@@ -621,35 +660,43 @@ export async function exportTasksToPDF(
         doc.setFontSize(18)
 
         // Title
-        const title = 'تقرير المهام الشامل'
-        doc.text(title, pageWidth - 15, 20, { align: 'right', lang: 'ar' })
+        const title = isAr ? 'تقرير المهام الشامل' : 'Comprehensive Tasks Report'
+        const textAlign = isAr ? 'right' as const : 'left' as const
+        const textX = isAr ? pageWidth - 15 : 15
+        doc.text(title, textX, 20, { align: textAlign, lang: isAr ? 'ar' : 'en' })
 
         // Date and subtitle
         doc.setFontSize(10)
-        const dateStr = format(new Date(), 'PPP', { locale: ar })
-        doc.text(`التاريخ: ${dateStr}`, pageWidth - 15, 28, { align: 'right', lang: 'ar' })
+        const dateStr = format(new Date(), 'PPP', { locale: isAr ? ar : enUS })
+        const dateLabel = isAr ? `التاريخ: ${dateStr}` : `Date: ${dateStr}`
+        doc.text(dateLabel, textX, 28, { align: textAlign, lang: isAr ? 'ar' : 'en' })
 
         let yPos = 38
 
         // Add statistics
         if (stats) {
             doc.setFontSize(11)
-            const statsLines = [
+            const statsLines = isAr ? [
                 `إجمالي المهام: ${stats.total}`,
                 `قيد التنفيذ: ${stats.in_progress}`,
                 `مراجعة: ${stats.review}`,
                 `معتمد: ${stats.approved}`
+            ] : [
+                `Total Tasks: ${stats.total}`,
+                `In Progress: ${stats.in_progress}`,
+                `Review: ${stats.review}`,
+                `Approved: ${stats.approved}`
             ]
 
             statsLines.forEach((line, i) => {
-                doc.text(line, pageWidth - 15, yPos + (i * 6), { align: 'right', lang: 'ar' })
+                doc.text(line, textX, yPos + (i * 6), { align: textAlign, lang: isAr ? 'ar' : 'en' })
             })
 
             yPos += 28
         }
 
         // Table Data Preparation
-        const statusLabels: Record<string, string> = {
+        const statusLabels: Record<string, string> = isAr ? {
             'new': 'جديدة',
             'in_progress': 'قيد التنفيذ',
             'review': 'مراجعة',
@@ -657,19 +704,36 @@ export async function exportTasksToPDF(
             'approved': 'معتمد',
             'rejected': 'مرفوض',
             'completed': 'مكتمل'
+        } : {
+            'new': 'New',
+            'in_progress': 'In Progress',
+            'review': 'Review',
+            'revision': 'Revision',
+            'approved': 'Approved',
+            'rejected': 'Rejected',
+            'completed': 'Completed'
         }
 
-        const priorityLabels: Record<string, string> = {
+        const priorityLabels: Record<string, string> = isAr ? {
             'urgent': 'عاجل',
             'high': 'عالي',
             'medium': 'متوسط',
             'low': 'منخفض'
+        } : {
+            'urgent': 'Urgent',
+            'high': 'High',
+            'medium': 'Medium',
+            'low': 'Low'
         }
 
-        const headers = ['التاريخ', 'الحالة', 'الأولوية', 'المصمم', 'التيم ليدر', 'العميل', 'المشروع', 'القسم', 'المهمة']
+        const headers = isAr
+            ? ['التاريخ', 'الحالة', 'الأولوية', 'المصمم', 'التيم ليدر', 'العميل', 'المشروع', 'القسم', 'المهمة']
+            : ['Date', 'Status', 'Priority', 'Designer', 'Team Leader', 'Client', 'Project', 'Department', 'Task']
 
         const tableData = tasks.map(task => {
-            const deptLabel = task.department === 'content' ? 'محتوى' : task.department === 'photography' ? 'تصوير' : '-'
+            const deptLabel = isAr
+                ? (task.department === 'content' ? 'محتوى' : task.department === 'photography' ? 'تصوير' : '-')
+                : (task.department === 'content' ? 'Content' : task.department === 'photography' ? 'Photography' : '-')
             const statusLabel = statusLabels[task.status] || task.status
             const priorityLabel = priorityLabels[task.priority] || task.priority
 
@@ -677,10 +741,10 @@ export async function exportTasksToPDF(
                 format(new Date(task.created_at), 'dd/MM/yyyy'),
                 statusLabel,
                 priorityLabel,
-                task.assigned_user?.name || 'غير معين',
+                task.assigned_user?.name || (isAr ? 'غير معين' : 'Unassigned'),
                 task.creator?.name || '-',
                 task.project?.client?.name || '-',
-                task.project?.name || 'بدون مشروع',
+                task.project?.name || (isAr ? 'بدون مشروع' : 'No Project'),
                 deptLabel,
                 task.title
             ]
@@ -695,14 +759,14 @@ export async function exportTasksToPDF(
                 font: fontName,
                 fontSize: 8,
                 cellPadding: 2,
-                halign: 'right' as 'right',
+                halign: (isAr ? 'right' : 'left') as 'right' | 'left',
                 overflow: 'linebreak' as 'linebreak'
             },
             headStyles: {
                 fillColor: [71, 85, 105] as [number, number, number],
                 textColor: [255, 255, 255] as [number, number, number],
                 fontStyle: fontStyle,
-                halign: 'right' as 'right'
+                halign: (isAr ? 'right' : 'left') as 'right' | 'left'
             },
             alternateRowStyles: {
                 fillColor: [248, 250, 252] as [number, number, number]

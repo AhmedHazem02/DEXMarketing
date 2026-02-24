@@ -27,8 +27,6 @@ export function ThemeEditor() {
     const { data: settings, isLoading } = useSiteSettings()
     const updateSetting = useUpdateSiteSetting()
 
-    const currentTheme = (settings?.theme as ThemeColors) || defaultTheme
-
     const [colors, setColors] = useState<ThemeColors>(defaultTheme)
     const [hasChanges, setHasChanges] = useState(false)
 
@@ -39,12 +37,22 @@ export function ThemeEditor() {
         }
     }, [settings])
 
+    const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(hex)
+
     const handleColorChange = (key: keyof ThemeColors, value: string) => {
         setColors(prev => ({ ...prev, [key]: value }))
         setHasChanges(true)
     }
 
     const handleSave = async () => {
+        // Validate all color values are valid hex
+        for (const [key, value] of Object.entries(colors)) {
+            if (!isValidHex(value)) {
+                toast.error(t('invalidColor') ?? `Invalid hex color for ${key}: ${value}`)
+                return
+            }
+        }
+
         try {
             await updateSetting.mutateAsync({ key: 'theme', value: colors })
             toast.success(t('saveSuccess'))
