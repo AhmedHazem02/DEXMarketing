@@ -60,7 +60,7 @@ function createTaskFormSchema(isAr: boolean) {
         title: z.string().min(3, { message: isAr ? 'العنوان يجب أن يكون 3 أحرف على الأقل' : 'Title must be at least 3 characters' }).max(200),
         description: z.string().optional(),
         priority: z.enum(['low', 'medium', 'high', 'urgent']),
-        status: z.enum(['new', 'in_progress', 'review', 'client_review', 'revision', 'approved', 'rejected', 'completed']),
+        status: z.enum(['new', 'in_progress', 'review', 'client_review', 'client_revision', 'revision', 'approved', 'rejected', 'completed']),
         assigned_to: z.string().optional(),
         client_id: z.string().optional(),
         project_id: z.string().optional(),

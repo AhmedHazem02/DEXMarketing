@@ -121,6 +121,7 @@ export function useTasksKanban(projectId?: string, department?: Department) {
                 in_progress: [],
                 review: [],
                 client_review: [],
+                client_revision: [],
                 revision: [],
                 approved: [],
                 rejected: [],
