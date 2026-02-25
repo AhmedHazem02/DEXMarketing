@@ -378,6 +378,7 @@ export function KanbanBoard({ projectId, department, readOnly, onTaskClick, onCr
             review: [],
             revision: [],
             client_review: [],
+            client_revision: [],
             approved: [],
             rejected: [],
             completed: [],
