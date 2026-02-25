@@ -26,7 +26,7 @@ const FALLBACK_SERVICES: FallbackService[] = [
         descEn: 'Laser-targeted campaigns built for maximum ROI and explosive growth',
         gradient: 'from-red-500/20 to-orange-500/20',
         accent: 'text-red-400',
-        span: 'md:col-span-2 md:row-span-2',
+        span: 'md:col-span-2 md:row-span-1',
     },
     {
         icon: Palette,
@@ -90,7 +90,7 @@ const GRADIENT_COLORS = [
 ]
 
 const ACCENT_COLORS = ['text-red-400', 'text-purple-400', 'text-cyan-400', 'text-green-400', 'text-yellow-400', 'text-indigo-400']
-const SPANS = ['md:col-span-2 md:row-span-2', 'md:col-span-1', 'md:col-span-1', 'md:col-span-1', 'md:col-span-1', 'md:col-span-2']
+const SPANS = ['md:col-span-2 md:row-span-1', 'md:col-span-1', 'md:col-span-1', 'md:col-span-1', 'md:col-span-1', 'md:col-span-2']
 const ICONS: LucideIcon[] = [Megaphone, Palette, Video, TrendingUp, Camera, PenTool]
 
 export function ServicesSection() {

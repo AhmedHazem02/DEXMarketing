@@ -137,9 +137,9 @@ export function StatsSection() {
   return (
     <section className="relative py-32 overflow-hidden" id="stats" ref={ref}>
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#022026] via-[#02232a] to-[#022026]" />
-      <div className="section-divider absolute top-0 left-0 right-0" />
-      <div className="section-divider absolute bottom-0 left-0 right-0" />
+      <div className="absolute inset-0 bg-transparent" />
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F2CB05]/15 to-transparent" />
+      <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
 
       {/* ── Floating decorative elements ── */}
       <GlowOrb color="#F2CB05" size={500} blur={160} opacity={0.025} className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />

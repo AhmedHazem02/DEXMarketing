@@ -1,10 +1,14 @@
 'use client'
 
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { useLocale } from 'next-intl'
+import dynamic from 'next/dynamic'
 import { HeroOverlay } from './hero-overlay'
 import { CustomCursor } from './custom-cursor'
 import { useMemo } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { HelmetEffects } from './helmet-effects'
 
 /* ─── seeded RNG for deterministic star positions (no hydration mismatch) ─── */
 function seededRandom(seed: number): number {
@@ -14,93 +18,117 @@ function seededRandom(seed: number): number {
 
 export function HeroSection() {
     const prefersReducedMotion = useReducedMotion()
+    const locale = useLocale()
+    const isAr = locale === 'ar'
+    const sectionRef = useRef<HTMLDivElement>(null)
+    const astronautContainerRef = useRef<HTMLDivElement>(null)
 
-    /* ─── Stars layer ─── */
-    const stars = useMemo(
-        () =>
-            Array.from({ length: 65 }, (_, i) => {
-                const size = seededRandom(i * 7 + 3) * 2.2 + 0.6
-                const delay = seededRandom(i * 7 + 4) * 4
-                const dur = 2.5 + seededRandom(i * 7 + 5) * 3
-                return {
-                    x: `${(seededRandom(i * 7 + 1) * 100).toFixed(6)}%`,
-                    y: `${(seededRandom(i * 7 + 2) * 100).toFixed(6)}%`,
-                    size: `${size.toFixed(6)}px`,
-                    delay,
-                    dur,
-                    animation: `hero-twinkle ${dur.toFixed(6)}s ease-in-out ${delay.toFixed(6)}s infinite`,
-                }
-            }),
-        [],
-    )
+    // Only render decorative random elements on client to avoid hydration mismatch
+    const [isMounted, setIsMounted] = useState(false)
+    useEffect(() => { setIsMounted(true) }, [])
+
+    // Mouse position tracking
+    const mouseX = useMotionValue(0)
+    const mouseY = useMotionValue(0)
+
+    // Ultra-smooth spring animations
+    const springConfig = { damping: 40, stiffness: 50 }
+    const smoothMouseX = useSpring(mouseX, springConfig)
+    const smoothMouseY = useSpring(mouseY, springConfig)
+
+    // Handle mouse movement
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!sectionRef.current) return
+        const rect = sectionRef.current.getBoundingClientRect()
+        const xNormalized = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2)
+        const yNormalized = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2)
+        mouseX.set(xNormalized)
+        mouseY.set(yNormalized)
+    }
 
     return (
-        <section className="relative min-h-[100dvh] w-full overflow-hidden bg-[#050505]">
+        <section
+            ref={sectionRef}
+            onMouseMove={handleMouseMove}
+            className="relative min-h-[100dvh] w-full overflow-hidden bg-transparent"
+        >
             {/* Custom red-dot cursor */}
             <CustomCursor />
 
-            {/* ── CSS Keyframes ────────────────────────────────────────── */}
-            <style>{`
-                @keyframes hero-twinkle {
-                    0%, 100% { opacity: 0.15; transform: scale(1); }
-                    50%      { opacity: 0.85; transform: scale(1.25); }
-                }
-                @keyframes hero-aurora {
-                    0%   { transform: translateX(-10%) rotate(0deg)   scale(1);   opacity: 0.32; }
-                    33%  { transform: translateX(5%)  rotate(2deg)   scale(1.08); opacity: 0.45; }
-                    66%  { transform: translateX(-5%) rotate(-1deg)  scale(0.95); opacity: 0.28; }
-                    100% { transform: translateX(-10%) rotate(0deg)   scale(1);   opacity: 0.32; }
-                }
-                @keyframes hero-grid-fade {
-                    0%, 100% { opacity: 0.025; }
-                    50%      { opacity: 0.06;  }
-                }
-                @keyframes hero-shooting {
-                    0%   { transform: translate(0, 0) rotate(-35deg); opacity: 0; width: 0; }
-                    10%  { opacity: 1; width: 80px; }
-                    100% { transform: translate(320px, 160px) rotate(-35deg); opacity: 0; width: 0; }
-                }
-            `}</style>
+            {/* 3D Background - Now Global */}
+            <div className="absolute inset-0 z-0" />
 
-            {/* ── 1. Starfield ─────────────────────────────────────────── */}
-            <div className="pointer-events-none absolute inset-0 z-[1]" aria-hidden="true">
-                {stars.map((s, i) => (
-                    <div
-                        key={i}
-                        className="absolute rounded-full bg-white"
+            {/* Hero Image with Advanced Helmet Effects */}
+            <div className="absolute inset-0 z-[5] pointer-events-none flex items-start justify-center lg:justify-end overflow-hidden pt-[10vh] lg:pt-[5vh]">
+                <div
+                    ref={astronautContainerRef}
+                    className={`relative w-full max-w-[600px] lg:max-w-[850px] h-[70vh] lg:h-[95vh] lg:translate-y-[5%] ${isAr ? 'lg:-translate-x-[15%]' : 'lg:translate-x-[5%]'
+                        }`}
+                >
+                    {/* Parallax Container for Images */}
+                    <motion.div
+                        className="relative w-full h-full"
                         style={{
-                            left: s.x,
-                            top: s.y,
-                            width: s.size,
-                            height: s.size,
-                            animation: prefersReducedMotion ? 'none' : s.animation,
-                            opacity: 0.3,
+                            x: useTransform(smoothMouseX, [-1, 1], [15, -15]),
+                            transformStyle: 'preserve-3d',
                         }}
-                    />
-                ))}
-                {/* Shooting stars */}
-                {!prefersReducedMotion && [0, 1].map((i) => (
-                    <div
-                        key={`shoot-${i}`}
-                        className="absolute h-[1px] bg-gradient-to-r from-transparent via-white to-transparent"
-                        style={{
-                            top: `${15 + i * 25}%`,
-                            left: `${10 + i * 40}%`,
-                            animation: `hero-shooting ${3 + i * 2}s ease-out ${2 + i * 5}s infinite`,
-                        }}
-                    />
-                ))}
+                    >
+                        <HelmetEffects />
+
+                        {/* Full Detail Photorealistic Astronaut */}
+                        <motion.img
+                            src="/images/astronaut_hero.png"
+                            alt="Astronaut Hero"
+                            className="absolute inset-0 w-full h-full object-contain z-[12]"
+                            style={{
+                                filter: 'brightness(1.1) contrast(1.1) saturate(1.05) drop-shadow(0 0 30px rgba(0,0,0,0.5))',
+                                scaleX: isAr ? 1 : -1,
+                            }}
+                        />
+                    </motion.div>
+                </div>
             </div>
 
-            {/* ── 2. Aurora gradient mesh ──────────────────────────────── */}
-            <div className="pointer-events-none absolute inset-0 z-[1]" aria-hidden="true">
-                {/* Primary golden aurora */}
-                <div
-                    className="absolute -top-[20%] -left-[10%] w-[80%] h-[70%]"
+            {/* Dynamic Energy Field */}
+            <motion.div
+                className="absolute inset-0 rounded-full pointer-events-none"
+                animate={{
+                    opacity: [0, 0.15, 0],
+                    scale: [0.95, 1.05, 0.95],
+                }}
+                transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                }}
+                style={{
+                    background: 'radial-gradient(ellipse at center, transparent 30%, rgba(251,191,36,0.1) 50%, transparent 100%)',
+                    filter: 'blur(15px)',
+                }}
+            />
+
+            {/* Pulsating Aura */}
+            <motion.div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                    x: useTransform(smoothMouseX, [-1, 1], [5, -5]),
+                    y: useTransform(smoothMouseY, [-1, 1], [5, -5]),
+                }}
+            >
+                <motion.div
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] rounded-full"
+                    animate={{
+                        opacity: [0.05, 0.1, 0.05],
+                        scale: [0.98, 1.02, 0.98],
+                    }}
+                    transition={{
+                        duration: 5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                    }}
                     style={{
-                        background: 'radial-gradient(ellipse 70% 50% at 30% 30%, rgba(251,191,36,0.06) 0%, transparent 60%)',
-                        animation: prefersReducedMotion ? 'none' : 'hero-aurora 18s ease-in-out infinite',
-                        filter: 'blur(60px)',
+                        background: 'radial-gradient(ellipse at center, rgba(251,191,36,0.1) 0%, transparent 70%)',
+                        filter: 'blur(20px)',
                     }}
                 />
                 {/* Secondary cyan aurora */}
@@ -121,9 +149,31 @@ export function HeroSection() {
                         filter: 'blur(50px)',
                     }}
                 />
-            </div>
+            </motion.div>
 
-            {/* ── 3. Subtle grid pattern overlay ──────────────────────── */}
+            {/* Cinematic vignette with subtle parallax */}
+            <motion.div
+                className="pointer-events-none absolute inset-0 z-[1]"
+                style={{
+                    x: useTransform(smoothMouseX, [-1, 1], [-5, 5]),
+                    y: useTransform(smoothMouseY, [-1, 1], [-5, 5]),
+                    background: 'radial-gradient(ellipse at center,transparent 30%,#022026 100%)',
+                }}
+            />
+
+            {/* Dynamic gradient overlay following mouse */}
+            <motion.div
+                className="pointer-events-none absolute inset-0 z-[2] opacity-20"
+                style={{
+                    background: useTransform(
+                        [smoothMouseX, smoothMouseY],
+                        ([x, y]: number[]) =>
+                            `radial-gradient(circle at ${50 + x * 10}% ${50 + y * 10}%, rgba(251,191,36,0.05) 0%, transparent 60%)`
+                    ),
+                }}
+            />
+
+            {/* Subtle grid pattern overlay */}
             <div
                 className="pointer-events-none absolute inset-0 z-[1]"
                 aria-hidden="true"
@@ -139,28 +189,70 @@ export function HeroSection() {
                 }}
             />
 
-            {/* ── 4. Noise texture overlay ────────────────────────────── */}
-            <div
-                className="pointer-events-none absolute inset-0 z-[1] mix-blend-soft-light opacity-[0.03]"
-                aria-hidden="true"
-                style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'repeat',
-                    backgroundSize: '128px 128px',
-                }}
-            />
-
-            {/* ── Bottom fade to next section ─────────────────────────── */}
+            {/* Bottom fade to next section */}
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-48 z-[2] bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent" />
             {/* Top vignette */}
             <div className="pointer-events-none absolute top-0 left-0 right-0 h-32 z-[2] bg-gradient-to-b from-[#050505]/60 to-transparent" />
 
-            {/* ── Content ─────────────────────────────────────────────── */}
+            {/* Ambient Floating Particles - client only to avoid hydration mismatch */}
+            {isMounted && [...Array(8)].map((_, i) => (
+                <motion.div
+                    key={`ambient-particle-${i}`}
+                    className="pointer-events-none absolute rounded-full z-[3]"
+                    style={{
+                        left: `${seededRandom(i * 3) * 100}%`,
+                        top: `${seededRandom(i * 3 + 1) * 100}%`,
+                        width: `${1 + seededRandom(i * 3 + 2) * 2}px`,
+                        height: `${1 + seededRandom(i * 3 + 2) * 2}px`,
+                        background: i % 3 === 0
+                            ? 'rgba(251,191,36,0.4)'
+                            : 'rgba(34,211,238,0.4)',
+                    }}
+                    animate={{
+                        y: [0, -20, 0],
+                        opacity: [0, 0.4, 0],
+                        scale: [0, 1, 0],
+                    }}
+                    transition={{
+                        duration: 10 + seededRandom(i) * 10,
+                        repeat: Infinity,
+                        delay: seededRandom(i + 5) * 5,
+                        ease: "linear",
+                    }}
+                />
+            ))}
+
+            {/* Light Streaks - client only to avoid hydration mismatch */}
+            {isMounted && [...Array(2)].map((_, i) => (
+                <motion.div
+                    key={`streak-${i}`}
+                    className="pointer-events-none absolute h-[1px] z-[3]"
+                    style={{
+                        width: `${150}px`,
+                        top: `${20 + i * 40}%`,
+                        left: `-200px`,
+                        background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.3), transparent)',
+                        transform: 'rotate(-15deg)',
+                    }}
+                    animate={{
+                        x: ['0vw', '120vw'],
+                        opacity: [0, 0.4, 0],
+                    }}
+                    transition={{
+                        duration: 4,
+                        repeat: Infinity,
+                        delay: i * 3,
+                        ease: "linear",
+                    }}
+                />
+            ))}
+
+            {/* Content */}
             <div className="relative z-10 w-full h-full">
                 <HeroOverlay />
             </div>
 
-            {/* ── Scroll indicator ────────────────────────────────────── */}
+            {/* Scroll indicator */}
             {!prefersReducedMotion && (
                 <motion.div
                     className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2"
@@ -180,6 +272,11 @@ export function HeroSection() {
                     <div className="w-[1px] h-8 bg-gradient-to-b from-white/15 to-transparent" />
                 </motion.div>
             )}
-        </section>
+
+            {/* Procedural Texture Filters (Hidden SVG) */}
+            <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+                <defs />
+            </svg>
+        </section >
     )
 }

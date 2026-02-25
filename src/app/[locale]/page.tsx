@@ -7,8 +7,12 @@ import {
   TestimonialsSection,
   ContactSection,
   CTASection,
+  Navbar,
+  Footer,
+  GlobalBackground
 } from '@/components/landing'
-import { Navbar, Footer } from '@/components/landing'
+
+
 import { SiteSettingsProvider } from '@/components/providers/site-settings-provider'
 import { ErrorBoundary } from '@/components/shared/error-boundary'
 import { getSiteSettings } from '@/lib/actions/get-site-settings'
@@ -64,7 +68,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   return (
     <SiteSettingsProvider settings={settings}>
-      <main className="min-h-screen bg-[#022026] text-white overflow-x-hidden">
+      <GlobalBackground />
+      <main className="relative min-h-screen bg-transparent text-white overflow-x-hidden">
         <Navbar />
         <ErrorBoundary>
           <HeroSection />
