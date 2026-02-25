@@ -41,19 +41,7 @@ export function PortfolioSection() {
     const hasCmsData = cmsItems && cmsItems.length > 0
 
     return (
-        <section id="portfolio" className="py-40 relative overflow-hidden bg-[#022026]">
-            {/* Background */}
-            <div className="pointer-events-none absolute inset-0">
-                <div className="section-divider absolute top-0 left-0 right-0" />
-                <div className="section-divider absolute bottom-0 left-0 right-0" />
-                <div className="absolute inset-0 bg-gradient-to-b from-[#022026] via-[#021d22] to-[#022026]" />
-                {/* Ambient orbs */}
-                <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-primary/[0.025] blur-[150px]" />
-                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-cyan-500/[0.02] blur-[150px]" />
-                {/* Grid */}
-                <div className="absolute inset-0 grid-pattern opacity-15" />
-            </div>
-
+        <section id="portfolio" className="py-32 relative overflow-hidden bg-transparent">
             <div className="container relative z-10 mx-auto px-6">
                 {/* Header */}
                 <motion.div

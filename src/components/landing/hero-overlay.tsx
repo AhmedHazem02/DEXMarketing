@@ -9,13 +9,9 @@ import { useRef, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { useIntroStore } from '@/store/intro-store'
 import { HERO_STATS as STATS } from '@/lib/constants/landing'
+import { SplitText } from '@/components/ui/split-text'
 
-const Hero3D = dynamic(() => import('../scene/Hero3D'), {
-    ssr: false,
-    loading: () => <div className="w-full h-full rounded-2xl bg-[#050505]" />,
-})
 
-/* ---------- floating mission badges ---------- */
 const BADGES_EN = ['Branding', 'Social Media', 'Video', 'SEO', 'Web']
 const BADGES_AR = ['هوية بصرية', 'سوشيال ميديا', 'فيديو', 'تحسين محركات', 'ويب']
 
@@ -35,8 +31,6 @@ export function HeroOverlay() {
     const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
     const yText = useTransform(scrollYProgress, [0, 1], [0, 150])
     const opacityText = useTransform(scrollYProgress, [0, 0.5], [1, 0])
-
-    const badges = isAr ? BADGES_AR : BADGES_EN
 
     // Only render or animate if intro is complete
     // We can use a simple variant toggle
@@ -80,30 +74,38 @@ export function HeroOverlay() {
 
                         {/* ---------- Main Headline ---------- */}
                         <div className="mb-10 overflow-hidden">
-                            <motion.h1
-                                variants={{
-                                    hidden: { opacity: 0, y: 60 },
-                                    visible: { opacity: 1, y: 0, transition: { duration: 1, delay: 0.2 } }
-                                }}
-                                className="text-5xl sm:text-6xl lg:text-7xl xl:text-[5.5rem] font-black leading-[0.95] tracking-tight"
-                            >
-                                <span className="block text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]">
-                                    {isAr ? 'نصنع' : 'We Craft'}
-                                </span>
-                                <span className="relative block">
-                                    <span className="bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent drop-shadow-none">
-                                        {isAr ? 'علامات تجارية' : 'Iconic Brands'}
-                                    </span>
-                                    {/* Subtle glow behind gradient text */}
-                                    <span
-                                        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/20 via-yellow-300/15 to-orange-500/15 blur-2xl -z-10"
-                                        aria-hidden="true"
-                                    />
-                                </span>
-                                <span className="block text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]">
-                                    {isAr ? 'لا تُنسى ✦' : 'That Conquer ✦'}
-                                </span>
-                            </motion.h1>
+                            <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-[5.5rem] font-black leading-[0.95] tracking-tight">
+                                <SplitText
+                                    text={isAr ? 'نصنع' : 'We Craft'}
+                                    className="text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+                                    delay={0.06}
+                                    animationFrom={{ opacity: 0, y: 40 }}
+                                    animationTo={{ opacity: 1, y: 0 }}
+                                    textAlign={isAr ? 'right' : 'left'}
+                                    start={isIntroComplete}
+                                    type={isAr ? 'words' : 'chars'}
+                                />
+                                <SplitText
+                                    text={isAr ? 'علامات تجارية' : 'Iconic Brands'}
+                                    className="bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent drop-shadow-none py-1"
+                                    delay={0.06}
+                                    animationFrom={{ opacity: 0, y: 40 }}
+                                    animationTo={{ opacity: 1, y: 0 }}
+                                    textAlign={isAr ? 'right' : 'left'}
+                                    start={isIntroComplete}
+                                    type={isAr ? 'words' : 'chars'}
+                                />
+                                <SplitText
+                                    text={isAr ? 'لا تُنسى' : 'That Conquer'}
+                                    className="text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+                                    delay={0.06}
+                                    animationFrom={{ opacity: 0, y: 40 }}
+                                    animationTo={{ opacity: 1, y: 0 }}
+                                    textAlign={isAr ? 'right' : 'left'}
+                                    start={isIntroComplete}
+                                    type={isAr ? 'words' : 'chars'}
+                                />
+                            </h1>
                         </div>
 
                         {/* Decorative accent line */}
@@ -199,32 +201,12 @@ export function HeroOverlay() {
                     </motion.div>
                 </div>
 
-                {/* 3D Model Column — enhanced with glow ring */}
-                <div className="hidden lg:flex items-center justify-center h-full w-full pointer-events-none relative">
-                    {/* Circular glow behind the model */}
-                    <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        aria-hidden="true"
-                    >
-                        <div className="w-[500px] h-[500px] rounded-full bg-gradient-to-br from-primary/[0.04] via-transparent to-purple-500/[0.03] blur-3xl" />
-                    </div>
-                    {/* Faint orbit ring */}
-                    <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        aria-hidden="true"
-                    >
-                        <div className="w-[580px] h-[580px] rounded-full border border-white/[0.03]" />
-                    </div>
-                    <div className="w-full max-w-[750px] aspect-square relative z-10">
-                        <Hero3D />
-                    </div>
-                </div>
             </div >
 
             {/* Badges / Floating Elements - Enhanced glassmorphism */}
             {
                 !prefersReducedMotion && isIntroComplete &&
-                badges.map((badge, i) => {
+                (isAr ? BADGES_AR : BADGES_EN).map((badge, i) => {
                     const positions = [
                         { x: 8, y: 20 },
                         { x: 85, y: 15 },
@@ -238,7 +220,7 @@ export function HeroOverlay() {
                         <motion.div
                             key={badge}
                             className="pointer-events-none absolute hidden lg:flex items-center gap-2.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 backdrop-blur-xl z-20 shadow-[0_4px_24px_rgba(0,0,0,0.2)]"
-                            style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                            style={{ left: isAr ? `${100 - pos.x}%` : `${pos.x}%`, top: `${pos.y}%` }}
                             initial={{ opacity: 0, scale: 0, rotate: -10 }}
                             animate={{ opacity: 0.55, scale: 1, rotate: 0, y: [0, -10, 0] }}
                             transition={{

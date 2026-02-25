@@ -11,7 +11,7 @@ export function AboutSection() {
   const isAr = locale === 'ar'
 
   return (
-    <section className="relative py-28 bg-[#022026] overflow-hidden" id="about">
+    <section className="relative py-28 bg-transparent overflow-hidden" id="about">
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
 
       {/* ── Floating decorative elements ── */}
