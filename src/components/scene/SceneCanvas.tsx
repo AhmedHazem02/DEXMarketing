@@ -55,7 +55,7 @@ export default function SceneCanvas() {
 
                     {/* Post Processing Effects - Cinematic Finish */}
                     {settings.post && (
-                        <EffectComposer disableNormalPass>
+                        <EffectComposer>
                             <Bloom
                                 luminanceThreshold={0.4}
                                 intensity={0.5}

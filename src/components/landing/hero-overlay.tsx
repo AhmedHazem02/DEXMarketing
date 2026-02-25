@@ -11,10 +11,6 @@ import { useIntroStore } from '@/store/intro-store'
 import { HERO_STATS as STATS } from '@/lib/constants/landing'
 import { SplitText } from '@/components/ui/split-text'
 
-const Hero3D = dynamic(() => import('../scene/Hero3D'), {
-    ssr: false,
-    loading: () => <div className="w-full h-full rounded-2xl bg-transparent" />,
-})
 
 const BADGES_EN = ['Branding', 'Social Media', 'Video', 'SEO', 'Web']
 const BADGES_AR = ['هوية بصرية', 'سوشيال ميديا', 'فيديو', 'تحسين محركات', 'ويب']
@@ -205,26 +201,6 @@ export function HeroOverlay() {
                     </motion.div>
                 </div>
 
-                {/* 3D Model Column — enhanced with glow ring */}
-                <div className="hidden lg:flex items-center justify-center h-full w-full pointer-events-none relative">
-                    {/* Circular glow behind the model */}
-                    <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        aria-hidden="true"
-                    >
-                        <div className="w-[500px] h-[500px] rounded-full bg-gradient-to-br from-primary/[0.04] via-transparent to-purple-500/[0.03] blur-3xl" />
-                    </div>
-                    {/* Faint orbit ring */}
-                    <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        aria-hidden="true"
-                    >
-                        <div className="w-[580px] h-[580px] rounded-full border border-white/[0.03]" />
-                    </div>
-                    <div className="w-full max-w-[750px] aspect-square relative z-10">
-                        <Hero3D />
-                    </div>
-                </div>
             </div >
 
             {/* Badges / Floating Elements - Enhanced glassmorphism */}
