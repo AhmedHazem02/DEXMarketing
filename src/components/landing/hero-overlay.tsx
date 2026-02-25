@@ -8,15 +8,8 @@ import { useLocale } from 'next-intl'
 import { useRef, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { useIntroStore } from '@/store/intro-store'
-import { HERO_STATS as STATS } from '@/lib/constants/landing'
 import { SplitText } from '@/components/ui/split-text'
 
-
-const BADGES_EN = ['Branding', 'Social Media', 'Video', 'SEO', 'Web']
-const BADGES_AR = ['هوية بصرية', 'سوشيال ميديا', 'فيديو', 'تحسين محركات', 'ويب']
-
-/* Badge icons - small dot colours per badge */
-const BADGE_COLORS = ['#fbbf24', '#ec4899', '#3b82f6', '#10b981', '#a855f7']
 
 export function HeroOverlay() {
     const locale = useLocale()
@@ -170,78 +163,11 @@ export function HeroOverlay() {
                             </Button>
                         </motion.div>
 
-                        {/* Stats row */}
-                        <motion.div
-                            variants={{
-                                hidden: { opacity: 0 },
-                                visible: { opacity: 1, transition: { duration: 1, delay: 0.9 } }
-                            }}
-                            className="flex items-center gap-10 md:gap-14 justify-start"
-                        >
-                            {STATS.map((stat, i) => (
-                                <motion.div
-                                    key={stat.value}
-                                    variants={{
-                                        hidden: { opacity: 0, y: 20 },
-                                        visible: { opacity: 1, y: 0, transition: { delay: 1.1 + i * 0.15 } }
-                                    }}
-                                    className="group text-start relative"
-                                >
-                                    <div className="text-3xl md:text-4xl font-black bg-gradient-to-b from-white via-white/90 to-white/40 bg-clip-text text-transparent transition-all duration-300 group-hover:from-primary group-hover:to-yellow-200">
-                                        {stat.value}
-                                    </div>
-                                    <div className="mt-1.5 text-xs md:text-sm font-medium text-white/35 uppercase tracking-wider">
-                                        {isAr ? stat.labelAr : stat.labelEn}
-                                    </div>
-                                    {/* Subtle bottom accent line */}
-                                    <div className="absolute -bottom-3 left-0 h-[1px] w-0 bg-gradient-to-r from-primary/40 to-transparent transition-all duration-500 group-hover:w-full" />
-                                </motion.div>
-                            ))}
-                        </motion.div>
+
                     </motion.div>
                 </div>
 
             </div >
-
-            {/* Badges / Floating Elements - Enhanced glassmorphism */}
-            {
-                !prefersReducedMotion && isIntroComplete &&
-                (isAr ? BADGES_AR : BADGES_EN).map((badge, i) => {
-                    const positions = [
-                        { x: 8, y: 20 },
-                        { x: 85, y: 15 },
-                        { x: 5, y: 75 },
-                        { x: 88, y: 70 },
-                        { x: 12, y: 48 },
-                    ]
-                    const pos = positions[i % positions.length]
-                    const color = BADGE_COLORS[i % BADGE_COLORS.length]
-                    return (
-                        <motion.div
-                            key={badge}
-                            className="pointer-events-none absolute hidden lg:flex items-center gap-2.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 backdrop-blur-xl z-20 shadow-[0_4px_24px_rgba(0,0,0,0.2)]"
-                            style={{ left: isAr ? `${100 - pos.x}%` : `${pos.x}%`, top: `${pos.y}%` }}
-                            initial={{ opacity: 0, scale: 0, rotate: -10 }}
-                            animate={{ opacity: 0.55, scale: 1, rotate: 0, y: [0, -10, 0] }}
-                            transition={{
-                                opacity: { delay: 0.6 + i * 0.15, duration: 0.8 },
-                                scale: { delay: 0.6 + i * 0.15, duration: 0.6, type: 'spring', stiffness: 150 },
-                                rotate: { delay: 0.6 + i * 0.15, duration: 0.6 },
-                                y: { delay: 1.8 + i * 0.12, duration: 4.5 + i * 0.6, repeat: Infinity, ease: 'easeInOut' },
-                            }}
-                        >
-                            <span
-                                className="h-2 w-2 rounded-full"
-                                style={{
-                                    backgroundColor: color,
-                                    boxShadow: `0 0 8px ${color}80, 0 0 16px ${color}40`,
-                                }}
-                            />
-                            <span className="text-xs font-medium text-white/55 tracking-wide">{badge}</span>
-                        </motion.div>
-                    )
-                })
-            }
         </>
     )
 }

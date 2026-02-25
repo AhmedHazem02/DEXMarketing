@@ -3,7 +3,6 @@ import { setRequestLocale } from 'next-intl/server'
 import { Navbar, Footer } from '@/components/landing'
 import { Mail, Phone, MapPin } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { ContactForm } from '@/components/landing/contact-form'
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
     const params = await props.params;
@@ -106,13 +105,7 @@ export default async function ContactPage(props: { params: Promise<{ locale: str
                             </div>
                         </div>
 
-                        {/* Contact Form */}
-                        <div className="p-8 rounded-2xl border border-white/5 bg-white/[0.02]">
-                            <h2 className="text-xl font-bold text-white mb-6 font-serif">
-                                {isAr ? 'أرسل لنا رسالة' : 'Send us a message'}
-                            </h2>
-                            <ContactForm isAr={isAr} />
-                        </div>
+
 
                     </div>
                 </div>

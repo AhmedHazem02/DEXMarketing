@@ -28,8 +28,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     return (
         <>
             <HeroSection />
-            <BrandsMarquee />
             <StatsSection />
+            <BrandsMarquee />
             <AboutSection />
             <ServicesSection />
             <ProcessSection />

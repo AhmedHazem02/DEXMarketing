@@ -19,18 +19,8 @@ export interface Stat {
     labelEn: string
     labelAr: string
 }
-
-// Unified statistics data - used across hero and process sections
-export const STATS: Stat[] = [
-    { value: '500+', labelEn: 'Projects Launched', labelAr: 'مشروع ناجح' },
-    { value: '200+', labelEn: 'Happy Clients', labelAr: 'عميل راضي' },
-    { value: '15+', labelEn: 'Years of Orbit', labelAr: 'سنة خبرة' },
-    { value: '98%', labelEn: 'Client Retention', labelAr: 'معدل رضا العملاء' },
-]
-
-// Main hero stats (first 3)
-export const HERO_STATS = STATS.slice(0, 3)
-
+ 
+ 
 // Process section stats (custom set)
 export const PROCESS_STATS: Stat[] = [
     { value: '98%', labelEn: 'Client Retention', labelAr: 'معدل رضا العملاء' },

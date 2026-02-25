@@ -75,13 +75,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <HeroSection />
         </ErrorBoundary>
         <ErrorBoundary>
+          <StatsSection />
+        </ErrorBoundary>
+        <ErrorBoundary>
           <AboutSection />
         </ErrorBoundary>
         <ErrorBoundary>
           <ServicesSection />
-        </ErrorBoundary>
-        <ErrorBoundary>
-          <StatsSection />
         </ErrorBoundary>
         <ErrorBoundary>
           <PortfolioSection />

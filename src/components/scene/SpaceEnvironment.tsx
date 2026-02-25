@@ -1,7 +1,5 @@
 'use client'
 
-import { Stars, Sparkles } from '@react-three/drei'
-
 interface SpaceEnvironmentProps {
     starCount: number
 }
@@ -9,35 +7,6 @@ interface SpaceEnvironmentProps {
 export function SpaceEnvironment({ starCount }: SpaceEnvironmentProps) {
     return (
         <group>
-            {/* Distant Stars */}
-            <Stars
-                radius={100}
-                depth={50}
-                count={starCount}
-                factor={4}
-                saturation={0}
-                fade
-                speed={1}
-            />
-
-            {/* Floating Dust/Sparkles */}
-            <Sparkles
-                count={starCount / 5}
-                scale={10}
-                size={2}
-                speed={0.4}
-                opacity={0.5}
-                color="#FBBF24" // Amber primary
-            />
-
-            <Sparkles
-                count={starCount / 5}
-                scale={15}
-                size={3}
-                speed={0.3}
-                opacity={0.3}
-                color="#22D3EE" // Cyan accent
-            />
 
             {/* Ambient Light */}
             <ambientLight intensity={0.5} color="#112240" />
