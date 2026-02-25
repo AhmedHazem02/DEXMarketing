@@ -31,7 +31,7 @@ export function useCurrentUser() {
 
             const { data, error } = await supabase
                 .from('users')
-                .select('*')
+                .select('id, name, email, role, department, is_active, avatar_url, phone, created_at')
                 .eq('id', session.user.id)
                 .single()
 
@@ -53,7 +53,7 @@ export function useUsers() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('users')
-                .select('*')
+                .select('id, name, email, role, department, is_active, avatar_url, phone, created_at')
                 .order('created_at', { ascending: false })
 
             if (error) throw error
@@ -75,7 +75,7 @@ export function useUser(userId: string) {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('users')
-                .select('*')
+                .select('id, name, email, role, department, is_active, avatar_url, phone, created_at')
                 .eq('id', userId)
                 .single()
 

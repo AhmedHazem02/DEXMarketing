@@ -32,14 +32,14 @@ export interface StatusConfig {
 }
 
 export const STATUS_CONFIG: Record<string, StatusConfig> = {
-    new: { label: 'جديدة', labelEn: 'New', style: 'bg-blue-100 text-blue-700 border-blue-200' },
-    in_progress: { label: 'قيد التنفيذ', labelEn: 'In Progress', style: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    review: { label: 'مراجعة', labelEn: 'Review', style: 'bg-purple-100 text-purple-700 border-purple-200' },
-    client_review: { label: 'مراجعة العميل', labelEn: 'Client Review', style: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-    revision: { label: 'تعديل مطلوب', labelEn: 'Revision', style: 'bg-orange-100 text-orange-700 border-orange-200' },
-    approved: { label: 'معتمد', labelEn: 'Approved', style: 'bg-green-100 text-green-700 border-green-200' },
-    rejected: { label: 'مرفوض', labelEn: 'Rejected', style: 'bg-red-100 text-red-700 border-red-200' },
-    completed: { label: 'مكتمل', labelEn: 'Completed', style: 'bg-gray-100 text-gray-700 border-gray-200' },
+    new: { label: 'جديدة', labelEn: 'New', style: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' },
+    in_progress: { label: 'قيد التنفيذ', labelEn: 'In Progress', style: 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800' },
+    review: { label: 'مراجعة', labelEn: 'Review', style: 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800' },
+    client_review: { label: 'مراجعة العميل', labelEn: 'Client Review', style: 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' },
+    revision: { label: 'تعديل مطلوب', labelEn: 'Revision', style: 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800' },
+    approved: { label: 'معتمد', labelEn: 'Approved', style: 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800' },
+    rejected: { label: 'مرفوض', labelEn: 'Rejected', style: 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800' },
+    completed: { label: 'مكتمل', labelEn: 'Completed', style: 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800' },
 } as const
 
 export const STATUS_OPTIONS = [
@@ -66,10 +66,10 @@ export interface PriorityStyleConfig {
 }
 
 export const PRIORITY_STYLE_CONFIG: Record<string, PriorityStyleConfig> = {
-    urgent: { label: 'عاجل', labelEn: 'Urgent', style: 'bg-red-100 text-red-800 border-red-200', dotColor: 'bg-red-500' },
-    high: { label: 'عالي', labelEn: 'High', style: 'bg-orange-100 text-orange-800 border-orange-200', dotColor: 'bg-orange-500' },
-    medium: { label: 'متوسط', labelEn: 'Medium', style: 'bg-blue-100 text-blue-800 border-blue-200', dotColor: 'bg-blue-400' },
-    low: { label: 'منخفض', labelEn: 'Low', style: 'bg-slate-100 text-slate-600 border-slate-200', dotColor: 'bg-slate-300' },
+    urgent: { label: 'عاجل', labelEn: 'Urgent', style: 'bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800', dotColor: 'bg-red-500' },
+    high: { label: 'عالي', labelEn: 'High', style: 'bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800', dotColor: 'bg-orange-500' },
+    medium: { label: 'متوسط', labelEn: 'Medium', style: 'bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800', dotColor: 'bg-blue-400' },
+    low: { label: 'منخفض', labelEn: 'Low', style: 'bg-slate-100 dark:bg-slate-500/20 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800', dotColor: 'bg-slate-300' },
 } as const
 
 export const PRIORITY_OPTIONS = [
@@ -98,8 +98,8 @@ export const TASK_TYPE_OPTIONS = [
 // ============================================
 
 export const DEPARTMENT_BADGE_CONFIG: Record<string, { label: string; labelEn: string; className: string }> = {
-    content: { label: 'محتوى', labelEn: 'Content', className: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
-    photography: { label: 'تصوير', labelEn: 'Photography', className: 'bg-cyan-100 text-cyan-800 border-cyan-200' },
+    content: { label: 'محتوى', labelEn: 'Content', className: 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' },
+    photography: { label: 'تصوير', labelEn: 'Photography', className: 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-800 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800' },
 } as const
 
 // ============================================

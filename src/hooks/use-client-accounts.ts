@@ -28,8 +28,7 @@ export function useClientAccounts(filters?: {
                 .select(`
                     *,
                     client:clients!inner(id, name, email, user:users(id, name, email)),
-                    package:packages(id, name, name_ar),
-                    transactions:transactions(*)
+                    package:packages(id, name, name_ar)
                 `)
                 .order('created_at', { ascending: false })
 
@@ -76,7 +75,7 @@ export function useClientAccount(id: string | undefined) {
                     *,
                     client:clients(id, name, email, phone),
                     package:packages(id, name, name_ar, price, duration_days),
-                    transactions:transactions(*)
+                    transactions:transactions(id, type, amount, description, category, created_at, payment_method)
                 `)
                 .eq('id', id)
                 .single()
@@ -104,8 +103,7 @@ export function useClientAccountsByClientId(clientId: string | undefined) {
                 .from('client_accounts')
                 .select(`
                     *,
-                    package:packages(id, name, name_ar),
-                    transactions:transactions(*)
+                    package:packages(id, name, name_ar)
                 `)
                 .eq('client_id', clientId)
                 .eq('is_active', true)
@@ -144,13 +142,12 @@ export function useMyClientAccounts() {
 
             const clientId = (clientData as any).id as string
 
-            // Fetch client accounts using the client.id
+            // Fetch client accounts (without transactions — load on detail view)
             const { data, error } = await supabase
                 .from('client_accounts')
                 .select(`
                     *,
-                    package:packages(id, name, name_ar),
-                    transactions:transactions(*)
+                    package:packages(id, name, name_ar)
                 `)
                 .eq('client_id', clientId)
                 .eq('is_active', true)

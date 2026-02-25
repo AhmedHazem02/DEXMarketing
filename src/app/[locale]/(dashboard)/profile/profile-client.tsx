@@ -155,7 +155,7 @@ export function ProfileClient() {
                         <div className="flex flex-wrap gap-2 justify-center">
                             <Label htmlFor="avatar-upload" className="cursor-pointer">
                                 <div className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
-                                    <Camera className="h-4 w-4 mr-2" />
+                                    <Camera className="h-4 w-4 me-2" />
                                     {avatarUrl ? t('changePhoto') : t('uploadPhoto')}
                                 </div>
                                 <Input
@@ -178,12 +178,12 @@ export function ProfileClient() {
                                 >
                                     {isUploading ? (
                                         <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            <Loader2 className="h-4 w-4 me-2 animate-spin" />
                                             {t('uploading')}
                                         </>
                                     ) : (
                                         <>
-                                            <Upload className="h-4 w-4 mr-2" />
+                                            <Upload className="h-4 w-4 me-2" />
                                             {t('uploadNow')}
                                         </>
                                     )}
@@ -198,7 +198,7 @@ export function ProfileClient() {
                                     onClick={handleRemoveAvatar}
                                     disabled={isUploading || isSubmitting}
                                 >
-                                    <X className="h-4 w-4 mr-2" />
+                                    <X className="h-4 w-4 me-2" />
                                     {t('removePhoto')}
                                 </Button>
                             )}
@@ -258,7 +258,7 @@ export function ProfileClient() {
                         >
                             {isSubmitting ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <Loader2 className="me-2 h-4 w-4 animate-spin" />
                                     {t('saving')}
                                 </>
                             ) : (

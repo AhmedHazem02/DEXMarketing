@@ -33,7 +33,7 @@ export function useProjects(filters?: ProjectFilters) {
 
       let query = supabase
         .from('projects')
-        .select('*, client:clients(*)')
+        .select('*, client:clients(id, name, email)')
         .order('name', { ascending: true })
 
       if (filters?.clientId) {

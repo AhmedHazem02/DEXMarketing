@@ -55,7 +55,7 @@ export function ConversationList({ userId, activeConversationId, onSelect }: Con
     }, [conversations, search, userId])
 
     return (
-        <div className="flex flex-col h-full border-r">
+        <div className="flex flex-col h-full border-e">
             <div className="p-4 border-b space-y-3">
                 <h2 className="font-semibold text-lg">
                     {isAr ? 'المحادثات' : 'Conversations'}

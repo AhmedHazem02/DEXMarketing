@@ -145,6 +145,7 @@ export type PaymentMethod = 'cash' | 'transfer' | 'check'
 
 export interface Advance {
     id: string
+    recipient_id: string | null
     recipient_type: AdvanceRecipientType
     recipient_name: string
     amount: number
@@ -152,6 +153,18 @@ export interface Advance {
     transaction_id: string | null
     created_by: string | null
     created_at: string
+}
+
+export interface AdvanceRecipient {
+    id: string
+    name: string
+    recipient_type: AdvanceRecipientType
+    created_by: string | null
+    created_at: string
+}
+
+export interface AdvanceRecipientWithAdvances extends AdvanceRecipient {
+    advances: Pick<Advance, 'id' | 'amount' | 'notes' | 'transaction_id' | 'created_at'>[]
 }
 
 export interface Transaction {
@@ -482,6 +495,11 @@ export interface Database {
                 Row: Advance
                 Insert: Omit<Advance, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<Advance, 'id'>>
+            }
+            advance_recipients: {
+                Row: AdvanceRecipient
+                Insert: Omit<AdvanceRecipient, 'id' | 'created_at'> & { id?: string; created_at?: string }
+                Update: Partial<Omit<AdvanceRecipient, 'id'>>
             }
         }
         Enums: {

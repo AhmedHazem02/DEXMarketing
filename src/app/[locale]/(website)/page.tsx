@@ -13,8 +13,6 @@ import {
 } from '@/components/landing'
 import { setRequestLocale } from 'next-intl/server'
 
-export const dynamic = 'force-dynamic'
-
 export const metadata: Metadata = {
     title: 'DEX Marketing - Digital Marketing & Content Production Agency',
     description: 'Digital marketing and content production agency',

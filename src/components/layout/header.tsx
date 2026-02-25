@@ -81,11 +81,11 @@ export function Header({ user, role, department }: { user?: any, role?: string, 
                             <DropdownMenuLabel>{isAr ? 'حسابي' : 'My Account'}</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={navigateToAccount} className="cursor-pointer">
-                                <UserCircle className="mr-2 h-4 w-4" />
+                                <UserCircle className="me-2 h-4 w-4" />
                                 {isAr ? 'حسابي' : 'Account'}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={navigateToProfile} className="cursor-pointer">
-                                <User className="mr-2 h-4 w-4" />
+                                <User className="me-2 h-4 w-4" />
                                 {isAr ? 'الملف الشخصي' : 'Profile'}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />

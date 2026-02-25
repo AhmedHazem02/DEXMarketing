@@ -37,7 +37,7 @@ export function useAuthDashboardLink(
     if (!initialUser) {
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (!cancelled) setUser(user)
-      })
+      }).catch(() => { /* auth check failed — user stays null */ })
     }
 
     // Listen for auth changes
@@ -71,6 +71,7 @@ export function useAuthDashboardLink(
             setRole(userData.role)
           }
         })
+        .catch(() => { /* role fetch failed — will retry on next render */ })
     }
 
     return () => { cancelled = true }

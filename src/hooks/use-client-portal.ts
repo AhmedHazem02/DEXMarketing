@@ -78,34 +78,32 @@ export function useClientProjectDetails(projectId: string) {
     return useQuery({
         queryKey: CLIENT_KEYS.project(projectId),
         queryFn: async () => {
-            // Fetch project
-            const { data: project, error: projectError } = await supabase
-                .from('projects')
-                .select('*')
-                .eq('id', projectId)
-                .single()
+            // Fetch project and tasks in parallel (independent queries)
+            const [projectResult, tasksResult] = await Promise.all([
+                supabase
+                    .from('projects')
+                    .select('*')
+                    .eq('id', projectId)
+                    .single(),
+                supabase
+                    .from('tasks')
+                    .select(`
+                        *,
+                        assigned_to_user:users!assigned_to(id, name, avatar_url),
+                        created_by_user:users!created_by(id, name, avatar_url),
+                        attachments(id, file_url, file_name, file_type, created_at),
+                        comments(id, content, created_at, user_id)
+                    `)
+                    .eq('project_id', projectId)
+                    .order('created_at', { ascending: false }),
+            ])
 
-            if (projectError) throw projectError
-
-            // Fetch tasks separately to ensure clean types
-            // We only want tasks that are 'review' or 'approved' or 'in_progress' to show progress
-            const { data: tasks, error: tasksError } = await supabase
-                .from('tasks')
-                .select(`
-                    *,
-                    assigned_to_user:users!assigned_to(id, name, avatar_url),
-                    created_by_user:users!created_by(id, name, avatar_url),
-                    attachments(*),
-                    comments(*)
-                `)
-                .eq('project_id', projectId)
-                .order('created_at', { ascending: false })
-
-            if (tasksError) throw tasksError
+            if (projectResult.error) throw projectResult.error
+            if (tasksResult.error) throw tasksResult.error
 
             return {
-                project: project as unknown as Project,
-                tasks: tasks as unknown as TaskDetails[]
+                project: projectResult.data as unknown as Project,
+                tasks: tasksResult.data as unknown as TaskDetails[]
             }
         },
         enabled: !!projectId,

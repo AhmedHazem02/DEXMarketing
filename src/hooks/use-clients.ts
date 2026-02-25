@@ -47,7 +47,7 @@ export function useClients(filters?: ClientFilters) {
         // Clients without a linked user account
         applySearch(
           (supabase.from('clients') as any)
-            .select('*')
+            .select('id, name, email, phone, company, notes, user_id, created_at')
             .is('user_id', null)
         ),
       ])

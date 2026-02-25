@@ -19,7 +19,7 @@ export function useTreasury() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('treasury')
-                .select('*')
+                .select('id, current_balance, updated_at')
                 .maybeSingle()
 
             if (error) throw error
@@ -50,7 +50,7 @@ export function useTransactions(filters?: {
         queryFn: async () => {
             let query = supabase
                 .from('transactions')
-                .select('*')
+                .select('id, type, amount, description, category, sub_category, payment_method, receipt_url, client_id, project_id, client_account_id, visible_to_client, notes, created_by, transaction_date, created_at')
                 .order('created_at', { ascending: false })
 
             if (filters?.type) {
@@ -71,9 +71,8 @@ export function useTransactions(filters?: {
             if (filters?.maxAmount !== undefined) {
                 query = query.lte('amount', filters.maxAmount)
             }
-            if (filters?.limit) {
-                query = query.limit(filters.limit)
-            }
+            // Always enforce a limit to prevent unbounded result sets
+            query = query.limit(filters?.limit || 200)
 
             const { data, error } = await query
             if (error) throw error

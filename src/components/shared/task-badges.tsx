@@ -80,7 +80,7 @@ export const DepartmentBadge = memo(function DepartmentBadge({
     const config = DEPARTMENT_BADGE_CONFIG[department] || {
         label: department,
         labelEn: department,
-        className: 'bg-gray-100 text-gray-800 border-gray-200',
+        className: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700',
     }
 
     return (

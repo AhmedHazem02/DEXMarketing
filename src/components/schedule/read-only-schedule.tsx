@@ -240,7 +240,7 @@ export function ReadOnlyScheduleView({ userId, clientId, teamLeaderId, title }: 
                                             }
                                         }}
                                         className={cn(
-                                            'min-h-[60px] sm:min-h-[80px] p-1 sm:p-2 border rounded-md text-left transition-all',
+                                            'min-h-[60px] sm:min-h-[80px] p-1 sm:p-2 border rounded-md text-start transition-all',
                                             'hover:bg-muted/50',
                                             isCurrentMonth ? 'bg-background' : 'bg-muted/20',
                                             isToday && 'ring-2 ring-primary',
@@ -399,7 +399,7 @@ export function ReadOnlyScheduleView({ userId, clientId, teamLeaderId, title }: 
                                                 {members.length > 0 && (
                                                     <div className="flex items-center gap-2">
                                                         <Users className="h-3 w-3 text-muted-foreground" />
-                                                        <div className="flex -space-x-1.5">
+                                                        <div className="flex -space-x-1.5 rtl:space-x-reverse">
                                                             {members.slice(0, 5).map(m => (
                                                                 <Avatar key={m.id} className="h-5 w-5 border-2 border-background">
                                                                     <AvatarImage src={m.avatar_url || ''} />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react'
+import Image from 'next/image'
 import { useTranslations, useLocale } from 'next-intl'
 import { useAdminTasks, useAdminTasksStats, useAdminTasksExport } from '@/hooks/use-tasks'
 import { useTasksRealtime } from '@/hooks/use-realtime'
@@ -213,7 +214,7 @@ export function TasksManager() {
     }
 
     if (error) {
-        return <div className="text-red-500 p-3 md:p-4 border border-red-200 rounded-lg bg-red-50 text-sm">{t('errorLoadingData')}</div>
+        return <div className="text-red-500 p-3 md:p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-950/20 text-sm">{t('errorLoadingData')}</div>
     }
 
     // Type-safe tasks data
@@ -234,12 +235,12 @@ export function TasksManager() {
                 <div className="flex flex-col gap-3">
                     <div className="flex gap-2 items-center">
                         <div className="relative flex-1">
-                            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                            <Search className="absolute end-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder={t('searchPlaceholder')}
                                 value={search}
                                 onChange={handleSearchChange}
-                                className="pr-9"
+                                className="pe-9"
                             />
                         </div>
                         {/* Filter Toggle - visible on mobile, hidden on lg+ */}
@@ -251,7 +252,7 @@ export function TasksManager() {
                         >
                             <SlidersHorizontal className="w-4 h-4" />
                             {activeFilterCount > 0 && (
-                                <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                                <span className="absolute -top-1.5 -end-1.5 bg-primary text-primary-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
                                     {activeFilterCount}
                                 </span>
                             )}
@@ -278,7 +279,7 @@ export function TasksManager() {
                                         disabled={isExporting !== null}
                                         className="justify-start"
                                     >
-                                        {isExporting === 'csv' ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 ml-2" />}
+                                        {isExporting === 'csv' ? <Loader2 className="w-4 h-4 ms-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 ms-2" />}
                                         CSV
                                     </Button>
                                     <Button
@@ -288,7 +289,7 @@ export function TasksManager() {
                                         disabled={isExporting !== null}
                                         className="justify-start"
                                     >
-                                        {isExporting === 'pdf' ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileText className="w-4 h-4 ml-2" />}
+                                        {isExporting === 'pdf' ? <Loader2 className="w-4 h-4 ms-2 animate-spin" /> : <FileText className="w-4 h-4 ms-2" />}
                                         PDF
                                     </Button>
                                 </div>
@@ -301,7 +302,7 @@ export function TasksManager() {
                                 onClick={handleExportCSV}
                                 disabled={totalCount === 0 || isExporting !== null}
                             >
-                                {isExporting === 'csv' ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 ml-2" />}
+                                {isExporting === 'csv' ? <Loader2 className="w-4 h-4 ms-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 ms-2" />}
                                 CSV
                             </Button>
                             <Button
@@ -309,7 +310,7 @@ export function TasksManager() {
                                 onClick={handleExportPDF}
                                 disabled={totalCount === 0 || isExporting !== null}
                             >
-                                {isExporting === 'pdf' ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <FileText className="w-4 h-4 ml-2" />}
+                                {isExporting === 'pdf' ? <Loader2 className="w-4 h-4 ms-2 animate-spin" /> : <FileText className="w-4 h-4 ms-2" />}
                                 PDF
                             </Button>
                         </div>
@@ -324,7 +325,7 @@ export function TasksManager() {
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                             <Select value={departmentFilter} onValueChange={handleDepartmentChange}>
                                 <SelectTrigger className="w-full">
-                                    <Building2 className="w-4 h-4 ml-1 shrink-0 text-muted-foreground" />
+                                    <Building2 className="w-4 h-4 ms-1 shrink-0 text-muted-foreground" />
                                     <SelectValue placeholder={t('department')} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -376,11 +377,11 @@ export function TasksManager() {
                                         id="date"
                                         variant="outline"
                                         className={cn(
-                                            "w-full sm:w-[240px] justify-start text-left font-normal text-sm",
+                                            "w-full sm:w-[240px] justify-start text-start font-normal text-sm",
                                             !date && "text-muted-foreground"
                                         )}
                                     >
-                                        <CalendarIcon className="ml-2 h-4 w-4 shrink-0" />
+                                        <CalendarIcon className="ms-2 h-4 w-4 shrink-0" />
                                         {date?.from ? (
                                             date.to ? (
                                                 <span className="truncate">
@@ -412,8 +413,8 @@ export function TasksManager() {
                             )}
 
                             {activeFilterCount > 0 && (
-                                <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-red-500 hover:text-red-600 hover:bg-red-50">
-                                    <X className="w-4 h-4 ml-1" />
+                                <Button variant="ghost" size="sm" onClick={clearAllFilters} className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20">
+                                    <X className="w-4 h-4 ms-1" />
                                     {t('clearAll', { count: activeFilterCount })}
                                 </Button>
                             )}
@@ -432,7 +433,7 @@ export function TasksManager() {
                                         <Badge key={idx} variant="secondary" className="gap-1 text-xs">
                                             {icon}
                                             {options.find(o => o.value === filter)?.label}
-                                            <button onClick={() => handler('all')} className="ml-0.5 hover:text-red-500">
+                                            <button onClick={() => handler('all')} className="ms-0.5 hover:text-red-500">
                                                 <X className="w-3 h-3" />
                                             </button>
                                         </Badge>
@@ -471,14 +472,14 @@ export function TasksManager() {
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-muted/50">
-                                <TableHead className="text-right">{t('taskTitle')}</TableHead>
-                                <TableHead className="text-right">{t('client')}</TableHead>
-                                <TableHead className="text-right hidden lg:table-cell">{t('teamLeader')}</TableHead>
-                                <TableHead className="text-right hidden lg:table-cell">{t('designer')}</TableHead>
+                                <TableHead className="text-end">{t('taskTitle')}</TableHead>
+                                <TableHead className="text-end">{t('client')}</TableHead>
+                                <TableHead className="text-end hidden lg:table-cell">{t('teamLeader')}</TableHead>
+                                <TableHead className="text-end hidden lg:table-cell">{t('designer')}</TableHead>
                                 <TableHead className="text-center">{t('status')}</TableHead>
                                 <TableHead className="text-center hidden lg:table-cell">{t('priority')}</TableHead>
                                 <TableHead className="text-center hidden xl:table-cell">{t('date')}</TableHead>
-                                <TableHead className="text-left">{t('actions')}</TableHead>
+                                <TableHead className="text-start">{t('actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -505,7 +506,7 @@ export function TasksManager() {
                                         <TableCell className="hidden lg:table-cell">
                                             <div className="flex items-center gap-2">
                                                 {task.creator?.avatar_url && (
-                                                    <img src={task.creator.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                                                    <Image src={task.creator.avatar_url} alt="" width={24} height={24} className="w-6 h-6 rounded-full" />
                                                 )}
                                                 <span>{task.creator?.name || 'System'}</span>
                                             </div>
@@ -514,7 +515,7 @@ export function TasksManager() {
                                             {task.assigned_user ? (
                                                 <div className="flex items-center gap-2">
                                                     {task.assigned_user.avatar_url && (
-                                                        <img src={task.assigned_user.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+                                                        <Image src={task.assigned_user.avatar_url} alt="" width={24} height={24} className="w-6 h-6 rounded-full" />
                                                     )}
                                                     <span>{task.assigned_user.name}</span>
                                                 </div>
@@ -528,7 +529,7 @@ export function TasksManager() {
                                         <TableCell className="text-center hidden lg:table-cell">
                                             <PriorityBadge priority={task.priority} />
                                         </TableCell>
-                                        <TableCell className="text-center text-sm text-gray-500 hidden xl:table-cell">
+                                        <TableCell className="text-center text-sm text-muted-foreground hidden xl:table-cell">
                                             {formatTaskDate(task.created_at)}
                                         </TableCell>
                                         <TableCell>
@@ -633,13 +634,13 @@ const TaskFeedbackDialog = memo(function TaskFeedbackDialog({
         <Dialog>
             <DialogTrigger asChild>
                 {variant === 'desktop' ? (
-                    <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50">
-                        <FileText className="w-4 h-4 ml-1" />
+                    <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20">
+                        <FileText className="w-4 h-4 ms-1" />
                         <span className="hidden lg:inline">{t('feedback')}</span>
                     </Button>
                 ) : (
-                    <Button variant="ghost" size="sm" className="h-7 text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50 px-2">
-                        <FileText className="w-3.5 h-3.5 ml-1" />
+                    <Button variant="ghost" size="sm" className="h-7 text-xs text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 px-2">
+                        <FileText className="w-3.5 h-3.5 ms-1" />
                         {t('feedback')}
                     </Button>
                 )}
@@ -654,7 +655,7 @@ const TaskFeedbackDialog = memo(function TaskFeedbackDialog({
                     </DialogDescription>
                 </DialogHeader>
                 <div className={cn(
-                    "bg-orange-50 rounded-lg text-orange-900 border border-orange-100",
+                    "bg-orange-50 dark:bg-orange-950/20 rounded-lg text-orange-900 dark:text-orange-200 border border-orange-100 dark:border-orange-800",
                     variant === 'desktop' ? "p-4 min-h-[100px]" : "p-3 min-h-[80px] text-sm"
                 )}>
                     {feedback}
@@ -735,7 +736,7 @@ const MobileTaskCard = memo(function MobileTaskCard({ task }: { task: TaskWithRe
             <div className="flex items-center justify-between pt-1.5 border-t">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     {task.creator?.avatar_url && (
-                        <img src={task.creator.avatar_url} alt="" className="w-5 h-5 rounded-full" />
+                        <Image src={task.creator.avatar_url} alt="" width={20} height={20} className="w-5 h-5 rounded-full" />
                     )}
                     <span>{task.creator?.name || 'System'}</span>
                 </div>

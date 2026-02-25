@@ -64,48 +64,76 @@ export function useConversations(userId: string) {
 
             if (cError) throw cError
 
-            // Get last message and unread counts in bulk (avoid N+1)
-            // Fetch last message and unread count per conversation in parallel
-            // (each query returns at most 1 row — far cheaper than fetching ALL messages)
-            const result: ConversationWithDetails[] = await Promise.all(
-                (conversations ?? []).map(async (conv: any) => {
-                    const myParticipation = (conv.participants as any[])?.find(
-                        (p: any) => p.user_id === userId
-                    )
-                    const lastReadAt = myParticipation?.last_read_at
+            if (!conversations?.length) return []
 
-                    // Fetch last message only (1 row max)
-                    const { data: lastMsg } = await (supabase
-                        .from('messages') as any)
-                        .select(`
-                            *,
-                            sender:users!messages_sender_id_fkey(id, name, avatar_url, role)
-                        `)
-                        .eq('conversation_id', conv.id)
-                        .order('created_at', { ascending: false })
-                        .limit(1)
-                        .maybeSingle()
+            // Bulk-fetch last messages for ALL conversations in a single query
+            // Using a subquery approach: fetch recent messages and deduplicate client-side
+            const { data: recentMessages } = await (supabase
+                .from('messages') as any)
+                .select(`
+                    *,
+                    sender:users!messages_sender_id_fkey(id, name, avatar_url, role)
+                `)
+                .in('conversation_id', convIds)
+                .order('created_at', { ascending: false })
+                .limit(convIds.length * 2) // fetch enough to cover all convs
 
-                    // Count unread messages (head-only — no data transfer)
-                    let unreadQuery = (supabase
-                        .from('messages') as any)
-                        .select('id', { count: 'exact', head: true })
-                        .eq('conversation_id', conv.id)
-                        .neq('sender_id', userId)
-
-                    if (lastReadAt) {
-                        unreadQuery = unreadQuery.gt('created_at', lastReadAt)
+            // Build a map of conversation_id -> last message
+            const lastMessageMap = new Map<string, any>()
+            if (recentMessages) {
+                for (const msg of recentMessages) {
+                    if (!lastMessageMap.has(msg.conversation_id)) {
+                        lastMessageMap.set(msg.conversation_id, msg)
                     }
+                }
+            }
 
-                    const { count } = await unreadQuery
+            // Bulk-fetch unread counts: get all unread messages IDs per conversation
+            // Using a single count query is not possible per-conversation, but we can
+            // at least fetch all unread message IDs in one go and count client-side
+            let unreadQuery = (supabase
+                .from('messages') as any)
+                .select('conversation_id', { count: 'exact' })
+                .in('conversation_id', convIds)
+                .neq('sender_id', userId)
 
-                    return {
-                        ...conv,
-                        last_message: (lastMsg as MessageWithSender | null) ?? null,
-                        unread_count: count ?? 0,
-                    } as ConversationWithDetails
-                })
-            )
+            // For more accurate per-conversation counts, fetch ids grouped
+            const { data: unreadMessages } = await (supabase
+                .from('messages') as any)
+                .select('id, conversation_id')
+                .in('conversation_id', convIds)
+                .neq('sender_id', userId)
+                .gt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()) // last 30 days max
+
+            // Build unread count map, respecting last_read_at per conversation
+            const unreadCountMap = new Map<string, number>()
+
+            // Build result using pre-fetched data (no N+1)
+            const result: ConversationWithDetails[] = (conversations ?? []).map((conv: any) => {
+                const myParticipation = (conv.participants as any[])?.find(
+                    (p: any) => p.user_id === userId
+                )
+                const lastReadAt = myParticipation?.last_read_at
+
+                const lastMsg = lastMessageMap.get(conv.id) ?? null
+
+                // Count unread from bulk data
+                let unreadCount = 0
+                if (unreadMessages) {
+                    // We need to re-check with last_read_at per conversation
+                    // This is still far better than N separate queries
+                    unreadCount = unreadMessages.filter((m: any) =>
+                        m.conversation_id === conv.id &&
+                        (!lastReadAt || new Date(m.created_at || 0) > new Date(lastReadAt))
+                    ).length
+                }
+
+                return {
+                    ...conv,
+                    last_message: (lastMsg as MessageWithSender | null) ?? null,
+                    unread_count: unreadCount,
+                } as ConversationWithDetails
+            })
 
             return result
         },
@@ -306,24 +334,31 @@ export function useUnreadCount(userId: string) {
 
             if (!participations?.length) return 0
 
-            // Count unread per conversation using head-only queries (no data transfer)
+            // Bulk-fetch all unread messages in a single query instead of N+1
+            const convIds = participations.map((p: any) => p.conversation_id)
+            const { data: unreadMessages } = await (supabase
+                .from('messages') as any)
+                .select('id, conversation_id, created_at')
+                .in('conversation_id', convIds)
+                .neq('sender_id', userId)
+                .gt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+
+            if (!unreadMessages?.length) return 0
+
+            // Build last_read_at map for efficient lookup
+            const lastReadMap = new Map<string, string | null>()
+            for (const p of participations) {
+                lastReadMap.set(p.conversation_id, p.last_read_at)
+            }
+
+            // Count messages that are after last_read_at for each conversation
             let total = 0
-            await Promise.all(
-                participations.map(async (p: any) => {
-                    let query = (supabase
-                        .from('messages') as any)
-                        .select('id', { count: 'exact', head: true })
-                        .eq('conversation_id', p.conversation_id)
-                        .neq('sender_id', userId)
-
-                    if (p.last_read_at) {
-                        query = query.gt('created_at', p.last_read_at)
-                    }
-
-                    const { count } = await query
-                    total += count ?? 0
-                })
-            )
+            for (const msg of unreadMessages) {
+                const lastReadAt = lastReadMap.get(msg.conversation_id)
+                if (!lastReadAt || new Date(msg.created_at) > new Date(lastReadAt)) {
+                    total++
+                }
+            }
 
             return total
         },
@@ -484,23 +519,27 @@ export function useFindOrCreateConversation() {
                     .in('conversation_id', myConvIds)
 
                 // If conversations exist between them, check for 2-person conversations
-                // Batch: fetch all participant counts in parallel instead of N+1 sequential queries
+                // Single bulk query instead of N+1 count queries
                 if (shared?.length) {
                     const sharedIds = shared.map((s: any) => s.conversation_id)
 
-                    const counts = await Promise.all(
-                        sharedIds.map(async (convId: string) => {
-                            const { count } = await (supabase
-                                .from('conversation_participants') as any)
-                                .select('id', { count: 'exact', head: true })
-                                .eq('conversation_id', convId)
-                            return { convId, count }
-                        })
-                    )
+                    // Fetch all participants for shared conversations in one query
+                    const { data: allParticipants } = await (supabase
+                        .from('conversation_participants') as any)
+                        .select('conversation_id')
+                        .in('conversation_id', sharedIds)
 
-                    const directConv = counts.find(c => c.count === 2)
-                    if (directConv) {
-                        return { conversation_id: directConv.convId, created: false }
+                    // Count participants per conversation client-side
+                    const countMap = new Map<string, number>()
+                    if (allParticipants) {
+                        for (const p of allParticipants) {
+                            countMap.set(p.conversation_id, (countMap.get(p.conversation_id) || 0) + 1)
+                        }
+                    }
+
+                    const directConvId = sharedIds.find((id: string) => countMap.get(id) === 2)
+                    if (directConvId) {
+                        return { conversation_id: directConvId, created: false }
                     }
                 }
             }

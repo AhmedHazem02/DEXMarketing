@@ -131,7 +131,9 @@ export function RoleDashboard({ config, tasks, isLoading }: RoleDashboardProps) 
             </div>
 
             {/* Stats */}
-            <div className={`grid gap-4 md:grid-cols-${config.stats.length}`}>
+            <div className={`grid gap-4 ${
+                { 1: 'md:grid-cols-1', 2: 'md:grid-cols-2', 3: 'md:grid-cols-3', 4: 'md:grid-cols-4' }[config.stats.length] ?? 'md:grid-cols-3'
+            }`}>
                 {config.stats.map((stat, idx) => {
                     const StatIcon = stat.icon
                     return (

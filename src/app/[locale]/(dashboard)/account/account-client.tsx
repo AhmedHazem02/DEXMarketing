@@ -189,7 +189,7 @@ export function AccountClient() {
                                 className="w-full"
                                 onClick={() => setDeleteDialogOpen(true)}
                             >
-                                <Trash2 className="h-4 w-4 mr-2" />
+                                <Trash2 className="h-4 w-4 me-2" />
                                 {t('deleteAccount')}
                             </Button>
                         </div>

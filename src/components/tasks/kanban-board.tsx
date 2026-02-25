@@ -73,13 +73,13 @@ interface TaskCardProps {
     task: TaskWithRelations
     onClick?: () => void
     isDragging?: boolean
+    onDelete?: (taskId: string) => Promise<void>
 }
 
-const TaskCard = memo(function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
+const TaskCard = memo(function TaskCard({ task, onClick, isDragging, onDelete }: TaskCardProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const priorityConfig = getPriorityConfig(task.priority)
-    const deleteTask = useDeleteTask()
 
     const deadline = task.deadline ? new Date(task.deadline) : null
     const isOverdue = deadline && deadline < new Date() && task.status !== 'approved'
@@ -140,7 +140,7 @@ const TaskCard = memo(function TaskCard({ task, onClick, isDragging }: TaskCardP
                             onClick={async (e) => {
                                 e.stopPropagation()
                                 try {
-                                    await deleteTask.mutateAsync(task.id)
+                                    await onDelete?.(task.id)
                                     toast.success(isAr ? 'تم حذف المهمة' : 'Task deleted')
                                 } catch {
                                     toast.error(isAr ? 'فشل حذف المهمة' : 'Failed to delete task')
@@ -241,9 +241,10 @@ interface KanbanColumnProps {
     onTaskClick?: (task: TaskWithRelations) => void
     onCreateTask?: () => void
     onDropTask?: (taskId: string, newStatus: TaskStatus) => void
+    onDeleteTask?: (taskId: string) => Promise<void>
 }
 
-function KanbanColumn({ column, tasks, readOnly, onTaskClick, onCreateTask, onDropTask }: KanbanColumnProps) {
+function KanbanColumn({ column, tasks, readOnly, onTaskClick, onCreateTask, onDropTask, onDeleteTask }: KanbanColumnProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const [isDragOver, setIsDragOver] = useState(false)
@@ -332,6 +333,7 @@ function KanbanColumn({ column, tasks, readOnly, onTaskClick, onCreateTask, onDr
                                 <TaskCard
                                     task={task}
                                     onClick={() => onTaskClick?.(task)}
+                                    onDelete={onDeleteTask}
                                 />
                             </div>
                         ))
@@ -356,6 +358,12 @@ export function KanbanBoard({ projectId, department, readOnly, onTaskClick, onCr
     // Data fetching
     const { data: tasksByStatus, isLoading, error } = useTasksKanban(projectId, department)
     const updateStatus = useUpdateTaskStatus()
+    const deleteTask = useDeleteTask()
+
+    // Stable delete callback (shared by all TaskCard instances)
+    const handleDeleteTask = useCallback(async (taskId: string) => {
+        await deleteTask.mutateAsync(taskId)
+    }, [deleteTask])
 
     // Real-time subscription
     useTasksRealtime()
@@ -480,6 +488,7 @@ export function KanbanBoard({ projectId, department, readOnly, onTaskClick, onCr
                         onTaskClick={onTaskClick}
                         onCreateTask={() => onCreateTask?.(column.id)}
                         onDropTask={readOnly ? undefined : handleDropTask}
+                        onDeleteTask={readOnly ? undefined : handleDeleteTask}
                     />
                 ))}
             </div>

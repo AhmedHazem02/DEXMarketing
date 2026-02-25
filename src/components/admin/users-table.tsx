@@ -140,7 +140,7 @@ export function UsersTable() {
                             <TableHead>{t('columnRole')}</TableHead>
                             <TableHead>{t('columnStatus')}</TableHead>
                             <TableHead className="hidden md:table-cell">{t('columnRegistrationDate')}</TableHead>
-                            <TableHead className="text-left">{t('columnActions')}</TableHead>
+                            <TableHead className="text-start">{t('columnActions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

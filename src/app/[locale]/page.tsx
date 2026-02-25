@@ -13,8 +13,10 @@ import { SiteSettingsProvider } from '@/components/providers/site-settings-provi
 import { ErrorBoundary } from '@/components/shared/error-boundary'
 import { getSiteSettings } from '@/lib/actions/get-site-settings'
 import { locales } from '@/i18n/config'
-import { setRequestLocale, getTranslations } from 'next-intl/server'
+import { setRequestLocale } from 'next-intl/server'
 import type { Metadata } from 'next'
+
+export const revalidate = 3600 // ISR: revalidate landing page every hour
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }))

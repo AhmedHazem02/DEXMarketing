@@ -93,7 +93,7 @@ export function PasswordDialog({ open, onOpenChange, userId }: PasswordDialogPro
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    className="absolute right-0 top-0 h-full px-3"
+                                    className="absolute end-0 top-0 h-full px-3"
                                     onClick={() => setShowPassword(!showPassword)}
                                 >
                                     {showPassword ? (
@@ -130,7 +130,7 @@ export function PasswordDialog({ open, onOpenChange, userId }: PasswordDialogPro
                             {t('cancel')}
                         </Button>
                         <Button type="submit" disabled={isLoading}>
-                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
                             {t('save')}
                         </Button>
                     </DialogFooter>

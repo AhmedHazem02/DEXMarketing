@@ -44,9 +44,12 @@ export function CustomCursor() {
     let hovering  = false
     let visible   = false
     let rafId     = 0
+    let needsUpdate = true // Only animate when the cursor has actually moved
 
-    // ── RAF animation loop ────────────────────────────────────────────────
+    // ── RAF animation loop (only runs while cursor is moving) ─────────
     function tick() {
+      if (!needsUpdate) return // Stop the loop when idle
+
       // Lerp ring toward real pointer
       rx += (px - rx) * 0.14
       ry += (py - ry) * 0.14
@@ -55,6 +58,12 @@ export function CustomCursor() {
       dot!.style.transform  = `translate(${px - 4}px, ${py - 4}px)`
       // Ring: lagging
       ring!.style.transform = `translate(${rx - 14}px, ${ry - 14}px) scale(${hovering ? 1.7 : 1})`
+
+      // Stop once the ring has caught up (within 0.5px)
+      if (Math.abs(px - rx) < 0.5 && Math.abs(py - ry) < 0.5) {
+        needsUpdate = false
+        return
+      }
 
       rafId = requestAnimationFrame(tick)
     }
@@ -68,6 +77,12 @@ export function CustomCursor() {
         dot!.style.opacity  = '1'
         ring!.style.opacity = '1'
         visible = true
+      }
+
+      // Restart the RAF loop if it was idle
+      if (!needsUpdate) {
+        needsUpdate = true
+        rafId = requestAnimationFrame(tick)
       }
 
       // Detect hover

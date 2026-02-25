@@ -178,7 +178,7 @@ export function AddClientAccountDialog({ open, onOpenChange }: AddClientAccountD
                                                             : (isAr ? 'اختر العميل...' : 'Select client...')
                                                         }
                                                     </span>
-                                                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    <Search className="ms-2 h-4 w-4 shrink-0 opacity-50" />
                                                 </Button>
                                             </FormControl>
                                         </PopoverTrigger>

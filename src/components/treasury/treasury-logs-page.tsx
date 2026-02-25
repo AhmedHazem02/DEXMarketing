@@ -238,7 +238,7 @@ export function TreasuryLogsPage() {
                                     <Button
                                         variant="outline"
                                         className={cn(
-                                            'justify-start text-left font-normal flex-1 px-2',
+                                            'justify-start text-start font-normal flex-1 px-2',
                                             !dateFrom && 'text-muted-foreground'
                                         )}
                                     >
@@ -262,7 +262,7 @@ export function TreasuryLogsPage() {
                                     <Button
                                         variant="outline"
                                         className={cn(
-                                            'justify-start text-left font-normal flex-1 px-2',
+                                            'justify-start text-start font-normal flex-1 px-2',
                                             !dateTo && 'text-muted-foreground'
                                         )}
                                     >
@@ -386,7 +386,7 @@ export function TreasuryLogsPage() {
                                                                 {isAr ? 'بيانات التغييرات (JSON)' : 'Changes Data (JSON)'}
                                                             </span>
                                                             <div className="relative rounded-md border bg-muted/50 p-4 font-mono text-xs">
-                                                                <div className="absolute right-2 top-2">
+                                                                <div className="absolute end-2 top-2">
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"

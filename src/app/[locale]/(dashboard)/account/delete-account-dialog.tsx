@@ -65,7 +65,7 @@ export function DeleteAccountDialog({ open, onOpenChange, userId, userName }: De
                             <AlertTriangle className="h-5 w-5" />
                             <DialogTitle>{t('deleteAccount')}</DialogTitle>
                         </div>
-                        <DialogDescription className="text-left">
+                        <DialogDescription className="text-start">
                             {t('deleteAccountWarning')}
                         </DialogDescription>
                     </DialogHeader>
@@ -112,7 +112,7 @@ export function DeleteAccountDialog({ open, onOpenChange, userId, userName }: De
                             variant="destructive"
                             disabled={isLoading || confirmText !== 'DELETE'}
                         >
-                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isLoading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
                             {t('deleteAccountPermanently')}
                         </Button>
                     </DialogFooter>

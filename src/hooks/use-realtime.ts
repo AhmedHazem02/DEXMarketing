@@ -96,8 +96,9 @@ export function useNotificationsRealtime(userId: string) {
                     filter: `user_id=eq.${userId}`,
                 },
                 (payload) => {
-                    // Add new notification to cache optimistically
-                    queryClient.setQueryData([...NOTIFICATIONS_KEY, userId], (old: any[] = []) => {
+                    // Add new notification to cache optimistically.
+                    // Use the same key shape as useNotifications (includes default limit).
+                    queryClient.setQueryData([...NOTIFICATIONS_KEY, userId, 20], (old: any[] = []) => {
                         // Prevent duplicates
                         const exists = old.some((n: any) => n.id === payload.new.id)
                         if (exists) return old

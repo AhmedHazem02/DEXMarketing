@@ -9,15 +9,23 @@ const intlMiddleware = createMiddleware({
     localePrefix: 'as-needed'
 });
 
+/**
+ * Check if the request carries a Supabase auth cookie.
+ * Supabase SSR stores the session in cookies whose name contains '-auth-token'.
+ * If none exist, the user is definitely unauthenticated — no network call needed.
+ */
+function hasSessionCookie(request: NextRequest): boolean {
+    return request.cookies.getAll().some(
+        c => c.name.includes('-auth-token') && c.value
+    );
+}
+
 export async function proxy(request: NextRequest) {
-    // 1. Run Intl Middleware first (handles locale redirects)
     const intlResponse = intlMiddleware(request);
 
-    // Get the logical path (without locale prefix)
     const pathname = request.nextUrl.pathname;
     const logicalPath = pathname.replace(/^\/(en|ar)/, '') || '/';
 
-    // 2. Define protected route prefixes
     const protectedPrefixes = [
         '/admin', '/client', '/team-leader', '/account-manager',
         '/creator', '/editor', '/photographer', '/videographer',
@@ -25,10 +33,23 @@ export async function proxy(request: NextRequest) {
     ];
     const isProtectedRoute = protectedPrefixes.some(prefix => logicalPath.startsWith(prefix));
 
-    // 3. Refresh Supabase auth session
-    // This ensures the auth token in cookies is always fresh,
-    // so Server Components get a valid session on first load
-    // (without requiring a manual browser refresh).
+    // Early return for public routes — skip Supabase client creation entirely
+    if (!isProtectedRoute) {
+        setPathnameHeader(intlResponse, pathname);
+        return intlResponse;
+    }
+
+    const locale = pathname.match(/^\/(en|ar)/)?.[1] ?? defaultLocale
+
+    // Fast-path: no auth cookie → redirect immediately (zero network calls)
+    if (!hasSessionCookie(request)) {
+        return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
+    }
+
+    // Cookie exists — create Supabase client and read session from cookie
+    // Uses getSession() which decodes the JWT locally (no network call)
+    // instead of getUser() which makes a ~120ms round-trip to Supabase Auth.
+    // Actual auth verification happens in server components & RLS policies.
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -38,7 +59,6 @@ export async function proxy(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    // Write refreshed cookies onto the intl response
                     cookiesToSet.forEach(({ name, value, options }) =>
                         intlResponse.cookies.set(name, value, options)
                     )
@@ -47,35 +67,31 @@ export async function proxy(request: NextRequest) {
         }
     )
 
-    // 4. Validate session server-side using getUser().
-    //    getUser() validates the JWT with the Supabase auth server,
-    //    preventing forged tokens from bypassing authentication.
-    if (isProtectedRoute) {
-        try {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
-                const localeMatch = pathname.match(/^\/(en|ar)/)
-                const locale = localeMatch ? localeMatch[1] : defaultLocale
-                return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
-            }
-        } catch {
-            const localeMatch = pathname.match(/^\/(en|ar)/)
-            const locale = localeMatch ? localeMatch[1] : defaultLocale
-            return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
-        }
-    } else {
-        // For non-protected routes, still refresh the token silently.
-        try {
-            await supabase.auth.getUser()
-        } catch {
-            // fetch failed / network timeout — silently continue
-        }
+    // Read session from cookie — zero network calls for valid tokens.
+    // If the access token is expired, Supabase SSR will auto-refresh
+    // using the refresh token (single network call, only when needed).
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+        return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
     }
 
-    // 5. Add pathname to headers so Server Components can access it
-    intlResponse.headers.set('x-pathname', pathname);
+    setPathnameHeader(intlResponse, pathname);
 
     return intlResponse;
+}
+
+/**
+ * Properly forward x-pathname to server components via the
+ * x-middleware-override-headers mechanism.  Simply calling
+ * `response.headers.set('x-pathname', v)` only sets a RESPONSE header
+ * which is invisible to `headers()` in server components.
+ */
+function setPathnameHeader(response: NextResponse, pathname: string) {
+    const key = 'x-pathname';
+    const overrides = response.headers.get('x-middleware-override-headers') || '';
+    const updated = overrides ? `${overrides},${key}` : key;
+    response.headers.set('x-middleware-override-headers', updated);
+    response.headers.set(`x-middleware-request-${key}`, pathname);
 }
 
 export const config = {

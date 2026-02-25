@@ -37,6 +37,12 @@ CREATE INDEX IF NOT EXISTS idx_advances_recipient_type ON public.advances(recipi
 
 ALTER TABLE public.advances ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Admin can view all advances" ON public.advances;
+DROP POLICY IF EXISTS "Admin can insert advances" ON public.advances;
+DROP POLICY IF EXISTS "Admin can delete advances" ON public.advances;
+DROP POLICY IF EXISTS "Admin can update advances" ON public.advances;
+
 -- Admin can view all advances
 CREATE POLICY "Admin can view all advances"
     ON public.advances FOR SELECT

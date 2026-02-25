@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, memo } from 'react'
+import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -216,7 +217,7 @@ export function AdminDashboardClient() {
                 <div className="flex items-center gap-2">
                     <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
                         <SelectTrigger className="w-[140px] sm:w-[160px] h-9 text-sm">
-                            <Building2 className="w-3.5 h-3.5 ml-1.5 text-muted-foreground shrink-0" />
+                            <Building2 className="w-3.5 h-3.5 ms-1.5 text-muted-foreground shrink-0" />
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -227,7 +228,7 @@ export function AdminDashboardClient() {
                     </Select>
                     <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
                         <SelectTrigger className="w-[130px] sm:w-[150px] h-9 text-sm">
-                            <CalendarDays className="w-3.5 h-3.5 ml-1.5 text-muted-foreground shrink-0" />
+                            <CalendarDays className="w-3.5 h-3.5 ms-1.5 text-muted-foreground shrink-0" />
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -460,11 +461,11 @@ export function AdminDashboardClient() {
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="text-left shrink-0">
+                                        <div className="text-start shrink-0">
                                             {task.assigned_user ? (
                                                 <div className="flex items-center gap-1.5">
                                                     {task.assigned_user.avatar_url ? (
-                                                        <img src={task.assigned_user.avatar_url} alt={task.assigned_user.name || 'User avatar'} className="w-5 h-5 rounded-full" />
+                                                        <Image src={task.assigned_user.avatar_url} alt={task.assigned_user.name || 'User avatar'} width={20} height={20} className="w-5 h-5 rounded-full" />
                                                     ) : (
                                                         <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px]">
                                                             {task.assigned_user.name?.[0]}

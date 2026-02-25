@@ -10,8 +10,6 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     }
 }
 
-export const dynamic = 'force-dynamic'
-
 export default function LoginPage() {
     return <LoginForm />
 }

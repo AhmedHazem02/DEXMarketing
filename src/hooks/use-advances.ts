@@ -2,21 +2,82 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import type { Advance, AdvanceRecipientType } from '@/types/database'
+import type { Advance, AdvanceRecipient, AdvanceRecipientType, AdvanceRecipientWithAdvances } from '@/types/database'
 
 const ADVANCES_KEY = ['advances']
+const RECIPIENTS_KEY = ['advance_recipients']
 const TREASURY_KEY = ['treasury']
 const TRANSACTIONS_KEY = ['transactions']
 
-/**
- * Hook to fetch advances with optional date filters
- */
-export function useAdvances(filters?: {
-    startDate?: string
-    endDate?: string
-}) {
-    const supabase = createClient()
+// ── Recipients ───────────────────────────────────────────────────────────────
 
+export function useAdvanceRecipients() {
+    const supabase = createClient()
+    return useQuery({
+        queryKey: RECIPIENTS_KEY,
+        queryFn: async () => {
+            const { data, error } = await (supabase as any)
+                .from('advance_recipients')
+                .select('*, advances(id, amount, notes, transaction_id, created_at)')
+                .order('created_at', { ascending: false })
+            if (error) throw error
+            return data as AdvanceRecipientWithAdvances[]
+        },
+        staleTime: 30 * 1000,
+        gcTime: 5 * 60 * 1000,
+    })
+}
+
+export function useCreateAdvanceRecipient() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (input: { name: string; recipient_type: AdvanceRecipientType }) => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('Not authenticated')
+            const { data, error } = await (supabase as any)
+                .from('advance_recipients')
+                .insert({ ...input, created_by: user.id })
+                .select()
+                .single()
+            if (error) throw error
+            return data as AdvanceRecipient
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: RECIPIENTS_KEY }),
+    })
+}
+
+export function useDeleteAdvanceRecipient() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (recipient: AdvanceRecipientWithAdvances) => {
+            // Delete linked transactions first to restore treasury balance
+            const txIds = recipient.advances
+                .map(a => a.transaction_id)
+                .filter(Boolean) as string[]
+            for (const txId of txIds) {
+                await supabase.from('transactions').delete().eq('id', txId)
+            }
+            // Delete recipient (DB ON DELETE CASCADE removes their advances)
+            const { error } = await (supabase as any)
+                .from('advance_recipients')
+                .delete()
+                .eq('id', recipient.id)
+            if (error) throw error
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: RECIPIENTS_KEY })
+            queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
+            queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
+        },
+    })
+}
+
+// ── Advances ─────────────────────────────────────────────────────────────────
+
+export function useAdvances(filters?: { startDate?: string; endDate?: string }) {
+    const supabase = createClient()
     return useQuery({
         queryKey: [...ADVANCES_KEY, filters],
         queryFn: async () => {
@@ -24,17 +85,12 @@ export function useAdvances(filters?: {
                 .from('advances')
                 .select('*')
                 .order('created_at', { ascending: false })
-
-            if (filters?.startDate) {
-                query = query.gte('created_at', filters.startDate)
-            }
+            if (filters?.startDate) query = query.gte('created_at', filters.startDate)
             if (filters?.endDate) {
-                // Add a day to include the full end date
-                const endDate = new Date(filters.endDate)
-                endDate.setDate(endDate.getDate() + 1)
-                query = query.lt('created_at', endDate.toISOString())
+                const end = new Date(filters.endDate)
+                end.setDate(end.getDate() + 1)
+                query = query.lt('created_at', end.toISOString())
             }
-
             const { data, error } = await query
             if (error) throw error
             return data as unknown as Advance[]
@@ -45,28 +101,22 @@ export function useAdvances(filters?: {
 }
 
 interface CreateAdvanceInput {
-    recipient_type: AdvanceRecipientType
+    recipient_id: string
     recipient_name: string
+    recipient_type: AdvanceRecipientType
     amount: number
     notes?: string
 }
 
-/**
- * Hook to create an advance.
- * This creates an expense transaction first (which auto-deducts from treasury via trigger),
- * then creates the advance record linked to that transaction.
- */
 export function useCreateAdvance() {
     const supabase = createClient()
     const queryClient = useQueryClient()
 
     return useMutation({
         mutationFn: async (input: CreateAdvanceInput) => {
-            // Get current user
             const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error('User not authenticated')
-
-            const recipientLabel = input.recipient_type === 'owner' ? 'مالك' : 'موظف'
+            if (!user) throw new Error('Not authenticated')
+            const label = input.recipient_type === 'owner' ? 'مالك' : 'موظف'
 
             // 1. Create expense transaction (triggers treasury balance deduction)
             const { data: transaction, error: txError } = await supabase
@@ -75,7 +125,7 @@ export function useCreateAdvance() {
                     type: 'expense',
                     amount: input.amount,
                     category: 'advance',
-                    description: `سلفة - ${recipientLabel} - ${input.recipient_name}`,
+                    description: `سلفة - ${label} - ${input.recipient_name}`,
                     notes: input.notes || null,
                     payment_method: 'cash',
                     created_by: user.id,
@@ -85,13 +135,13 @@ export function useCreateAdvance() {
                 } as never)
                 .select()
                 .single()
-
             if (txError) throw txError
 
-            // 2. Create advance record linked to the transaction
+            // 2. Create advance record linked to transaction and recipient
             const { data: advance, error: advError } = await supabase
                 .from('advances')
                 .insert({
+                    recipient_id: input.recipient_id,
                     recipient_type: input.recipient_type,
                     recipient_name: input.recipient_name,
                     amount: input.amount,
@@ -101,11 +151,11 @@ export function useCreateAdvance() {
                 } as never)
                 .select()
                 .single()
-
             if (advError) throw advError
             return advance as unknown as Advance
         },
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: RECIPIENTS_KEY })
             queryClient.invalidateQueries({ queryKey: ADVANCES_KEY })
             queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
             queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
@@ -113,35 +163,23 @@ export function useCreateAdvance() {
     })
 }
 
-/**
- * Hook to delete an advance.
- * Also deletes the linked transaction so the treasury balance is restored.
- */
 export function useDeleteAdvance() {
     const supabase = createClient()
     const queryClient = useQueryClient()
 
     return useMutation({
         mutationFn: async (advance: Advance) => {
-            // 1. Delete the advance record first
-            const { error: advError } = await supabase
+            const { error } = await supabase
                 .from('advances')
                 .delete()
                 .eq('id', advance.id)
-
-            if (advError) throw advError
-
-            // 2. Delete linked transaction to restore treasury balance
+            if (error) throw error
             if (advance.transaction_id) {
-                const { error: txError } = await supabase
-                    .from('transactions')
-                    .delete()
-                    .eq('id', advance.transaction_id)
-
-                if (txError) throw txError
+                await supabase.from('transactions').delete().eq('id', advance.transaction_id)
             }
         },
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: RECIPIENTS_KEY })
             queryClient.invalidateQueries({ queryKey: ADVANCES_KEY })
             queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
             queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })

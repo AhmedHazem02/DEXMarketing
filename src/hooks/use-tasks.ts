@@ -93,13 +93,16 @@ export function useTasksKanban(projectId?: string, department?: Department) {
             let query = supabase
                 .from('tasks')
                 .select(`
-                    *,
+                    id, title, status, priority, department, task_type, deadline,
+                    created_at, updated_at, workflow_stage, company_name, project_id,
+                    assigned_to, created_by, client_id, editor_id,
                     assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
                     creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
                     project:projects(id, name, status),
                     client:clients(id, name)
                 `)
                 .order('updated_at', { ascending: false })
+                .limit(500)
 
             if (projectId) {
                 query = query.eq('project_id', projectId)
@@ -251,43 +254,41 @@ export function useTaskDetails(taskId: string) {
         queryKey: taskKeys.detail(taskId),
         staleTime: 30 * 1000,
         queryFn: async () => {
-            // Fetch task with relations
-            const { data: task, error } = await supabase
-                .from('tasks')
-                .select(`
-                    *,
-                    assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
-                    creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
-                    project:projects(id, name, status),
-                    client:clients(id, name)
-                `)
-                .eq('id', taskId)
-                .single()
+            // Fetch task, comments, and attachments in parallel (independent queries)
+            const [taskResult, commentsResult, attachmentsResult] = await Promise.all([
+                supabase
+                    .from('tasks')
+                    .select(`
+                        *,
+                        assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
+                        creator:users!tasks_created_by_fkey(id, name, email, avatar_url),
+                        project:projects(id, name, status),
+                        client:clients(id, name)
+                    `)
+                    .eq('id', taskId)
+                    .single(),
+                supabase
+                    .from('comments')
+                    .select(`
+                        *,
+                        user:users(id, name, avatar_url)
+                    `)
+                    .eq('task_id', taskId)
+                    .order('created_at', { ascending: true }),
+                supabase
+                    .from('attachments')
+                    .select('id, file_url, file_name, file_type, file_size, uploaded_by, is_final, created_at, task_id')
+                    .eq('task_id', taskId)
+                    .order('created_at', { ascending: false }),
+            ])
 
-            if (error) throw error
+            if (taskResult.error) throw taskResult.error
 
-            // Fetch comments separately
-            const { data: comments } = await supabase
-                .from('comments')
-                .select(`
-                    *,
-                    user:users(id, name, avatar_url)
-                `)
-                .eq('task_id', taskId)
-                .order('created_at', { ascending: true })
-
-            // Fetch attachments
-            const { data: attachments } = await supabase
-                .from('attachments')
-                .select('*')
-                .eq('task_id', taskId)
-                .order('created_at', { ascending: false })
-
-            const taskResult = task as Record<string, unknown>
+            const task = taskResult.data as Record<string, unknown>
             return {
-                ...taskResult,
-                comments: comments as unknown as CommentWithUser[],
-                attachments: attachments as unknown as Attachment[],
+                ...task,
+                comments: (commentsResult.data ?? []) as unknown as CommentWithUser[],
+                attachments: (attachmentsResult.data ?? []) as unknown as Attachment[],
             } as TaskDetails
         },
         enabled: !!taskId,
@@ -474,15 +475,15 @@ export function useDeleteTask() {
 
     return useMutation({
         mutationFn: async (taskId: string) => {
-            // Delete attachments first (cascade might not be set)
-            const { error: attachError } = await supabase.from('attachments').delete().eq('task_id', taskId)
-            if (attachError) console.warn('Failed to delete attachments:', attachError)
+            // Delete attachments and comments in parallel (independent)
+            const [attachResult, commentResult] = await Promise.all([
+                supabase.from('attachments').delete().eq('task_id', taskId),
+                supabase.from('comments').delete().eq('task_id', taskId),
+            ])
+            if (attachResult.error) console.warn('Failed to delete attachments:', attachResult.error)
+            if (commentResult.error) console.warn('Failed to delete comments:', commentResult.error)
 
-            // Delete comments
-            const { error: commentError } = await supabase.from('comments').delete().eq('task_id', taskId)
-            if (commentError) console.warn('Failed to delete comments:', commentError)
-
-            // Delete task
+            // Delete task last (depends on above)
             const { error } = await supabase.from('tasks').delete().eq('id', taskId)
 
             if (error) throw error
@@ -1253,27 +1254,48 @@ export function useClientTasksStats(clientId: string, filters: TaskFilters = {})
     return useQuery({
         queryKey: [...taskKeys.all, 'client-tasks-stats', clientId, filters],
         queryFn: async () => {
-            let query = supabase
-                .from('tasks')
-                .select('status, deadline')
-                .eq('client_id', clientId)
+            // Use head-only count queries in parallel (no row data transferred)
+            const createCountQuery = (statusFilter?: string) => {
+                const filtersForQuery = statusFilter
+                    ? { ...filters, status: undefined }
+                    : filters
+                let query = supabase
+                    .from('tasks')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('client_id', clientId)
+                query = applyTaskFilters(query, filtersForQuery)
+                if (statusFilter) {
+                    query = query.eq('status', statusFilter)
+                }
+                return query
+            }
 
-            query = applyTaskFilters(query, filters)
+            const [total, newCount, inProgress, review, clientReview, approved, overdue] = await Promise.all([
+                createCountQuery(),
+                createCountQuery('new'),
+                createCountQuery('in_progress'),
+                createCountQuery('review'),
+                createCountQuery('client_review'),
+                createCountQuery('approved'),
+                // Overdue: deadline < now AND status != approved
+                supabase
+                    .from('tasks')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('client_id', clientId)
+                    .lt('deadline', new Date().toISOString())
+                    .neq('status', 'approved'),
+            ])
 
-            const { data, error } = await query
-            if (error) throw error
-
-            const tasks = data ?? []
-            const now = new Date()
+            if (total.error) throw total.error
 
             return {
-                total: tasks.length,
-                new: tasks.filter((t: any) => t.status === 'new').length,
-                in_progress: tasks.filter((t: any) => t.status === 'in_progress').length,
-                review: tasks.filter((t: any) => t.status === 'review').length,
-                client_review: tasks.filter((t: any) => t.status === 'client_review').length,
-                approved: tasks.filter((t: any) => t.status === 'approved').length,
-                overdue: tasks.filter((t: any) => t.deadline && new Date(t.deadline) < now && t.status !== 'approved').length,
+                total: total.count ?? 0,
+                new: newCount.count ?? 0,
+                in_progress: inProgress.count ?? 0,
+                review: review.count ?? 0,
+                client_review: clientReview.count ?? 0,
+                approved: approved.count ?? 0,
+                overdue: overdue.count ?? 0,
             }
         },
         enabled: !!clientId,

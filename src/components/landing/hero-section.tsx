@@ -18,13 +18,19 @@ export function HeroSection() {
     /* ─── Stars layer ─── */
     const stars = useMemo(
         () =>
-            Array.from({ length: 65 }, (_, i) => ({
-                x: seededRandom(i * 7 + 1) * 100,
-                y: seededRandom(i * 7 + 2) * 100,
-                size: seededRandom(i * 7 + 3) * 2.2 + 0.6,
-                delay: seededRandom(i * 7 + 4) * 4,
-                dur: 2.5 + seededRandom(i * 7 + 5) * 3,
-            })),
+            Array.from({ length: 65 }, (_, i) => {
+                const size = seededRandom(i * 7 + 3) * 2.2 + 0.6
+                const delay = seededRandom(i * 7 + 4) * 4
+                const dur = 2.5 + seededRandom(i * 7 + 5) * 3
+                return {
+                    x: `${(seededRandom(i * 7 + 1) * 100).toFixed(6)}%`,
+                    y: `${(seededRandom(i * 7 + 2) * 100).toFixed(6)}%`,
+                    size: `${size.toFixed(6)}px`,
+                    delay,
+                    dur,
+                    animation: `hero-twinkle ${dur.toFixed(6)}s ease-in-out ${delay.toFixed(6)}s infinite`,
+                }
+            }),
         [],
     )
 
@@ -63,13 +69,11 @@ export function HeroSection() {
                         key={i}
                         className="absolute rounded-full bg-white"
                         style={{
-                            left: `${s.x}%`,
-                            top: `${s.y}%`,
+                            left: s.x,
+                            top: s.y,
                             width: s.size,
                             height: s.size,
-                            animation: prefersReducedMotion
-                                ? 'none'
-                                : `hero-twinkle ${s.dur}s ease-in-out ${s.delay}s infinite`,
+                            animation: prefersReducedMotion ? 'none' : s.animation,
                             opacity: 0.3,
                         }}
                     />

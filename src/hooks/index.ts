@@ -172,7 +172,10 @@ export { useLogout } from './use-logout'
 export {
     useAdvances,
     useCreateAdvance,
-    useDeleteAdvance
+    useDeleteAdvance,
+    useAdvanceRecipients,
+    useCreateAdvanceRecipient,
+    useDeleteAdvanceRecipient,
 } from './use-advances'
 
 // Team activity hooks
