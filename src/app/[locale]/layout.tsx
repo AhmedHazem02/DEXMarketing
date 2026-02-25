@@ -29,8 +29,31 @@ const spaceMono = Space_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://dex-erp.com'),
-  title: "DEX ERP",
-  description: "Digital Command Center for Marketing Agencies",
+  title: {
+    default: 'DEX - Digital Marketing Agency',
+    template: '%s | DEX',
+  },
+  description: 'Digital Command Center for Marketing Agencies. Digital marketing, design, video, and photography services.',
+  keywords: ['digital marketing', 'marketing agency', 'design', 'video', 'photography', 'DEX', 'تسويق رقمي', 'وكالة تسويق'],
+  authors: [{ name: 'DEX Marketing' }],
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    alternateLocale: 'ar_EG',
+    url: 'https://dex-erp.com',
+    siteName: 'DEX Marketing',
+    title: 'DEX - Digital Marketing Agency',
+    description: 'Digital Command Center for Marketing Agencies',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'DEX - Digital Marketing Agency',
+    description: 'Digital Command Center for Marketing Agencies',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export function generateStaticParams() {

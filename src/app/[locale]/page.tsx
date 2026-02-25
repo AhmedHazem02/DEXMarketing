@@ -9,7 +9,6 @@ import {
   CTASection,
   Navbar,
   Footer,
-  GlobalBackground
 } from '@/components/landing'
 
 
@@ -68,7 +67,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   return (
     <SiteSettingsProvider settings={settings}>
-      <GlobalBackground />
       <main className="relative min-h-screen bg-transparent text-white overflow-x-hidden">
         <Navbar />
         <ErrorBoundary>

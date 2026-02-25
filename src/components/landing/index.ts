@@ -13,7 +13,6 @@ export { BrandsMarquee } from './brands-marquee'
 export { ProcessSection } from './process-section'
 
 // Effects
-export { GlobalBackground } from './effects/global-background'
 export { SectionSkeleton } from './effects/section-skeleton'
 export { LazySection } from './effects/lazy-section'
 export * from './effects/floating-elements'

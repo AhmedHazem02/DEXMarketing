@@ -29,7 +29,15 @@ export default async function WebsiteLayout({
                         contactPoint: {
                             '@type': 'ContactPoint',
                             contactType: 'customer service',
+                            email: settings.contact_email || 'info@dex-advertising.com',
+                            telephone: settings.contact_phone || '+20 123 456 7890',
                         },
+                        sameAs: [
+                            settings.social_facebook,
+                            settings.social_instagram,
+                            settings.social_twitter,
+                            settings.social_linkedin,
+                        ].filter(Boolean),
                     }),
                 }}
             />

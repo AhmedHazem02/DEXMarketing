@@ -1,7 +1,5 @@
 'use client'
 
-import { useLocale } from 'next-intl'
-
 import { Canvas } from '@react-three/fiber'
 import { Suspense } from 'react'
 import { useDeviceCapabilities } from '@/hooks/use-device-capabilities'
@@ -9,21 +7,20 @@ import * as THREE from 'three'
 import { SpaceEnvironment } from './SpaceEnvironment'
 import { ParticleField } from './ParticleField'
 import { Astronaut } from './Astronaut'
-import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing'
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
+
+// Stable config outside component — no new array references per render
+const TIER_CONFIG = {
+    high:   { stars: 800, particles: 200, dpr: [1, 1.5] as [number, number], antialias: true,  post: true },
+    mid:    { stars: 400, particles: 100, dpr: [1, 1]   as [number, number], antialias: false, post: true },
+    low:    { stars: 150, particles: 50,  dpr: [1, 1]   as [number, number], antialias: false, post: false },
+    potato: null,
+} as const
 
 export default function SceneCanvas() {
-    const locale = useLocale()
     const { tier } = useDeviceCapabilities()
 
-    // Configuration for performance tiers
-    const config = {
-        high: { stars: 800, particles: 200, dpr: [1, 1.5], antialias: true, post: true },
-        mid: { stars: 400, particles: 100, dpr: [1, 1], antialias: false, post: true },
-        low: { stars: 150, particles: 50, dpr: [1, 1], antialias: false, post: false },
-        potato: null,
-    }
-
-    const settings = config[tier as keyof typeof config]
+    const settings = TIER_CONFIG[tier as keyof typeof TIER_CONFIG]
 
     if (!settings) {
         return null
@@ -32,7 +29,7 @@ export default function SceneCanvas() {
     return (
         <div className="absolute inset-0 z-0 bg-black">
             <Canvas
-                dpr={settings.dpr as [min: number, max: number]}
+                dpr={settings.dpr}
                 gl={{
                     antialias: settings.antialias,
                     powerPreference: 'high-performance',
@@ -42,18 +39,17 @@ export default function SceneCanvas() {
                     toneMapping: THREE.ACESFilmicToneMapping,
                     toneMappingExposure: 1.0
                 }}
-                // Camera positioned for right-side astronaut composition
                 camera={{ position: [0, 0.3, 4.0], fov: 40 }}
                 resize={{ scroll: false, debounce: { scroll: 100, resize: 100 } }}
             >
                 <Suspense fallback={null}>
                     <color attach="background" args={['#022026']} />
 
-                    {/* Subtle Background Elements */}
                     <SpaceEnvironment starCount={settings.stars} />
                     <ParticleField count={settings.particles} />
 
-                    {/* Post Processing Effects - Cinematic Finish */}
+                    <Astronaut />
+
                     {settings.post && (
                         <EffectComposer>
                             <Bloom

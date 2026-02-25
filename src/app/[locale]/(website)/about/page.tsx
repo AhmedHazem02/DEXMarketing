@@ -1,6 +1,5 @@
 import { getTranslations } from 'next-intl/server'
 import { setRequestLocale } from 'next-intl/server'
-import { Navbar, Footer } from '@/components/landing'
 import { createClient } from '@/lib/supabase/server'
 import { Target, Eye, BookOpen } from 'lucide-react'
 
@@ -41,9 +40,7 @@ export default async function AboutPage(props: { params: Promise<{ locale: strin
     }
 
     return (
-        <main className="min-h-screen bg-[#022026] overflow-hidden font-sans">
-            <Navbar />
-
+        <>
             {/* Page Header */}
             <div className="pt-36 pb-20 relative text-white text-center">
                 <div className="absolute inset-0 bg-gradient-to-b from-[#011118] via-[#022026] to-[#022026]" />
@@ -114,8 +111,6 @@ export default async function AboutPage(props: { params: Promise<{ locale: strin
                     </div>
                 </div>
             </section>
-
-            <Footer />
-        </main>
+        </>
     )
 }

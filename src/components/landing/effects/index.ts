@@ -1,5 +1,4 @@
 export { HeroOverlay } from './hero-overlay'
-export { GlobalBackground } from './global-background'
 export { SectionSkeleton } from './section-skeleton'
 export { LazySection } from './lazy-section'
 export {
