@@ -70,8 +70,7 @@ export function useAuthDashboardLink(
           if (userData?.role && typeof userData.role === 'string') {
             setRole(userData.role)
           }
-        })
-        .catch(() => { /* role fetch failed — will retry on next render */ })
+        }, () => { /* role fetch failed — will retry on next render */ })
     }
 
     return () => { cancelled = true }
