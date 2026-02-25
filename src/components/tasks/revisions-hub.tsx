@@ -77,6 +77,7 @@ function RevisionCard({
     const priorityConfig = getPriorityConfig(task.priority)
     const statusConfig = getColumnConfig(task.status)
     const isRejected = task.status === 'rejected'
+    const isClientRevision = task.status === 'client_revision'
 
     const deadline = task.deadline ? new Date(task.deadline) : null
     const isOverdue = deadline && deadline < new Date()
@@ -92,7 +93,9 @@ function RevisionCard({
                 'group relative p-5 rounded-2xl bg-card border-2 transition-all duration-200',
                 isRejected
                     ? 'border-red-500/30 bg-red-500/5'
-                    : 'border-orange-500/30 bg-orange-500/5',
+                    : isClientRevision
+                        ? 'border-rose-500/30 bg-rose-500/5'
+                        : 'border-orange-500/30 bg-orange-500/5',
                 'hover:shadow-lg hover:shadow-primary/5'
             )}
         >
@@ -295,7 +298,7 @@ export function RevisionsHub({ onTaskClick, onReassign }: RevisionsHubProps) {
     const isAr = locale === 'ar'
 
     const [searchQuery, setSearchQuery] = useState('')
-    const [statusFilter, setStatusFilter] = useState<'all' | 'revision' | 'rejected'>('all')
+    const [statusFilter, setStatusFilter] = useState<'all' | 'revision' | 'rejected' | 'client_revision'>('all')
     const [reassigningId, setReassigningId] = useState<string | null>(null)
 
     // Data fetching
@@ -387,6 +390,7 @@ export function RevisionsHub({ onTaskClick, onReassign }: RevisionsHubProps) {
 
     const revisionCount = deptTasks.filter(t => t.status === 'revision').length
     const rejectedCount = deptTasks.filter(t => t.status === 'rejected').length
+    const clientRevisionCount = deptTasks.filter(t => t.status === 'client_revision').length
 
     return (
         <div className="space-y-6">
@@ -417,12 +421,20 @@ export function RevisionsHub({ onTaskClick, onReassign }: RevisionsHubProps) {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <Card className="border-orange-500/30 bg-orange-500/5">
                     <CardHeader className="pb-2">
                         <CardDescription>{isAr ? 'بانتظار التعديل' : 'Pending Revision'}</CardDescription>
                         <CardTitle className="text-3xl text-orange-500">
                             {revisionCount}
+                        </CardTitle>
+                    </CardHeader>
+                </Card>
+                <Card className="border-rose-500/30 bg-rose-500/5">
+                    <CardHeader className="pb-2">
+                        <CardDescription>{isAr ? 'طلبات تعديل العميل' : 'Client Revisions'}</CardDescription>
+                        <CardTitle className="text-3xl text-rose-500">
+                            {clientRevisionCount}
                         </CardTitle>
                     </CardHeader>
                 </Card>
@@ -457,7 +469,8 @@ export function RevisionsHub({ onTaskClick, onReassign }: RevisionsHubProps) {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">{isAr ? 'الكل' : 'All'}</SelectItem>
-                        <SelectItem value="revision">{isAr ? 'تعديل' : 'Revision'}</SelectItem>
+                        <SelectItem value="revision">{isAr ? 'تعديل داخلي' : 'Internal Revision'}</SelectItem>
+                        <SelectItem value="client_revision">{isAr ? 'طلب تعديل من العميل' : 'Client Revision'}</SelectItem>
                         <SelectItem value="rejected">{isAr ? 'مرفوض' : 'Rejected'}</SelectItem>
                     </SelectContent>
                 </Select>

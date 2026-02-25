@@ -26,41 +26,22 @@ export function useClients(filters?: ClientFilters) {
     queryFn: async () => {
       const supabase = createClient()
 
-      const applySearch = (q: any) => {
-        if (filters?.search) {
-          const safe = sanitizeSearch(filters.search)
-          if (safe) {
-            q = q.or(`name.ilike.%${safe}%`)
-          }
+      let query = (supabase.from('clients') as any)
+        .select('*, user:users(id, name, email, role)')
+        .order('name', { ascending: true })
+
+      if (filters?.search) {
+        const safe = sanitizeSearch(filters.search)
+        if (safe) {
+          query = query.ilike('name', `%${safe}%`)
         }
-        return q.order('name', { ascending: true })
       }
 
-      // Server-side role filtering using two parallel queries
-      const [withUsers, withoutUsers] = await Promise.all([
-        // Clients with user role = 'client' or 'admin'
-        applySearch(
-          (supabase.from('clients') as any)
-            .select('*, user:users!inner(id, name, email, role)')
-            .in('users.role', ['client', 'admin'])
-        ),
-        // Clients without a linked user account
-        applySearch(
-          (supabase.from('clients') as any)
-            .select('id, name, email, phone, company, notes, user_id, created_at')
-            .is('user_id', null)
-        ),
-      ])
+      const { data, error } = await query
 
-      if (withUsers.error) throw withUsers.error
-      if (withoutUsers.error) throw withoutUsers.error
+      if (error) throw error
 
-      const combined = [
-        ...(withUsers.data || []),
-        ...(withoutUsers.data || []).map((c: any) => ({ ...c, user: null })),
-      ].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-
-      return combined as (Client & { user?: { id: string; name: string | null; email: string; role: string } | null })[]
+      return (data || []) as (Client & { user?: { id: string; name: string | null; email: string; role: string } | null })[]
     },
   })
 }

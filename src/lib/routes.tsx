@@ -18,6 +18,7 @@ import {
     ScrollText,
     UserCircle,
     Banknote,
+    RotateCcw,
 } from 'lucide-react'
 
 import type { Department } from '@/types/database'
@@ -58,6 +59,7 @@ export const getRoutes = (
                 { name: t('Dashboard', 'الرئيسية'), href: '/client', icon: LayoutDashboard },
                 { name: t('My Account', 'حسابي'), href: '/client/account', icon: Wallet },
                 { name: t('Tasks', 'المهام'), href: '/client/tasks', icon: CheckSquare },
+                { name: t('My Revisions', 'تعديلاتي'), href: '/client/revisions', icon: RotateCcw },
                 { name: t('Schedule', 'الجدول'), href: '/client/schedule', icon: Calendar },
                 { name: t('Messages', 'المراسلات'), href: '/client/chat', icon: MessageSquare },
             ]
@@ -76,6 +78,7 @@ export const getRoutes = (
         case 'account_manager':
             return [
                 { name: t('Tasks Board', 'لوحة المهام'), href: '/account-manager', icon: LayoutDashboard },
+                { name: t('Revisions Hub', 'المراجعات'), href: '/account-manager/revisions', icon: FileText },
                 { name: t('Schedule', 'جدول المواعيد'), href: '/account-manager/schedule', icon: Calendar },
                 { name: t('Activity Log', 'سجل النشاط'), href: '/account-manager/logs', icon: ScrollText },
                 { name: t('Client Chat', 'مراسلة العملاء'), href: '/account-manager/chat', icon: MessageSquare },

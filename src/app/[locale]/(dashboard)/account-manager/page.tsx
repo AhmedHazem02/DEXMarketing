@@ -11,7 +11,7 @@ import {
 } from '@/components/tasks'
 import { PendingRequests } from '@/components/tasks/pending-requests'
 import type { Department, TaskStatus } from '@/types/database'
-import { Loader2, LayoutGrid, Table2, Plus } from 'lucide-react'
+import { Loader2, LayoutGrid, Table2, Plus, Eye } from 'lucide-react'
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import { useCurrentUser } from '@/hooks/use-users'
 import { Separator } from '@/components/ui/separator'
@@ -33,6 +33,8 @@ export default function AccountManagerDashboard() {
     const [viewMode, setViewMode] = useState<'kanban' | 'table'>('table')
     const [deptFilter, setDeptFilter] = useState<Department>('content')
 
+    const isPhotography = deptFilter === 'photography'
+
     const handleTaskClick = useCallback((task: TaskWithRelations) => {
         setSelectedTask(task)
         setIsDetailsOpen(true)
@@ -45,6 +47,7 @@ export default function AccountManagerDashboard() {
     }, [])
 
     const handleEditTask = useCallback((task: TaskWithRelations) => {
+        if (task.department === 'photography') return
         setSelectedTask(task)
         setIsDetailsOpen(false)
         setIsFormOpen(true)
@@ -67,13 +70,21 @@ export default function AccountManagerDashboard() {
         <div className="space-y-6">
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        {isAr ? 'لوحة إدارة المحتوى' : 'Content Management'}
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold tracking-tight">
+                            {isAr ? 'لوحة إدارة المحتوى' : 'Content Management'}
+                        </h1>
+                        {isPhotography && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                                <Eye className="h-3 w-3" />
+                                {isAr ? 'قراءة فقط' : 'Read Only'}
+                            </span>
+                        )}
+                    </div>
                     <p className="text-muted-foreground mt-1">
-                        {isAr
-                            ? 'إدارة وتتبع مهام فريق المحتوى والتصميم'
-                            : 'Manage and track content & design team tasks'
+                        {isPhotography
+                            ? (isAr ? 'عرض مهام قسم التصوير — لا يمكن التعديل' : 'Viewing Photography department tasks — editing disabled')
+                            : (isAr ? 'إدارة وتتبع مهام فريق المحتوى والتصميم' : 'Manage and track content & design team tasks')
                         }
                     </p>
                 </div>
@@ -105,11 +116,13 @@ export default function AccountManagerDashboard() {
                         </TabsList>
                     </Tabs>
 
-                    {/* Add Task Button */}
-                    <Button onClick={() => handleCreateTask()} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        {isAr ? 'إضافة مهمة' : 'Add Task'}
-                    </Button>
+                    {/* Add Task Button — hidden in photography (read-only) */}
+                    {!isPhotography && (
+                        <Button onClick={() => handleCreateTask()} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            {isAr ? 'إضافة مهمة' : 'Add Task'}
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -121,15 +134,17 @@ export default function AccountManagerDashboard() {
                 <TasksTable
                     projectId={undefined}
                     department={deptFilter}
+                    readOnly={isPhotography}
                     onTaskClick={handleTaskClick}
-                    onCreateTask={() => handleCreateTask()}
+                    onCreateTask={isPhotography ? undefined : () => handleCreateTask()}
                 />
             ) : (
                 <KanbanBoard
                     projectId={undefined}
                     department={deptFilter}
+                    readOnly={isPhotography}
                     onTaskClick={handleTaskClick}
-                    onCreateTask={handleCreateTask}
+                    onCreateTask={isPhotography ? undefined : handleCreateTask}
                 />
             )}
 
@@ -148,7 +163,7 @@ export default function AccountManagerDashboard() {
                 onOpenChange={setIsDetailsOpen}
                 taskId={selectedTask?.id ?? null}
                 currentUserId={userId}
-                onEdit={handleEditTask}
+                onEdit={isPhotography ? undefined : handleEditTask}
                 canReturn={true}
             />
         </div>

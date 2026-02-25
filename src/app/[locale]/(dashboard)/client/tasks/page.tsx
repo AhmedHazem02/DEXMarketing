@@ -14,6 +14,12 @@ import {
     Eye,
     Loader2,
     RotateCcw,
+    MessageSquare,
+    CalendarDays,
+    FolderOpen,
+    ThumbsUp,
+    ThumbsDown,
+    Info,
 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,8 +33,6 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
-    DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
 import {
@@ -53,7 +57,6 @@ import { useCurrentUser } from '@/hooks/use-users'
 import { useClientProfile, useApproveTask, useRejectTask } from '@/hooks/use-client-portal'
 import { useClientTasks, useClientTasksStats } from '@/hooks/use-tasks'
 import { TaskFiltersComponent } from '@/components/tasks/task-filters'
-import { getColumnConfig, getPriorityConfig } from '@/types/task'
 import type { TaskFilters, TaskWithRelations } from '@/types/task'
 import { cn } from '@/lib/utils'
 import { ensureClientRecord } from '@/lib/actions/users'
@@ -83,6 +86,7 @@ export default function ClientTasksPage() {
     const [reviewTask, setReviewTask] = useState<TaskWithRelations | null>(null)
     const [isReviewOpen, setIsReviewOpen] = useState(false)
     const [revisionNotes, setRevisionNotes] = useState('')
+    const [revisionError, setRevisionError] = useState<string | null>(null)
     const [isProcessing, setIsProcessing] = useState(false)
     const approveTask = useApproveTask()
     const rejectTask = useRejectTask()
@@ -160,47 +164,69 @@ export default function ClientTasksPage() {
         if (task.status === 'client_review') {
             setReviewTask(task)
             setRevisionNotes('')
+            setRevisionError(null)
             setIsReviewOpen(true)
             return
         }
         // Navigate to project page with task highlighted
         if (task.project?.id) {
             router.push(`/client/projects/${task.project.id}`)
-        } else {
-            alert(isAr
-                ? `المهمة "${task.title}" ليست مرتبطة بمشروع حالياً`
-                : `Task "${task.title}" is not associated with a project`)
         }
     }
 
     const handleApprove = async () => {
         if (!reviewTask) return
         setIsProcessing(true)
+        setRevisionError(null)
         try {
             await approveTask.mutateAsync({
                 taskId: reviewTask.id,
                 feedback: isAr ? 'تمت الموافقة من العميل' : 'Approved by client',
             })
             setIsReviewOpen(false)
-        } catch (error) {
+        } catch (error: unknown) {
+            const msg =
+                (error as { message?: string })?.message ||
+                (error as { error_description?: string })?.error_description ||
+                (typeof error === 'string' ? error : null) ||
+                (isAr ? 'فشل تأكيد الموافقة. حاول مرة أخرى.' : 'Failed to approve task. Please try again.')
             console.error('Failed to approve task:', error)
+            setRevisionError(msg)
         } finally {
             setIsProcessing(false)
         }
     }
 
+    const MIN_REVISION_CHARS = 10
+
     const handleRequestRevision = async () => {
-        if (!reviewTask || !revisionNotes.trim()) return
+        if (!reviewTask) return
+        const trimmed = revisionNotes.trim()
+        if (trimmed.length < MIN_REVISION_CHARS) {
+            setRevisionError(
+                isAr
+                    ? `يجب أن تحتوي الملاحظات على ${MIN_REVISION_CHARS} أحرف على الأقل`
+                    : `Notes must be at least ${MIN_REVISION_CHARS} characters`
+            )
+            return
+        }
+        setRevisionError(null)
         setIsProcessing(true)
         try {
             await rejectTask.mutateAsync({
                 taskId: reviewTask.id,
-                feedback: revisionNotes,
+                feedback: trimmed,
             })
             setIsReviewOpen(false)
             setRevisionNotes('')
-        } catch (error) {
+        } catch (error: unknown) {
+            const msg =
+                (error as { message?: string })?.message ||
+                (error as { error_description?: string })?.error_description ||
+                (typeof error === 'string' ? error : null) ||
+                (isAr ? 'فشل إرسال طلب التعديل. حاول مرة أخرى.' : 'Failed to request revision. Please try again.')
             console.error('Failed to request revision:', error)
+            setRevisionError(msg)
         } finally {
             setIsProcessing(false)
         }
@@ -345,111 +371,98 @@ export default function ClientTasksPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="rounded-md border">
+                            <div className="rounded-md border overflow-hidden">
                                 <Table>
                                     <TableHeader>
-                                        <TableRow className="bg-muted/50">
-                                            <TableHead>{isAr ? 'العنوان' : 'Title'}</TableHead>
-                                            <TableHead>{isAr ? 'المشروع' : 'Project'}</TableHead>
-                                            <TableHead>{isAr ? 'الحالة' : 'Status'}</TableHead>
-                                            <TableHead>{isAr ? 'الأولوية' : 'Priority'}</TableHead>
-                                            <TableHead>{isAr ? 'الموعد النهائي' : 'Deadline'}</TableHead>
-                                            <TableHead>{isAr ? 'إجراء' : 'Action'}</TableHead>
+                                        <TableRow className="bg-muted/70 border-b">
+                                            <TableHead className="font-semibold text-foreground w-[55%]">{isAr ? 'المهمة' : 'Task'}</TableHead>
+                                            <TableHead className="font-semibold text-foreground">{isAr ? 'الموعد النهائي' : 'Deadline'}</TableHead>
+                                            <TableHead className="font-semibold text-foreground text-center w-[120px]">{isAr ? 'إجراء' : 'Action'}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {tasks.map((task) => {
-                                            const statusConfig = getColumnConfig(task.status)
-                                            const priorityConfig = getPriorityConfig(task.priority)
+                                        {tasks.map((task, idx) => {
                                             const isOverdue =
                                                 task.deadline &&
                                                 new Date(task.deadline) < new Date() &&
                                                 task.status !== 'approved'
+                                            const isReview = task.status === 'client_review'
+                                            const isClientRevision = task.status === 'client_revision'
 
                                             return (
                                                 <TableRow
                                                     key={task.id}
-                                                    className="cursor-pointer hover:bg-muted/50"
+                                                    className={cn(
+                                                        'cursor-pointer transition-colors',
+                                                        idx % 2 === 0 ? 'bg-background' : 'bg-muted/20',
+                                                        isReview && 'border-s-2 border-s-indigo-400',
+                                                        isClientRevision && 'border-s-2 border-s-rose-400 bg-rose-50/40 dark:bg-rose-950/10',
+                                                        'hover:bg-muted/50'
+                                                    )}
                                                     onClick={() => handleTaskClick(task)}
                                                 >
-                                                    <TableCell className="font-medium">
-                                                        <div>
-                                                            <div className="line-clamp-1">{task.title}</div>
+                                                    <TableCell className="py-3">
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-medium line-clamp-1">{task.title}</span>
+                                                                {isClientRevision && (
+                                                                    <Badge className="shrink-0 text-[10px] h-4 px-1.5 bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-100">
+                                                                        <RotateCcw className="h-2.5 w-2.5 me-0.5" />
+                                                                        {isAr ? 'طلبت تعديل' : 'Revision Requested'}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
                                                             {task.description && (
-                                                                <div className="text-xs text-muted-foreground line-clamp-1 mt-1">
+                                                                <div className="text-xs text-muted-foreground line-clamp-1">
                                                                     {task.description}
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell>
-                                                        {task.project?.name ? (
-                                                            <span className="text-sm">
-                                                                {task.project.name}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-sm text-muted-foreground">
-                                                                {isAr ? 'بدون مشروع' : 'No project'}
-                                                            </span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge
-                                                            variant="outline"
-                                                            className={cn(statusConfig.bgColor, statusConfig.color)}
-                                                        >
-                                                            {isAr ? statusConfig.titleAr : statusConfig.title}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge
-                                                            variant="outline"
-                                                            className={cn(
-                                                                priorityConfig.bgColor,
-                                                                priorityConfig.color
-                                                            )}
-                                                        >
-                                                            {isAr ? priorityConfig.labelAr : priorityConfig.label}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell>
+                                                    <TableCell className="py-3">
                                                         {task.deadline ? (
                                                             <span
                                                                 className={cn(
                                                                     'text-sm',
-                                                                    isOverdue && 'text-red-600 font-medium'
+                                                                    isOverdue
+                                                                        ? 'text-red-600 font-semibold'
+                                                                        : 'text-muted-foreground'
                                                                 )}
                                                             >
                                                                 {format(
                                                                     new Date(task.deadline),
-                                                                    'MMM d, yyyy',
+                                                                    isAr ? 'd MMM yyyy' : 'MMM d, yyyy',
                                                                     { locale: isAr ? ar : enUS }
+                                                                )}
+                                                                {isOverdue && (
+                                                                    <span className="ms-1 text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-1.5 py-0.5 rounded-full">
+                                                                        {isAr ? 'متأخر' : 'Overdue'}
+                                                                    </span>
                                                                 )}
                                                             </span>
                                                         ) : (
-                                                            <span className="text-sm text-muted-foreground">
-                                                                {isAr ? 'لا يوجد' : 'N/A'}
-                                                            </span>
+                                                            <span className="text-sm text-muted-foreground">—</span>
                                                         )}
                                                     </TableCell>
-                                                    <TableCell onClick={(e) => e.stopPropagation()}>
-                                                        {task.status === 'client_review' ? (
+                                                    <TableCell className="py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                                        {isReview ? (
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline"
-                                                                className="text-indigo-600 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 gap-1.5"
+                                                                className="text-indigo-600 border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 gap-1.5 h-8 text-xs px-3"
                                                                 onClick={() => handleTaskClick(task)}
                                                             >
-                                                                <RotateCcw className="h-3.5 w-3.5" />
-                                                                {isAr ? 'طلب تعديل / موافقة' : 'Review'}
+                                                                <RotateCcw className="h-3 w-3" />
+                                                                {isAr ? 'مراجعة' : 'Review'}
                                                             </Button>
                                                         ) : (
                                                             <Button
                                                                 size="sm"
                                                                 variant="ghost"
+                                                                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                                                                 onClick={() => handleTaskClick(task)}
                                                             >
-                                                                <Eye className="h-3.5 w-3.5" />
+                                                                <Eye className="h-4 w-4" />
                                                             </Button>
                                                         )}
                                                     </TableCell>
@@ -540,76 +553,148 @@ export default function ClientTasksPage() {
             </Card>
 
             {/* Task Review Dialog */}
-            <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-                <DialogContent className="sm:max-w-[560px]">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <RotateCcw className="h-5 w-5 text-indigo-500" />
-                            {isAr ? 'مراجعة المهمة' : 'Review Task'}
+            <Dialog open={isReviewOpen} onOpenChange={(open) => {
+                setIsReviewOpen(open)
+                if (!open) {
+                    setRevisionNotes('')
+                    setRevisionError(null)
+                }
+            }}>
+                <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden gap-0">
+                    {/* Colored header strip */}
+                    <div className="bg-indigo-600 dark:bg-indigo-700 px-6 py-5">
+                        <DialogTitle className="flex items-center gap-2 text-white text-lg">
+                            <Eye className="h-5 w-5 opacity-80" />
+                            {isAr ? 'مراجعة المهمة' : 'Task Review'}
                         </DialogTitle>
-                        <DialogDescription>
+                        <DialogDescription className="text-indigo-200 mt-1 text-sm">
                             {isAr
-                                ? 'راجع تفاصيل المهمة واختر الموافقة أو طلب تعديلات مع ملاحظاتك'
-                                : 'Review the task and choose to approve or request modifications with your notes'}
+                                ? 'وافق على المهمة أو أرسل ملاحظاتك لطلب تعديل'
+                                : 'Approve the task or send your notes to request changes'}
                         </DialogDescription>
-                    </DialogHeader>
+                    </div>
 
                     {reviewTask && (
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground mb-1">{isAr ? 'عنوان المهمة' : 'Task Title'}</p>
-                                <p className="font-semibold text-base">{reviewTask.title}</p>
+                        <div className="px-6 py-5 space-y-4">
+                            {/* Task title */}
+                            <div className="rounded-xl border bg-muted/30 px-4 py-3 space-y-2">
+                                <p className="font-semibold text-base leading-snug">{reviewTask.title}</p>
+                                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                                    {reviewTask.project?.name && (
+                                        <span className="flex items-center gap-1">
+                                            <FolderOpen className="h-3.5 w-3.5" />
+                                            {reviewTask.project.name}
+                                        </span>
+                                    )}
+                                    {reviewTask.deadline && (
+                                        <span className="flex items-center gap-1">
+                                            <CalendarDays className="h-3.5 w-3.5" />
+                                            {format(new Date(reviewTask.deadline), isAr ? 'd MMM yyyy' : 'MMM d, yyyy', { locale: isAr ? ar : enUS })}
+                                        </span>
+                                    )}
+                                    {reviewTask.assigned_user?.name && (
+                                        <span className="flex items-center gap-1">
+                                            <Eye className="h-3.5 w-3.5" />
+                                            {reviewTask.assigned_user.name}
+                                        </span>
+                                    )}
+                                </div>
+                                {reviewTask.description && (
+                                    <p className="text-sm text-muted-foreground leading-relaxed border-t pt-2 mt-1">
+                                        {reviewTask.description}
+                                    </p>
+                                )}
                             </div>
-                            {reviewTask.description && (
-                                <div>
-                                    <p className="text-xs text-muted-foreground mb-1">{isAr ? 'الوصف' : 'Description'}</p>
-                                    <p className="text-sm whitespace-pre-wrap">{reviewTask.description}</p>
-                                </div>
-                            )}
-                            {reviewTask.project?.name && (
-                                <div className="flex items-center gap-2 text-sm">
-                                    <span className="text-muted-foreground">{isAr ? 'المشروع:' : 'Project:'}</span>
-                                    <Badge variant="outline">{reviewTask.project.name}</Badge>
-                                </div>
-                            )}
+
+                            {/* Approve callout */}
+                            <div className="rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 px-4 py-3 flex gap-3">
+                                <ThumbsUp className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                                <p className="text-sm text-green-800 dark:text-green-300">
+                                    {isAr
+                                        ? 'إذا كانت المهمة مكتملة ومطابقة لمتطلباتك، اضغط «موافقة» لإغلاقها.'
+                                        : 'If the task is complete and meets your requirements, press Approve to close it.'}
+                                </p>
+                            </div>
+
                             <Separator />
+
+                            {/* Revision notes */}
                             <div className="space-y-2">
-                                <Label htmlFor="revision-notes">
-                                    {isAr ? 'ملاحظات التعديل (مطلوبة لطلب التعديل)' : 'Revision Notes (required to request revision)'}
-                                </Label>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="revision-notes" className="flex items-center gap-1.5 font-medium text-foreground">
+                                        <MessageSquare className="h-4 w-4 text-rose-500" />
+                                        {isAr ? 'ملاحظاتك' : 'Your Feedback'}
+                                    </Label>
+                                    <span className={cn(
+                                        'text-xs tabular-nums font-mono',
+                                        revisionNotes.trim().length === 0
+                                            ? 'text-muted-foreground'
+                                            : revisionNotes.trim().length < 10
+                                                ? 'text-orange-500'
+                                                : 'text-green-600 dark:text-green-400'
+                                    )}>
+                                        {revisionNotes.trim().length} / 10
+                                    </span>
+                                </div>
                                 <Textarea
                                     id="revision-notes"
-                                    placeholder={isAr ? 'اكتب ملاحظاتك وما تريد تعديله...' : 'Write your notes and what needs to be changed...'}
+                                    placeholder={isAr ? 'اكتب تفاصيل ما تريد تعديله بوضوح...' : 'Describe what needs to be changed in detail...'}
                                     value={revisionNotes}
-                                    onChange={(e) => setRevisionNotes(e.target.value)}
+                                    onChange={(e) => {
+                                        setRevisionNotes(e.target.value)
+                                        if (revisionError && e.target.value.trim().length >= 10) {
+                                            setRevisionError(null)
+                                        }
+                                    }}
                                     rows={4}
-                                    className="resize-none"
+                                    className={cn(
+                                        'resize-none transition-colors text-foreground placeholder:text-muted-foreground',
+                                        revisionError
+                                            ? 'border-red-500 focus-visible:ring-red-500'
+                                            : revisionNotes.trim().length >= 10
+                                                ? 'border-rose-300 focus-visible:ring-rose-400'
+                                                : ''
+                                    )}
                                 />
+                                {revisionError ? (
+                                    <p className="text-xs text-red-500 flex items-center gap-1">
+                                        <Info className="h-3 w-3" />{revisionError}
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Info className="h-3 w-3" />
+                                        {isAr
+                                            ? 'مطلوبة فقط عند طلب التعديل — لا داعي لها عند الموافقة'
+                                            : 'Only required when requesting revisions — skip if approving'}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     )}
 
-                    <DialogFooter className="gap-2 sm:gap-0">
+                    <div className="px-6 pb-5 flex flex-col-reverse sm:flex-row gap-2 justify-end border-t pt-4">
                         <Button
                             variant="outline"
                             onClick={handleRequestRevision}
-                            disabled={isProcessing || !revisionNotes.trim()}
-                            className="text-orange-600 border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                            disabled={isProcessing || revisionNotes.trim().length < 10}
+                            className="gap-2 border-rose-300 text-rose-600 hover:bg-rose-50 hover:border-rose-400 dark:hover:bg-rose-950/30 disabled:opacity-40"
                         >
-                            {isProcessing && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
-                            <RotateCcw className="me-2 h-4 w-4" />
+                            {isProcessing
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : <ThumbsDown className="h-4 w-4" />}
                             {isAr ? 'طلب تعديل' : 'Request Revision'}
                         </Button>
                         <Button
                             onClick={handleApprove}
                             disabled={isProcessing}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="gap-2 bg-green-600 hover:bg-green-700 text-white"
                         >
-                            {isProcessing && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
-                            <CheckCircle2 className="me-2 h-4 w-4" />
+                            {isProcessing
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : <ThumbsUp className="h-4 w-4" />}
                             {isAr ? 'موافقة' : 'Approve'}
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

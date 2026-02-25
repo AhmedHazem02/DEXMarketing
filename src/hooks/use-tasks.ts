@@ -196,7 +196,7 @@ export function useRevisionsTasks() {
                     creator:users!tasks_created_by_fkey(id, name, avatar_url),
                     project:projects(id, name, status)
                 `)
-                .in('status', ['revision', 'rejected'])
+                .in('status', ['revision', 'rejected', 'client_revision'])
                 .order('updated_at', { ascending: false })
 
             if (error) throw error

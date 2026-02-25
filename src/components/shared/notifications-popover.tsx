@@ -19,6 +19,64 @@ import { useNotificationsRealtime } from '@/hooks/use-realtime'
 import { useCurrentUser } from '@/hooks/use-users'
 import { Badge } from '@/components/ui/badge'
 
+// Maps each role to its dashboard base path
+const ROLE_BASE: Record<string, string> = {
+    admin: '/admin',
+    team_leader: '/team-leader',
+    account_manager: '/account-manager',
+    creator: '/creator',
+    designer: '/creator',
+    videographer: '/videographer',
+    editor: '/editor',
+    photographer: '/photographer',
+    client: '/client',
+    accountant: '/accountant',
+}
+
+// Known sub-paths available per role (to avoid routing to non-existent pages)
+const ROLE_KNOWN_SUBPATHS: Record<string, string[]> = {
+    admin: ['/users', '/treasury', '/advances', '/tasks', '/schedule', '/pages', '/theme', '/reports', '/settings'],
+    team_leader: ['/revisions', '/schedule', '/logs', '/chat'],
+    account_manager: ['/revisions', '/schedule', '/logs', '/chat'],
+    creator: ['/schedule'],
+    designer: ['/schedule'],
+    videographer: ['/schedule'],
+    editor: ['/schedule'],
+    photographer: ['/schedule'],
+    client: ['/account', '/tasks', '/revisions', '/schedule', '/chat'],
+    accountant: ['/client-accounts', '/reports'],
+}
+
+/**
+ * Resolve a notification link to the correct path for the current user's role.
+ * If the link contains a role-specific prefix (e.g. /team-leader/revisions)
+ * and the current user has a different role, replace it with the user's base path.
+ * Falls back to the user's dashboard root if the sub-page doesn't exist for their role.
+ */
+function resolveRoleLink(link: string, role?: string): string {
+    if (!role) return link
+    const userBase = ROLE_BASE[role]
+    if (!userBase) return link
+
+    // Find which role prefix this link belongs to
+    const matchedBase = Object.values(ROLE_BASE).find(
+        base => link === base || link.startsWith(base + '/')
+    )
+
+    // If the link already belongs to the current user's role, keep it as-is
+    if (!matchedBase || matchedBase === userBase) return link
+
+    // Extract the sub-path after the role prefix (e.g. "/revisions")
+    const subPath = link.slice(matchedBase.length) // e.g. "/revisions"
+
+    // Check if this sub-path exists for the current role
+    const knownSubpaths = ROLE_KNOWN_SUBPATHS[role] ?? []
+    const subPathRoot = '/' + (subPath.split('/')[1] ?? '') // e.g. "/revisions"
+    const isKnown = knownSubpaths.includes(subPathRoot)
+
+    return isKnown ? userBase + subPath : userBase
+}
+
 export function NotificationsPopover() {
     const locale = useLocale()
     const isAr = locale === 'ar'
@@ -66,8 +124,11 @@ export function NotificationsPopover() {
     const handleNotificationClick = (id: string, isRead: boolean, link?: string | null) => {
         if (!isRead) markRead.mutate(id)
         if (link) {
-            // Prepend locale to the link if it doesn't already have it
-            const normalizedLink = link.startsWith(`/${locale}`) ? link : `/${locale}${link}`
+            // Remap role-prefixed links to the current user's role path.
+            // e.g. a notification created with link="/team-leader/revisions"
+            // should take an account_manager to "/account-manager" instead.
+            const resolvedLink = resolveRoleLink(link, currentUser?.role)
+            const normalizedLink = resolvedLink.startsWith(`/${locale}`) ? resolvedLink : `/${locale}${resolvedLink}`
             setOpen(false)
             router.push(normalizedLink)
         }

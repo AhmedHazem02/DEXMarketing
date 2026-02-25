@@ -128,16 +128,21 @@ export function useApproveTask() {
                 } as never)
                 .eq('id', taskId)
 
-            if (error) throw error
+            if (error) throw new Error(error.message || error.details || error.hint || JSON.stringify(error))
         },
         onSuccess: () => {
+            // Invalidate both client portal cache and global tasks cache (so Team Leader sees update immediately)
             queryClient.invalidateQueries({ queryKey: CLIENT_KEYS.all })
+            queryClient.invalidateQueries({ queryKey: ['tasks'] })
         },
     })
 }
 
 /**
- * Reject a task (Request Revision)
+ * Reject a task (Request Revision from Client)
+ * Sets status to 'client_revision' so:
+ * - Task stays visible in the client's revisions page
+ * - Team Leader sees it in the Revisions Hub to action
  */
 export function useRejectTask() {
     const supabase = createClient()
@@ -148,17 +153,49 @@ export function useRejectTask() {
             const { error } = await supabase
                 .from('tasks')
                 .update({
-                    status: 'revision',
+                    status: 'client_revision',
                     client_feedback: feedback,
                     updated_at: new Date().toISOString()
                 } as never)
                 .eq('id', taskId)
 
-            if (error) throw error
+            if (error) throw new Error(error.message || error.details || error.hint || JSON.stringify(error))
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: CLIENT_KEYS.all })
+            queryClient.invalidateQueries({ queryKey: ['tasks'] })
         },
+    })
+}
+
+/**
+ * Fetch tasks where client has requested a revision (status = 'client_revision')
+ * Used in the Client's dedicated Revisions page
+ */
+export function useClientRevisionsTasks(clientId: string) {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: [...CLIENT_KEYS.all, 'revisions', clientId],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('tasks')
+                .select(`
+                    *,
+                    assigned_user:users!tasks_assigned_to_fkey(id, name, email, avatar_url),
+                    creator:users!tasks_created_by_fkey(id, name, avatar_url),
+                    project:projects(id, name, status),
+                    attachments(id, file_url, file_name, file_type, created_at)
+                `)
+                .eq('client_id', clientId)
+                .eq('status', 'client_revision')
+                .order('updated_at', { ascending: false })
+
+            if (error) throw error
+            return data as unknown as import('@/types/task').TaskWithRelations[]
+        },
+        enabled: !!clientId,
+        staleTime: 30 * 1000,
     })
 }
 

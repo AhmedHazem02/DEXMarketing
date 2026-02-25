@@ -104,6 +104,7 @@ export {
     useClientProjectDetails,
     useApproveTask,
     useRejectTask,
+    useClientRevisionsTasks,
     useClientRequests,
     useClientRequestDetail,
     useCreateClientRequest,

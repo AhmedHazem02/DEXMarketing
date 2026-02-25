@@ -91,6 +91,14 @@ export const KANBAN_COLUMNS: KanbanColumn[] = [
         icon: 'UserCheck'
     },
     {
+        id: 'client_revision',
+        title: 'Client Revision',
+        titleAr: 'طلب تعديل من العميل',
+        color: 'text-rose-500',
+        bgColor: 'bg-rose-500/10 border-rose-500/30',
+        icon: 'UserX'
+    },
+    {
         id: 'revision',
         title: 'Revision',
         titleAr: 'تعديل',
@@ -312,7 +320,8 @@ export const STATUS_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
     new: ['in_progress'],
     in_progress: ['review'],
     review: ['approved', 'revision', 'in_progress', 'client_review'], // Leader can approve, send to client, return for revision, or request changes
-    client_review: ['approved', 'revision'], // Client can approve or request modifications
+    client_review: ['approved', 'client_revision'], // Client can approve or request modifications
+    client_revision: ['in_progress', 'revision'], // Team leader can start work or send for internal revision
     revision: ['in_progress'],
     approved: ['completed'], // Can be completed
     completed: [], // Final state
