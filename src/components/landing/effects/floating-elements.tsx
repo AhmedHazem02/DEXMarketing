@@ -30,6 +30,7 @@ export function GlowOrb({
       }}
       transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
       className={`absolute rounded-full pointer-events-none ${className}`}
+      aria-hidden="true"
       style={{
         width: size,
         height: size,

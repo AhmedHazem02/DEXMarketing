@@ -1,6 +1,7 @@
 'use client'
 
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion, useAnimationControls } from 'framer-motion'
+import { useEffect } from 'react'
 import { useLocale } from 'next-intl'
 import { Quote, Star } from 'lucide-react'
 import GlareHover from '../ui/GlareHover'
@@ -62,12 +63,22 @@ export function TestimonialsSection() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const prefersReducedMotion = useReducedMotion()
+    const marqueeControls = useAnimationControls()
 
     // Duplicate for seamless loop
     const loopItems = [...TESTIMONIALS, ...TESTIMONIALS]
 
+    useEffect(() => {
+        if (!prefersReducedMotion) {
+            marqueeControls.start({
+                x: isAr ? ['0%', '50%'] : ['0%', '-50%'],
+                transition: { duration: 40, repeat: Infinity, ease: 'linear' },
+            })
+        }
+    }, [prefersReducedMotion, isAr, marqueeControls])
+
     return (
-        <section id="testimonials" className="relative overflow-hidden py-40 bg-[#022026]">
+        <section id="testimonials" className="relative overflow-hidden py-40 bg-[#022026]" aria-labelledby="testimonials-heading">
             {/* Background */}
             <div className="pointer-events-none absolute inset-0">
                 <div className="section-divider absolute top-0 left-0 right-0" />
@@ -89,7 +100,7 @@ export function TestimonialsSection() {
                     <span className="section-label mb-6 inline-flex">
                         {isAr ? '06 — إشارات واردة' : '06 — Incoming Signals'}
                     </span>
-                    <h2 className="mt-6 text-4xl font-black md:text-6xl lg:text-7xl text-glow-white">
+                    <h2 id="testimonials-heading" className="mt-6 text-4xl font-black md:text-6xl lg:text-7xl text-glow-white">
                         {isAr ? 'ماذا يقول ' : 'What Clients '}
                         <span className="bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">
                             {isAr ? 'عملاؤنا' : 'Transmit'}
@@ -103,16 +114,26 @@ export function TestimonialsSection() {
                     <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-[#022026] to-transparent md:w-40" />
                     <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-[#022026] to-transparent md:w-40" />
 
-                    <div className="overflow-hidden">
+                    <div
+                        className="overflow-hidden"
+                        onMouseEnter={() => marqueeControls.stop()}
+                        onMouseLeave={() => {
+                            if (!prefersReducedMotion) {
+                                marqueeControls.start({
+                                    x: isAr ? ['0%', '50%'] : ['0%', '-50%'],
+                                    transition: { duration: 40, repeat: Infinity, ease: 'linear' },
+                                })
+                            }
+                        }}
+                    >
                         <motion.div
                             className="flex gap-6"
-                            animate={prefersReducedMotion ? undefined : { x: isAr ? ['0%', '50%'] : ['0%', '-50%'] }}
-                            transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
+                            animate={marqueeControls}
                         >
                             {loopItems.map((testimonial, i) => (
                                 <div
                                     key={i}
-                                    className="group relative w-[380px] flex-shrink-0 rounded-3xl glass glass-hover transition-colors duration-300"
+                                    className="group relative w-[380px] flex-shrink-0 rounded-3xl glass glass-hover transition-all duration-300 hover:scale-[1.04] hover:shadow-2xl hover:shadow-primary/20 cursor-pointer"
                                 >
                                     <GlareHover
                                         glareColor="#ffffff"

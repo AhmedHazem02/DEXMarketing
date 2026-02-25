@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, ArrowLeft } from 'lucide-react'
-import { PortfolioItem, FallbackPortfolioItem } from './PortfolioCards'
+import { PortfolioItem, FallbackPortfolioItem } from './cards/PortfolioCards'
 import { usePage } from '@/hooks/use-cms'
 import { useState, useCallback } from 'react'
 import { GRADIENT_COLORS } from '@/lib/constants/landing'
@@ -41,7 +41,7 @@ export function PortfolioSection() {
     const hasCmsData = cmsItems && cmsItems.length > 0
 
     return (
-        <section id="portfolio" className="py-32 relative overflow-hidden bg-transparent">
+        <section id="portfolio" className="py-32 relative overflow-hidden bg-transparent" aria-labelledby="portfolio-heading">
             <div className="container relative z-10 mx-auto px-6">
                 {/* Header */}
                 <motion.div
@@ -56,7 +56,7 @@ export function PortfolioSection() {
                             <span className="section-label mb-6 inline-flex">
                                 {isAr ? '05 — أعمالنا' : '05 — Our Work'}
                             </span>
-                            <h2 className="text-5xl md:text-7xl font-black leading-tight text-glow-white">
+                            <h2 id="portfolio-heading" className="text-5xl md:text-7xl font-black leading-tight text-glow-white">
                                 {isAr ? 'مشاريع ' : 'Projects '}
                                 <span className="block bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">
                                     {isAr ? 'تُلهم العالم' : 'That Inspire'}

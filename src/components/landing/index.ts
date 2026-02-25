@@ -1,3 +1,4 @@
+// Sections
 export { Navbar } from './navbar'
 export { Footer } from './footer'
 export { HeroSection } from './hero-section'
@@ -10,5 +11,12 @@ export { ContactSection } from './contact-section'
 export { CTASection } from './cta-section'
 export { BrandsMarquee } from './brands-marquee'
 export { ProcessSection } from './process-section'
-export { GlobalBackground } from './global-background'
-export * from './floating-elements'
+
+// Effects
+export { GlobalBackground } from './effects/global-background'
+export { SectionSkeleton } from './effects/section-skeleton'
+export { LazySection } from './effects/lazy-section'
+export * from './effects/floating-elements'
+
+// Cards
+export * from './cards'

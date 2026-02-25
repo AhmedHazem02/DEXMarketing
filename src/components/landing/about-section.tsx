@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { useLocale } from 'next-intl'
 import { Target, Eye, Sparkles } from 'lucide-react'
-import { GlowOrb, OrbitalRing, FloatingHexagon, DotGrid, GradientRing } from './floating-elements'
+import { GlowOrb, OrbitalRing, FloatingHexagon, DotGrid, GradientRing } from './effects/floating-elements'
 import GlareHover from '../ui/GlareHover'
 
 export function AboutSection() {
@@ -11,7 +11,7 @@ export function AboutSection() {
   const isAr = locale === 'ar'
 
   return (
-    <section className="relative py-28 bg-transparent overflow-hidden" id="about">
+    <section className="relative py-28 bg-transparent overflow-hidden" id="about" aria-labelledby="about-heading">
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
 
       {/* ── Floating decorative elements ── */}
@@ -36,7 +36,7 @@ export function AboutSection() {
           <span className="section-label mb-6 inline-flex">
             {isAr ? '02 — تعرف علينا' : '02 — Get to Know Us'}
           </span>
-          <h2 className="mt-6 text-4xl sm:text-5xl font-black text-white leading-tight font-serif text-glow-white">
+          <h2 id="about-heading" className="mt-6 text-4xl sm:text-5xl font-black text-white leading-tight font-serif text-glow-white">
             {isAr ? 'من نحن' : 'About DEX'}
           </h2>
           <div className="mt-5 mx-auto w-20 h-[2px] bg-gradient-to-r from-transparent via-[#F2CB05]/60 to-transparent rounded-full" />

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Play, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 import { Link } from '@/i18n/navigation'
-import GlareHover from '../ui/GlareHover'
+import GlareHover from '../../ui/GlareHover'
 
 function isVideoUrl(url?: string): boolean {
     if (!url) return false

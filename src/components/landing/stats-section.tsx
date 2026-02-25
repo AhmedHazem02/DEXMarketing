@@ -4,7 +4,7 @@ import { useRef, useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useLocale } from 'next-intl'
 import { Users, FolderKanban, Calendar, UserCheck } from 'lucide-react'
-import { GlowOrb, OrbitalRing } from './floating-elements'
+import { GlowOrb, OrbitalRing } from './effects/floating-elements'
 
 interface Stat {
   icon: typeof Users

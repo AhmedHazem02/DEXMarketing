@@ -2,7 +2,7 @@
 
 import { useRef } from 'react'
 import { useLocale } from 'next-intl'
-import { HeroOverlay } from './hero-overlay'
+import { HeroOverlay } from './effects/hero-overlay'
 import { ChevronDown } from 'lucide-react'
 
 export function HeroSection() {
@@ -14,6 +14,7 @@ export function HeroSection() {
         <section
             ref={sectionRef}
             className="relative min-h-[100dvh] w-full overflow-hidden bg-transparent"
+            aria-label={isAr ? 'القسم الرئيسي' : 'Hero Section'}
         >
             {/* 3D Background - Now Global */}
             <div className="absolute inset-0 z-0" />
@@ -28,7 +29,7 @@ export function HeroSection() {
                         {/* Full Detail Photorealistic Astronaut - STATIC */}
                         <img
                             src="/images/astronaut_hero.png"
-                            alt="Astronaut Hero"
+                            alt={isAr ? 'رائد فضاء يمثل الإبداع والابتكار' : 'Astronaut representing creativity and innovation'}
                             className="absolute inset-0 w-full h-full object-contain z-[12]"
                             style={{
                                 filter: 'brightness(1.1) contrast(1.1) saturate(1.05) drop-shadow(0 0 30px rgba(0,0,0,0.5))',
@@ -57,7 +58,7 @@ export function HeroSection() {
             </div>
 
             {/* Scroll indicator - Static */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2" aria-hidden="true">
                 <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/25">
                     Scroll
                 </span>

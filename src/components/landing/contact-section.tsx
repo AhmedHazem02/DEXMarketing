@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { useLocale } from 'next-intl'
 import { Send, Mail, Phone, MapPin, Loader2, CheckCircle } from 'lucide-react'
-import { GlowOrb, FloatingHexagon, DotGrid, OrbitalRing } from './floating-elements'
+import { GlowOrb, FloatingHexagon, DotGrid, OrbitalRing } from './effects/floating-elements'
 
 const CONTACT_INFO = [
   {
@@ -82,7 +82,7 @@ export function ContactSection() {
   }
 
   return (
-    <section className="relative py-28 bg-transparent overflow-hidden" id="contact">
+    <section className="relative py-28 bg-transparent overflow-hidden" id="contact" aria-labelledby="contact-heading">
       {/* ── Floating decorative elements ── */}
       <GlowOrb color="#F2CB05" size={400} blur={140} opacity={0.03} className="top-0 -end-40" />
       <GlowOrb color="#22D3EE" size={300} blur={100} opacity={0.02} className="bottom-0 -start-32" />
@@ -106,7 +106,7 @@ export function ContactSection() {
           <span className="section-label mb-6 inline-flex">
             {isAr ? '09 — تواصل معنا' : '09 — Get in Touch'}
           </span>
-          <h2 className="mt-6 text-3xl sm:text-5xl font-black text-white font-serif mb-4 text-glow-white">
+          <h2 id="contact-heading" className="mt-6 text-3xl sm:text-5xl font-black text-white font-serif mb-4 text-glow-white">
             {isAr ? 'لنبدأ مشروعك' : "Let's Start Your Project"}
           </h2>
           <div className="w-20 h-[2px] mx-auto bg-gradient-to-r from-transparent via-[#F2CB05]/60 to-transparent rounded-full" />
