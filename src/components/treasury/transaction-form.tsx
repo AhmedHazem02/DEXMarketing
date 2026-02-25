@@ -54,6 +54,7 @@ import { useCurrentRole } from '@/hooks/use-current-role'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getCategoryLabel, type CategoryOption } from '@/lib/constants/treasury'
 import type { TransactionType, Transaction } from '@/types/database'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 // ============================================
 // Schema
@@ -134,10 +135,12 @@ export function TransactionForm() {
             }
 
             await createTransaction.mutateAsync(payload)
+            toast.success(isAr ? 'تم حفظ المعاملة بنجاح' : 'Transaction saved successfully')
             setOpen(false)
             form.reset()
         } catch (error) {
             console.error('Create transaction failed', error)
+            toast.error(isAr ? 'فشل حفظ المعاملة' : 'Failed to save transaction')
         }
     }
 

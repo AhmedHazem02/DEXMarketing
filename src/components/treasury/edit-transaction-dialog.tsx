@@ -46,6 +46,7 @@ import { useUpdateTransaction } from '@/hooks/use-treasury'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, type CategoryOption } from '@/lib/constants/treasury'
 import { cn } from '@/lib/utils'
 import type { Transaction } from '@/types/database'
+import { toast } from 'sonner'
 
 // ============================================
 // Schema
@@ -151,6 +152,7 @@ export function EditTransactionDialog({
                 id: transaction.id,
                 updates: {
                     type: values.type,
+                    payment_method: values.payment_method,
                     category: values.category,
                     sub_category: values.sub_category || null,
                     amount: values.amount,
@@ -162,9 +164,11 @@ export function EditTransactionDialog({
                     is_approved: values.is_approved,
                 },
             })
+            toast.success(isAr ? 'تم حفظ التغييرات' : 'Changes saved successfully')
             onOpenChange(false)
         } catch (error) {
             console.error('Form submission failed:', error)
+            toast.error(isAr ? 'فشل حفظ التغييرات' : 'Failed to save changes')
         }
     }
 

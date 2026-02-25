@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useLocale } from 'next-intl'
 import { format, isAfter, isBefore } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
@@ -235,6 +235,12 @@ export function TransactionsTable() {
         itemsPerPage: 10,
         initialPage: 1
     })
+
+    // Reset to page 1 whenever filters or search changes
+    useEffect(() => {
+        pagination.goToPage(1)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedSearch, typeFilter, categoryFilter, dateFrom, dateTo, minAmount, maxAmount, sortField, sortDir])
 
     const paginatedTransactions = useMemo(
         () => pagination.paginateItems(filteredTransactions),
@@ -948,11 +954,13 @@ export function TransactionsTable() {
                                         transactionId: transactionToApprove,
                                         visibleToClient: visibleToClient,
                                     })
+                                    toast.success(isAr ? 'تم اعتماد المعاملة' : 'Transaction approved')
                                     setApproveDialogOpen(false)
                                     setTransactionToApprove(null)
                                     setVisibleToClient(false)
                                 } catch (error) {
                                     console.error('Failed to approve transaction:', error)
+                                    toast.error(isAr ? 'فشل اعتماد المعاملة' : 'Failed to approve transaction')
                                 }
                             }}
                             disabled={approveTransaction.isPending}

@@ -22,6 +22,7 @@ import { useApproveTransaction } from '@/hooks/use-treasury'
 import { getCategoryLabel } from '@/lib/constants/treasury'
 import { cn } from '@/lib/utils'
 import type { Transaction } from '@/types/database'
+import { toast } from 'sonner'
 
 // ============================================
 // Component
@@ -53,9 +54,11 @@ export function ApproveTransactionDialog({
                 transactionId: transaction.id,
                 visibleToClient,
             })
+            toast.success(isAr ? 'تم اعتماد المعاملة بنجاح' : 'Transaction approved successfully')
             onOpenChange(false)
         } catch (error) {
             console.error('Failed to approve transaction:', error)
+            toast.error(isAr ? 'فشل اعتماد المعاملة' : 'Failed to approve transaction')
         }
     }
 
@@ -80,6 +83,19 @@ export function ApproveTransactionDialog({
 
                 {/* Transaction Details */}
                 <div className="space-y-4 py-4">
+                    {/* Status */}
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                            {isAr ? 'الحالة' : 'Status'}
+                        </span>
+                        <Badge
+                            variant="outline"
+                            className="text-yellow-700 border-yellow-400 dark:text-yellow-300"
+                        >
+                            {isAr ? 'قيد الانتظار' : 'Pending'}
+                        </Badge>
+                    </div>
+
                     {/* Type & Category */}
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
