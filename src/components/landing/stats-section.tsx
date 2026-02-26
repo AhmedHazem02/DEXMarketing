@@ -156,9 +156,7 @@ export function StatsSection() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <span className="section-label">
-            {isAr ? '01 — الأرقام تتحدث' : '01 — Numbers speak'}
-          </span>
+           
         </motion.div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-8">
           {STATS.map((stat, i) => (

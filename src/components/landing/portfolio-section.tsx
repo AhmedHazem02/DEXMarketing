@@ -53,9 +53,7 @@ export function PortfolioSection() {
                 >
                     <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8">
                         <div>
-                            <span className="section-label mb-6 inline-flex">
-                                {isAr ? '05 — أعمالنا' : '05 — Our Work'}
-                            </span>
+                           
                             <h2 id="portfolio-heading" className="text-5xl md:text-7xl font-black leading-tight text-glow-white">
                                 {isAr ? 'مشاريع ' : 'Projects '}
                                 <span className="block bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">

@@ -33,9 +33,7 @@ export function AboutSection() {
           transition={{ duration: 0.7 }}
           className="text-center mb-16"
         >
-          <span className="section-label mb-6 inline-flex">
-            {isAr ? '02 — تعرف علينا' : '02 — Get to Know Us'}
-          </span>
+           
           <h2 id="about-heading" className="mt-6 text-4xl sm:text-5xl font-black text-white leading-tight font-serif text-glow-white">
             {isAr ? 'من نحن' : 'About DEX'}
           </h2>

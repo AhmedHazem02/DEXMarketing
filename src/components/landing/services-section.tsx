@@ -122,9 +122,7 @@ export function ServicesSection() {
                     viewport={{ once: true, margin: '-100px' }}
                     className="mb-24 text-center"
                 >
-                    <span className="section-label mb-6 inline-flex">
-                        {isAr ? '03 — ترسانة الخدمات' : '03 — Our Arsenal'}
-                    </span>
+                     
                     <h2 id="services-heading" className="mt-6 text-4xl font-black md:text-5xl lg:text-7xl text-glow-white">
                         {isAr ? 'كل ما تحتاجه ' : 'Everything You '}
                         <span className="bg-gradient-to-r from-primary via-yellow-300 to-orange-500 bg-clip-text text-transparent">
