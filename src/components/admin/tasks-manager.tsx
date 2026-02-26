@@ -472,14 +472,14 @@ export function TasksManager() {
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-muted/50">
-                                <TableHead className="text-end">{t('taskTitle')}</TableHead>
-                                <TableHead className="text-end">{t('client')}</TableHead>
-                                <TableHead className="text-end hidden lg:table-cell">{t('teamLeader')}</TableHead>
-                                <TableHead className="text-end hidden lg:table-cell">{t('designer')}</TableHead>
-                                <TableHead className="text-center">{t('status')}</TableHead>
-                                <TableHead className="text-center hidden lg:table-cell">{t('priority')}</TableHead>
-                                <TableHead className="text-center hidden xl:table-cell">{t('date')}</TableHead>
-                                <TableHead className="text-start">{t('actions')}</TableHead>
+                                <TableHead className="w-[260px]">{t('taskTitle')}</TableHead>
+                                <TableHead className="w-[150px]">{t('client')}</TableHead>
+                                <TableHead className="w-[140px] hidden lg:table-cell">{t('teamLeader')}</TableHead>
+                                <TableHead className="w-[140px] hidden lg:table-cell">{t('designer')}</TableHead>
+                                <TableHead className="w-[110px] text-center">{t('status')}</TableHead>
+                                <TableHead className="w-[100px] text-center hidden lg:table-cell">{t('priority')}</TableHead>
+                                <TableHead className="w-[110px] text-center hidden xl:table-cell">{t('date')}</TableHead>
+                                <TableHead className="w-[80px] text-center">{t('actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -491,54 +491,77 @@ export function TasksManager() {
                                 </TableRow>
                             ) : (
                                 typedTasks.map((task) => (
-                                    <TableRow key={task.id}>
-                                        <TableCell className="font-medium">
-                                            <div className="flex flex-col">
-                                                <span className="line-clamp-1">{task.title}</span>
-                                                <span className="text-xs text-muted-foreground truncate max-w-[200px]">{task.description}</span>
+                                    <TableRow key={task.id} className="align-middle">
+                                        {/* Task Title */}
+                                        <TableCell className="font-medium py-3">
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="line-clamp-1 text-sm font-semibold">{task.title}</span>
+                                                {task.description && (
+                                                    <span className="text-xs text-muted-foreground line-clamp-1 max-w-[230px]">{task.description}</span>
+                                                )}
+                                                <DepartmentBadge department={task.department} />
                                             </div>
                                         </TableCell>
-                                        <TableCell>
-                                            <span className="font-medium text-sm">
+                                        {/* Client */}
+                                        <TableCell className="py-3">
+                                            <span className="font-medium text-sm line-clamp-1">
                                                 {task.client?.name || task.project?.client?.name || task.company_name || '-'}
                                             </span>
                                         </TableCell>
-                                        <TableCell className="hidden lg:table-cell">
+                                        {/* Team Leader */}
+                                        <TableCell className="hidden lg:table-cell py-3">
                                             <div className="flex items-center gap-2">
-                                                {task.creator?.avatar_url && (
-                                                    <Image src={task.creator.avatar_url} alt="" width={24} height={24} className="w-6 h-6 rounded-full" />
+                                                {task.creator?.avatar_url ? (
+                                                    <Image src={task.creator.avatar_url} alt="" width={28} height={28} className="w-7 h-7 rounded-full shrink-0" />
+                                                ) : (
+                                                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-xs font-medium">
+                                                        {task.creator?.name?.[0] || '?'}
+                                                    </div>
                                                 )}
-                                                <span>{task.creator?.name || 'System'}</span>
+                                                <span className="text-sm line-clamp-1">{task.creator?.name || 'System'}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="hidden lg:table-cell">
+                                        {/* Designer */}
+                                        <TableCell className="hidden lg:table-cell py-3">
                                             {task.assigned_user ? (
                                                 <div className="flex items-center gap-2">
-                                                    {task.assigned_user.avatar_url && (
-                                                        <Image src={task.assigned_user.avatar_url} alt="" width={24} height={24} className="w-6 h-6 rounded-full" />
+                                                    {task.assigned_user.avatar_url ? (
+                                                        <Image src={task.assigned_user.avatar_url} alt="" width={28} height={28} className="w-7 h-7 rounded-full shrink-0" />
+                                                    ) : (
+                                                        <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-xs font-medium">
+                                                            {task.assigned_user.name?.[0] || '?'}
+                                                        </div>
                                                     )}
-                                                    <span>{task.assigned_user.name}</span>
+                                                    <span className="text-sm line-clamp-1">{task.assigned_user.name}</span>
                                                 </div>
                                             ) : (
-                                                <Badge variant="outline" className="opacity-50">{t('unassigned')}</Badge>
+                                                <Badge variant="outline" className="opacity-50 text-xs">{t('unassigned')}</Badge>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-center">
+                                        {/* Status */}
+                                        <TableCell className="text-center py-3">
                                             <StatusBadge status={task.status} />
                                         </TableCell>
-                                        <TableCell className="text-center hidden lg:table-cell">
+                                        {/* Priority */}
+                                        <TableCell className="text-center hidden lg:table-cell py-3">
                                             <PriorityBadge priority={task.priority} />
                                         </TableCell>
-                                        <TableCell className="text-center text-sm text-muted-foreground hidden xl:table-cell">
-                                            {formatTaskDate(task.created_at)}
+                                        {/* Date */}
+                                        <TableCell className="text-center hidden xl:table-cell py-3">
+                                            <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                                {formatTaskDate(task.created_at)}
+                                            </span>
                                         </TableCell>
-                                        <TableCell>
-                                            {task.client_feedback && (
+                                        {/* Actions */}
+                                        <TableCell className="text-center py-3">
+                                            {task.client_feedback ? (
                                                 <TaskFeedbackDialog
                                                     feedback={task.client_feedback}
                                                     taskTitle={task.title}
                                                     variant="desktop"
                                                 />
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground/40">—</span>
                                             )}
                                         </TableCell>
                                     </TableRow>
