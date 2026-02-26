@@ -17,15 +17,17 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useReturnTask } from '@/hooks/use-tasks'
+import type { WorkflowStage } from '@/types/database'
 
 interface ReturnTaskDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     taskId: string | null
     taskTitle?: string
+    workflowStage?: WorkflowStage
 }
 
-export function ReturnTaskDialog({ open, onOpenChange, taskId, taskTitle }: ReturnTaskDialogProps) {
+export function ReturnTaskDialog({ open, onOpenChange, taskId, taskTitle, workflowStage }: ReturnTaskDialogProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const [reason, setReason] = useState('')
@@ -40,7 +42,7 @@ export function ReturnTaskDialog({ open, onOpenChange, taskId, taskTitle }: Retu
         }
 
         try {
-            await returnTask.mutateAsync({ taskId, reason: reason.trim() })
+            await returnTask.mutateAsync({ taskId, reason: reason.trim(), workflowStage })
             toast.success(
                 isAr 
                     ? 'تم إرجاع المهمة للتعديل بنجاح' 

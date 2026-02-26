@@ -448,12 +448,21 @@ export function useReturnTask() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: async ({ taskId, reason }: { taskId: string; reason: string }) => {
+        mutationFn: async ({ taskId, reason, workflowStage }: { taskId: string; reason: string; workflowStage?: WorkflowStage }) => {
+            // Reset workflow_stage from *_done back to the active stage so the assignee sees the task again
+            const doneToActiveMap: Partial<Record<WorkflowStage, WorkflowStage>> = {
+                shooting_done: 'shooting',
+                filming_done: 'filming',
+                editing_done: 'editing',
+            }
+            const resetStage = workflowStage ? (doneToActiveMap[workflowStage] ?? workflowStage) : undefined
+
             const { error } = await supabase
                 .from('tasks')
                 .update({
                     status: 'revision',
                     client_feedback: reason,
+                    ...(resetStage ? { workflow_stage: resetStage } : {}),
                     updated_at: new Date().toISOString(),
                 } as never)
                 .eq('id', taskId)

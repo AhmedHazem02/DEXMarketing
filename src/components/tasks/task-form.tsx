@@ -185,7 +185,7 @@ export function TaskForm({
         }
     }, [task, defaultStatus, form])
 
-    // Resolve department + workflow_stage from assigned user's role
+    // Resolve department + workflow_stage + editor_id from assigned user's role
     const resolveAssignedUserMeta = (assignedToId?: string) => {
         const assignedUser = assignedToId
             ? assignableUsers.find(u => u.id === assignedToId)
@@ -209,7 +209,10 @@ export function TaskForm({
             currentUser?.department ??
             undefined
 
-        return { department, workflow_stage }
+        // If assigned user is an editor, also set editor_id so they see it in their dashboard
+        const editor_id = assignedUser?.role === 'editor' ? assignedToId : undefined
+
+        return { department, workflow_stage, editor_id }
     }
 
     // Submit handler
@@ -217,7 +220,7 @@ export function TaskForm({
         try {
             if (isEditing && task) {
                 const assigneeChanged = values.assigned_to !== task.assigned_to
-                const { department, workflow_stage } = resolveAssignedUserMeta(values.assigned_to)
+                const { department, workflow_stage, editor_id } = resolveAssignedUserMeta(values.assigned_to)
                 const updateInput: UpdateTaskInput = {
                     id: task.id,
                     title: values.title,
@@ -233,10 +236,12 @@ export function TaskForm({
                     ...(assigneeChanged || !task.workflow_stage || task.workflow_stage === 'none'
                         ? { workflow_stage: workflow_stage as never }
                         : {}),
+                    // Update editor_id when assignee changes
+                    ...(assigneeChanged ? { editor_id: editor_id ?? undefined } : {}),
                 }
                 await updateTask.mutateAsync(updateInput)
             } else {
-                const { department, workflow_stage } = resolveAssignedUserMeta(values.assigned_to)
+                const { department, workflow_stage, editor_id } = resolveAssignedUserMeta(values.assigned_to)
                 const createInput: CreateTaskInput = {
                     title: values.title,
                     description: values.description,
@@ -249,6 +254,7 @@ export function TaskForm({
                     created_by: currentUserId,
                     department: department as never,
                     workflow_stage: workflow_stage as never,
+                    editor_id: editor_id ?? undefined,
                 }
                 await createTask.mutateAsync(createInput)
             }

@@ -765,6 +765,7 @@ export function TaskDetails({
                 onOpenChange={setReturnDialogOpen}
                 taskId={task?.id ?? null}
                 taskTitle={task?.title}
+                workflowStage={task?.workflow_stage}
             />
         </Sheet>
     )
