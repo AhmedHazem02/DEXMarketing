@@ -28,7 +28,8 @@ export function useClientAccounts(filters?: {
                 .select(`
                     *,
                     client:clients!inner(id, name, email, user:users(id, name, email)),
-                    package:packages(id, name, name_ar)
+                    package:packages(id, name, name_ar),
+                    transactions:transactions(id, type, amount, description, category, transaction_date, created_at, is_approved, visible_to_client, payment_method)
                 `)
                 .order('created_at', { ascending: false })
 
