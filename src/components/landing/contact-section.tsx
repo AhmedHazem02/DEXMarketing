@@ -106,9 +106,6 @@ export function ContactSection() {
           <span className="section-label mb-6 inline-flex">
             {isAr ? '09 — تواصل معنا' : '09 — Get in Touch'}
           </span>
-          <h2 id="contact-heading" className="mt-6 text-3xl sm:text-5xl font-black text-white font-serif mb-4 text-glow-white">
-            {isAr ? 'لنبدأ مشروعك' : "Let's Start Your Project"}
-          </h2>
           <div className="w-20 h-[2px] mx-auto bg-gradient-to-r from-transparent via-[#F2CB05]/60 to-transparent rounded-full" />
         </motion.div>
 

@@ -6,7 +6,6 @@ import {
     StatsSection,
     PortfolioSection,
     TestimonialsSection,
-    ContactSection,
     CTASection,
     BrandsMarquee,
     ProcessSection,
@@ -30,13 +29,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <HeroSection />
             <StatsSection />
             <BrandsMarquee />
-            <AboutSection />
             <ServicesSection />
             <ProcessSection />
             <PortfolioSection />
+            <AboutSection />
             <TestimonialsSection />
             <CTASection />
-            <ContactSection />
         </>
     )
 }

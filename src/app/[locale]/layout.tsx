@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Tajawal, Playfair_Display, Space_Mono } from "next/font/google";
+import { Tajawal, Playfair_Display, Space_Mono, Aref_Ruqaa } from "next/font/google";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -24,6 +24,13 @@ const spaceMono = Space_Mono({
   subsets: ["latin"],
   weight: ["400", "700"],
   variable: '--font-space-mono',
+  display: 'swap',
+});
+
+const arefRuqaa = Aref_Ruqaa({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: '--font-aref-ruqaa',
   display: 'swap',
 });
 
@@ -87,7 +94,7 @@ export default async function RootLayout({
   // Use both fonts variables to allow switching
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning data-scroll-behavior="smooth">
-      <body className={`${tajawal.variable} ${playfair.variable} ${spaceMono.variable} ${tajawal.className} antialiased min-h-screen bg-background text-foreground`}>
+      <body className={`${tajawal.variable} ${playfair.variable} ${spaceMono.variable} ${arefRuqaa.variable} ${tajawal.className} antialiased min-h-screen bg-background text-foreground`}>
         <QueryProvider>
           <NextIntlClientProvider messages={messages}>
             {children}

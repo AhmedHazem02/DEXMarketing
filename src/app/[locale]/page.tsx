@@ -1,11 +1,11 @@
 import {
   HeroSection,
+  PartnersOrbit,
   AboutSection,
   ServicesSection,
   StatsSection,
   PortfolioSection,
   TestimonialsSection,
-  ContactSection,
   CTASection,
   Navbar,
   Footer,
@@ -73,10 +73,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <HeroSection />
         </ErrorBoundary>
         <ErrorBoundary>
-          <StatsSection />
+          <PartnersOrbit />
         </ErrorBoundary>
         <ErrorBoundary>
-          <AboutSection />
+          <StatsSection />
         </ErrorBoundary>
         <ErrorBoundary>
           <ServicesSection />
@@ -85,10 +85,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <PortfolioSection />
         </ErrorBoundary>
         <ErrorBoundary>
-          <TestimonialsSection />
+          <AboutSection />
         </ErrorBoundary>
         <ErrorBoundary>
-          <ContactSection />
+          <TestimonialsSection />
         </ErrorBoundary>
         <ErrorBoundary>
           <CTASection />

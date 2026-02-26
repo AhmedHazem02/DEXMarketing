@@ -1,9 +1,63 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useMemo } from 'react'
 import { useLocale } from 'next-intl'
 import { HeroOverlay } from './effects/hero-overlay'
 import { ChevronDown } from 'lucide-react'
+
+function StarField() {
+    const stars = useMemo(() => {
+        return Array.from({ length: 160 }, (_, i) => ({
+            id: i,
+            x: Math.random() * 100,
+            y: Math.random() * 100,
+            size: Math.random() * 2 + 0.5,
+            opacity: Math.random() * 0.6 + 0.2,
+            twinkleDuration: Math.random() * 3 + 2,
+            twinkleDelay: Math.random() * 5,
+            driftDuration: Math.random() * 20 + 15,
+            driftDelay: Math.random() * 10,
+            driftX: (Math.random() - 0.5) * 60,
+            driftY: (Math.random() - 0.5) * 60,
+        }))
+    }, [])
+
+    return (
+        <div className="absolute inset-0 z-[2] pointer-events-none overflow-hidden">
+            <style>{`
+                @keyframes twinkle {
+                    0%, 100% { opacity: var(--star-opacity); transform: scale(1); }
+                    50% { opacity: calc(var(--star-opacity) * 0.15); transform: scale(0.6); }
+                }
+                @keyframes drift {
+                    0%   { transform: translate(0px, 0px); }
+                    25%  { transform: translate(var(--dx), calc(var(--dy) * 0.5)); }
+                    50%  { transform: translate(calc(var(--dx) * 0.3), var(--dy)); }
+                    75%  { transform: translate(calc(var(--dx) * -0.5), calc(var(--dy) * 0.3)); }
+                    100% { transform: translate(0px, 0px); }
+                }
+            `}</style>
+            {stars.map((star) => (
+                <div
+                    key={star.id}
+                    className="absolute rounded-full bg-white"
+                    style={{
+                        left: `${star.x}%`,
+                        top: `${star.y}%`,
+                        width: `${star.size}px`,
+                        height: `${star.size}px`,
+                        '--star-opacity': star.opacity,
+                        '--dx': `${star.driftX}px`,
+                        '--dy': `${star.driftY}px`,
+                        opacity: star.opacity,
+                        animation: `twinkle ${star.twinkleDuration}s ${star.twinkleDelay}s ease-in-out infinite, drift ${star.driftDuration}s ${star.driftDelay}s ease-in-out infinite`,
+                        boxShadow: star.size > 1.8 ? `0 0 ${star.size * 2}px rgba(255,255,255,0.6)` : 'none',
+                    } as React.CSSProperties}
+                />
+            ))}
+        </div>
+    )
+}
 
 export function HeroSection() {
     const locale = useLocale()
@@ -19,10 +73,13 @@ export function HeroSection() {
             {/* 3D Background - Now Global */}
             <div className="absolute inset-0 z-0" />
 
+            {/* Stars Background */}
+            <StarField />
+
             {/* Hero Image */}
-            <div className="absolute inset-0 z-[5] pointer-events-none flex items-start justify-center lg:justify-end overflow-hidden pt-[10vh] lg:pt-[5vh]">
+            <div className="absolute inset-0 z-[5] pointer-events-none flex items-start justify-center lg:justify-end overflow-hidden pt-[5vh] lg:pt-0">
                 <div
-                    className={`relative w-full max-w-[600px] lg:max-w-[850px] h-[70vh] lg:h-[95vh] lg:translate-y-[5%] ${isAr ? 'lg:-translate-x-[15%]' : 'lg:translate-x-[5%]'
+                    className={`relative w-full max-w-[400px] lg:max-w-[580px] h-[50vh] lg:h-[70vh] lg:translate-y-[35%] ${isAr ? 'lg:translate-x-[10%]' : 'lg:translate-x-[30%]'
                         }`}
                 >
                     <div className="relative w-full h-full">
