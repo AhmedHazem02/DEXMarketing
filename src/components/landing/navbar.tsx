@@ -5,7 +5,8 @@ import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { Link } from '@/i18n/navigation'
 import { useLocale } from 'next-intl'
 import { Button } from '@/components/ui/button'
-import { Menu, X, Rocket } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
+import Image from 'next/image'
 import { LanguageSwitcher } from '@/components/common/language-switcher'
 import { useAuthDashboardLink } from '@/hooks/use-auth-dashboard-link'
 import { useThrottle } from '@/hooks/use-throttle'
@@ -61,14 +62,23 @@ export function Navbar({ initialUser, initialRole }: NavbarProps) {
             <div className="container mx-auto px-6">
                 <div className="flex items-center justify-between h-20">
                     {/* Logo */}
-                    <Link href="/" className="group flex items-center gap-3">
-                        <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-orange-500 shadow-[0_0_20px_rgba(251,191,36,0.15)] transition-shadow group-hover:shadow-[0_0_30px_rgba(251,191,36,0.25)]">
-                            <Rocket className="h-5 w-5 text-background transition-transform group-hover:-translate-y-0.5 group-hover:rotate-12" />
-                        </div>
-                        <div className="hidden sm:flex items-baseline gap-1.5">
-                            <span className="text-xl font-black tracking-tight text-white">DEX</span>
-                            <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/40">Advertising</span>
-                        </div>
+                    <style>{`
+                        @keyframes logo-pulse {
+                            0%, 100% { filter: drop-shadow(0 0 6px rgba(251,191,36,0.30)); }
+                            50%       { filter: drop-shadow(0 0 18px rgba(251,191,36,0.75)) drop-shadow(0 0 32px rgba(251,191,36,0.30)); }
+                        }
+                        .logo-pulse { animation: logo-pulse 8s ease-in-out infinite; }
+                        .logo-pulse:hover { animation: none; filter: drop-shadow(0 0 22px rgba(251,191,36,0.85)); transform: scale(1.05); }
+                    `}</style>
+                    <Link href="/" className="group flex items-center">
+                        <Image
+                            src="/images/DEX LOGO 2.png"
+                            alt="DEX Advertising"
+                            width={160}
+                            height={80}
+                            className="logo-pulse w-[88px] h-auto object-contain transition-transform duration-300"
+                            priority
+                        />
                     </Link>
 
                     {/* Desktop Navigation */}

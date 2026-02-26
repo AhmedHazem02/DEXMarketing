@@ -1,7 +1,8 @@
 'use client'
 
 import { useLocale } from 'next-intl'
-import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin, Rocket } from 'lucide-react'
+import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin } from 'lucide-react'
+import Image from 'next/image'
 import { Link } from '@/i18n/navigation'
 import { useSiteSettingsContext } from '@/components/providers/site-settings-provider'
 import { createClient } from '@/lib/supabase/client'
@@ -81,14 +82,15 @@ export function Footer({ initialUser, initialRole }: FooterProps) {
                 <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 mb-16">
                     {/* Brand Column */}
                     <div className="lg:col-span-4 space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.15)] ring-1 ring-white/10">
-                                <Rocket className="h-6 w-6 text-white" />
-                            </div>
-                            <div>
-                                <span className="text-2xl font-black tracking-tight text-white block leading-none">DEX</span>
-                                <span className="text-sm font-medium text-gray-400 tracking-wider uppercase">Advertising</span>
-                            </div>
+                        <div className="flex items-center">
+                            <Image
+                                src="/images/DEX LOGO 2.png"
+                                alt="DEX Advertising"
+                                width={200}
+                                height={100}
+                                className="w-[120px] h-auto object-contain
+                                           drop-shadow-[0_0_10px_rgba(251,191,36,0.30)]"
+                            />
                         </div>
                         <p className="text-gray-400 leading-relaxed max-w-sm text-base">
                             {isAr
