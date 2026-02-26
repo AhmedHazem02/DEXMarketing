@@ -185,10 +185,39 @@ export function TaskForm({
         }
     }, [task, defaultStatus, form])
 
+    // Resolve department + workflow_stage from assigned user's role
+    const resolveAssignedUserMeta = (assignedToId?: string) => {
+        const assignedUser = assignedToId
+            ? assignableUsers.find(u => u.id === assignedToId)
+            : null
+
+        // Determine workflow_stage based on photography roles
+        const roleStageMap: Record<string, string> = {
+            photographer: 'shooting',
+            videographer: 'filming',
+            editor: 'editing',
+        }
+        const workflow_stage = assignedUser?.role
+            ? (roleStageMap[assignedUser.role] ?? undefined)
+            : undefined
+
+        // Determine department: prefer assigned user's department, then role-derived, then creator's
+        const photographyRoles = ['videographer', 'editor', 'photographer']
+        const department =
+            assignedUser?.department ??
+            (assignedUser?.role && photographyRoles.includes(assignedUser.role) ? 'photography' : undefined) ??
+            currentUser?.department ??
+            undefined
+
+        return { department, workflow_stage }
+    }
+
     // Submit handler
     const onSubmit = async (values: TaskFormValues) => {
         try {
             if (isEditing && task) {
+                const assigneeChanged = values.assigned_to !== task.assigned_to
+                const { department, workflow_stage } = resolveAssignedUserMeta(values.assigned_to)
                 const updateInput: UpdateTaskInput = {
                     id: task.id,
                     title: values.title,
@@ -199,9 +228,15 @@ export function TaskForm({
                     client_id: values.client_id || undefined,
                     project_id: values.project_id || undefined,
                     deadline: values.deadline?.toISOString(),
+                    // Only update department/workflow_stage if assignee changed or not yet set
+                    ...(assigneeChanged || !task.department ? { department: department as never } : {}),
+                    ...(assigneeChanged || !task.workflow_stage || task.workflow_stage === 'none'
+                        ? { workflow_stage: workflow_stage as never }
+                        : {}),
                 }
                 await updateTask.mutateAsync(updateInput)
             } else {
+                const { department, workflow_stage } = resolveAssignedUserMeta(values.assigned_to)
                 const createInput: CreateTaskInput = {
                     title: values.title,
                     description: values.description,
@@ -212,7 +247,8 @@ export function TaskForm({
                     project_id: values.project_id || undefined,
                     deadline: values.deadline?.toISOString(),
                     created_by: currentUserId,
-                    department: currentUser?.department ?? undefined,
+                    department: department as never,
+                    workflow_stage: workflow_stage as never,
                 }
                 await createTask.mutateAsync(createInput)
             }
