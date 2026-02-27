@@ -26,8 +26,9 @@ export function useTreasury() {
             // Return a default treasury object if no row exists
             return (data as unknown as Treasury) ?? { id: '', current_balance: 0, updated_at: new Date().toISOString() } as Treasury
         },
-        staleTime: 2 * 60 * 1000, // 2 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes
+        staleTime: 0, // Always refetch to keep balance current
+        gcTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: true,
     })
 }
 
@@ -37,6 +38,7 @@ export function useTreasury() {
 export function useTransactions(filters?: {
     type?: TransactionType
     category?: string
+    paymentMethod?: 'cash' | 'transfer' | 'check'
     startDate?: string
     endDate?: string
     minAmount?: number
@@ -58,6 +60,9 @@ export function useTransactions(filters?: {
             }
             if (filters?.category) {
                 query = query.eq('category', filters.category)
+            }
+            if (filters?.paymentMethod) {
+                query = query.eq('payment_method', filters.paymentMethod)
             }
             if (filters?.startDate) {
                 query = query.gte('created_at', filters.startDate)
@@ -286,5 +291,47 @@ export function useDeleteTransaction() {
             queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
             queryClient.invalidateQueries({ queryKey: CLIENT_ACCOUNTS_KEY })
         },
+    })
+}
+
+/**
+ * Hook to get income/expense breakdown by payment method (cash vs electronic wallet)
+ */
+export function usePaymentMethodSummary() {
+    const supabase = createClient()
+
+    return useQuery({
+        queryKey: [...TRANSACTIONS_KEY, 'payment-method-summary'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('transactions')
+                .select('type, amount, payment_method')
+                .eq('is_approved', true)
+
+            if (error) throw error
+
+            const summary = {
+                cashIncome: 0,
+                walletIncome: 0,
+                cashExpense: 0,
+                walletExpense: 0,
+            }
+
+            ;(data as unknown as { type: string; amount: number; payment_method: string }[])?.forEach((t) => {
+                const amount = Number(t.amount)
+                if (t.type === 'income') {
+                    if (t.payment_method === 'cash') summary.cashIncome += amount
+                    else if (t.payment_method === 'transfer') summary.walletIncome += amount
+                } else {
+                    if (t.payment_method === 'cash') summary.cashExpense += amount
+                    else if (t.payment_method === 'transfer') summary.walletExpense += amount
+                }
+            })
+
+            return summary
+        },
+        staleTime: 30 * 1000,
+        gcTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: true,
     })
 }

@@ -98,6 +98,7 @@ export function TransactionsTable() {
     const debouncedSearch = useDebounce(search, 300)
     const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all')
     const [categoryFilter, setCategoryFilter] = useState<string>('all')
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState<'all' | 'cash' | 'transfer'>('all')
     const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined)
     const [dateTo, setDateTo] = useState<Date | undefined>(undefined)
     const [minAmount, setMinAmount] = useState('')
@@ -197,13 +198,14 @@ export function TransactionsTable() {
         return {
             type: typeFilter !== 'all' ? typeFilter : undefined,
             category: categoryFilter !== 'all' ? categoryFilter : undefined,
+            paymentMethod: paymentMethodFilter !== 'all' ? paymentMethodFilter : undefined,
             startDate: validDateFrom ? validDateFrom.toISOString() : undefined,
             endDate: validDateTo ? validDateTo.toISOString() : undefined,
             minAmount: validMin,
             maxAmount: validMax,
             limit: 100,
         }
-    }, [typeFilter, categoryFilter, dateFrom, dateTo, minAmount, maxAmount, filterErrors])
+    }, [typeFilter, categoryFilter, paymentMethodFilter, dateFrom, dateTo, minAmount, maxAmount, filterErrors])
 
     const { data: transactions, isLoading } = useTransactions(queryFilters)
 
@@ -240,7 +242,12 @@ export function TransactionsTable() {
     useEffect(() => {
         pagination.goToPage(1)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch, typeFilter, categoryFilter, dateFrom, dateTo, minAmount, maxAmount, sortField, sortDir])
+    }, [debouncedSearch, typeFilter, categoryFilter, paymentMethodFilter, dateFrom, dateTo, minAmount, maxAmount, sortField, sortDir])
+
+    // Reset category filter when type changes to avoid invalid combos
+    useEffect(() => {
+        setCategoryFilter('all')
+    }, [typeFilter])
 
     const paginatedTransactions = useMemo(
         () => pagination.paginateItems(filteredTransactions),
@@ -253,6 +260,7 @@ export function TransactionsTable() {
     const activeFilterCount = [
         typeFilter !== 'all',
         categoryFilter !== 'all',
+        paymentMethodFilter !== 'all',
         !!dateFrom,
         !!dateTo,
         !!minAmount,
@@ -262,12 +270,20 @@ export function TransactionsTable() {
     const clearAllFilters = () => {
         setTypeFilter('all')
         setCategoryFilter('all')
+        setPaymentMethodFilter('all')
         setDateFrom(undefined)
         setDateTo(undefined)
         setMinAmount('')
         setMaxAmount('')
         setSearch('')
     }
+
+    // Dynamic categories based on type filter
+    const visibleCategories = useMemo(() => {
+        if (typeFilter === 'income') return INCOME_CATEGORIES
+        if (typeFilter === 'expense') return EXPENSE_CATEGORIES
+        return ALL_CATEGORIES
+    }, [typeFilter])
 
     // Export handlers
     const handleExportCSV = useCallback(() => {
@@ -422,17 +438,36 @@ export function TransactionsTable() {
                         <label className="text-xs font-medium text-muted-foreground">
                             {isAr ? 'الفئة' : 'Category'}
                         </label>
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <Select value={categoryFilter} onValueChange={(v) => {
+                            setCategoryFilter(v)
+                        }}>
                             <SelectTrigger className="w-full">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">{isAr ? 'الكل' : 'All'}</SelectItem>
-                                {ALL_CATEGORIES.map((cat) => (
+                                {visibleCategories.map((cat) => (
                                     <SelectItem key={cat.value} value={cat.value}>
                                         {getCategoryLabel(cat.value, isAr)}
                                     </SelectItem>
                                 ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Payment Method Filter */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground">
+                            {isAr ? 'طريقة الدفع' : 'Payment Method'}
+                        </label>
+                        <Select value={paymentMethodFilter} onValueChange={(v) => setPaymentMethodFilter(v as 'all' | 'cash' | 'transfer')}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{isAr ? 'الكل' : 'All'}</SelectItem>
+                                <SelectItem value="cash">{isAr ? 'نقد' : 'Cash'}</SelectItem>
+                                <SelectItem value="transfer">{isAr ? 'محفظة إلكترونية' : 'Mobile Wallet'}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -612,8 +647,18 @@ export function TransactionsTable() {
                     )}
                     {categoryFilter !== 'all' && (
                         <Badge variant="secondary" className="gap-1 pe-1">
-                            {categoryFilter}
+                            {getCategoryLabel(categoryFilter, isAr)}
                             <button onClick={() => setCategoryFilter('all')} className="ms-1 rounded-full hover:bg-muted p-0.5">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                    )}
+                    {paymentMethodFilter !== 'all' && (
+                        <Badge variant="secondary" className="gap-1 pe-1">
+                            {paymentMethodFilter === 'cash'
+                                ? (isAr ? 'نقد' : 'Cash')
+                                : (isAr ? 'محفظة إلكترونية' : 'Mobile Wallet')}
+                            <button onClick={() => setPaymentMethodFilter('all')} className="ms-1 rounded-full hover:bg-muted p-0.5">
                                 <X className="h-3 w-3" />
                             </button>
                         </Badge>
@@ -738,9 +783,20 @@ export function TransactionsTable() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="secondary" className="font-normal">
-                                            {getCategoryLabel(tx.category, isAr)}
-                                        </Badge>
+                                        <div className="flex flex-col gap-1">
+                                            <Badge variant="secondary" className="font-normal w-fit">
+                                                {getCategoryLabel(tx.category, isAr)}
+                                            </Badge>
+                                            {tx.payment_method && (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {tx.payment_method === 'cash'
+                                                        ? (isAr ? 'نقد' : 'Cash')
+                                                        : tx.payment_method === 'transfer'
+                                                            ? (isAr ? 'محفظة إلكترونية' : 'Mobile Wallet')
+                                                            : (isAr ? 'شيك' : 'Check')}
+                                                </span>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={tx.is_approved ? 'default' : 'outline'} className={tx.is_approved ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'text-yellow-700 border-yellow-400 dark:text-yellow-300'}>
