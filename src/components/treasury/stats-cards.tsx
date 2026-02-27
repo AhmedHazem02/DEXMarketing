@@ -38,8 +38,8 @@ export function TreasuryStats() {
     const currentBalance = (allTimeSummary?.totalIncome ?? 0) - (allTimeSummary?.totalExpense ?? 0)
     const income = summary?.totalIncome ?? 0
     const expense = summary?.totalExpense ?? 0
-    const cashIncome = paymentSummary?.cashIncome ?? 0
-    const walletIncome = paymentSummary?.walletIncome ?? 0
+    const cashNet = (paymentSummary?.cashIncome ?? 0) - (paymentSummary?.cashExpense ?? 0)
+    const walletNet = (paymentSummary?.walletIncome ?? 0) - (paymentSummary?.walletExpense ?? 0)
 
     return (
         <div className="space-y-4">
@@ -110,44 +110,58 @@ export function TreasuryStats() {
                 </Card>
             </div>
 
-            {/* Row 2: Payment Method Breakdown (all time approved) */}
+            {/* Row 2: Payment Method Net Balance (all time approved) */}
             <div className="grid gap-4 md:grid-cols-2">
-                {/* Cash Income */}
-                <Card className="border-green-500/20 bg-green-500/5">
+                {/* Cash Net */}
+                <Card className={cashNet >= 0 ? 'border-green-500/20 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            {isAr ? 'الدخل نقداً' : 'Cash Income'}
+                            {isAr ? 'رصيد النقد' : 'Cash Balance'}
                         </CardTitle>
-                        <div className="h-9 w-9 rounded-xl bg-green-500/15 border border-green-500/25 flex items-center justify-center">
-                            <Banknote className="h-4 w-4 text-green-600" />
+                        <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${
+                            cashNet >= 0
+                                ? 'bg-green-500/15 border border-green-500/25'
+                                : 'bg-red-500/15 border border-red-500/25'
+                        }`}>
+                            <Banknote className={`h-4 w-4 ${cashNet >= 0 ? 'text-green-600' : 'text-red-500'}`} />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">
-                            {cashIncome.toLocaleString()} ج.م
+                        <div className={`text-2xl font-bold ${cashNet >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {cashNet >= 0 ? '+' : ''}{cashNet.toLocaleString()} ج.م
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            {isAr ? 'إجمالي الإيرادات النقدية المعتمدة' : 'Total approved cash income'}
+                            {isAr
+                                ? `دخل ${(paymentSummary?.cashIncome ?? 0).toLocaleString()} — مصروف ${(paymentSummary?.cashExpense ?? 0).toLocaleString()} ج.م`
+                                : `Income ${(paymentSummary?.cashIncome ?? 0).toLocaleString()} — Expense ${(paymentSummary?.cashExpense ?? 0).toLocaleString()} EGP`
+                            }
                         </p>
                     </CardContent>
                 </Card>
 
-                {/* Wallet Income */}
-                <Card className="border-blue-500/20 bg-blue-500/5">
+                {/* Wallet Net */}
+                <Card className={walletNet >= 0 ? 'border-blue-500/20 bg-blue-500/5' : 'border-red-500/20 bg-red-500/5'}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            {isAr ? 'الدخل محفظة إلكترونية' : 'Mobile Wallet Income'}
+                            {isAr ? 'رصيد المحفظة الإلكترونية' : 'Mobile Wallet Balance'}
                         </CardTitle>
-                        <div className="h-9 w-9 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center">
-                            <Smartphone className="h-4 w-4 text-blue-500" />
+                        <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${
+                            walletNet >= 0
+                                ? 'bg-blue-500/15 border border-blue-500/25'
+                                : 'bg-red-500/15 border border-red-500/25'
+                        }`}>
+                            <Smartphone className={`h-4 w-4 ${walletNet >= 0 ? 'text-blue-500' : 'text-red-500'}`} />
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-500">
-                            {walletIncome.toLocaleString()} ج.م
+                        <div className={`text-2xl font-bold ${walletNet >= 0 ? 'text-blue-500' : 'text-red-500'}`}>
+                            {walletNet >= 0 ? '+' : ''}{walletNet.toLocaleString()} ج.م
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            {isAr ? 'إجمالي إيرادات المحفظة الإلكترونية المعتمدة' : 'Total approved wallet income'}
+                            {isAr
+                                ? `دخل ${(paymentSummary?.walletIncome ?? 0).toLocaleString()} — مصروف ${(paymentSummary?.walletExpense ?? 0).toLocaleString()} ج.م`
+                                : `Income ${(paymentSummary?.walletIncome ?? 0).toLocaleString()} — Expense ${(paymentSummary?.walletExpense ?? 0).toLocaleString()} EGP`
+                            }
                         </p>
                     </CardContent>
                 </Card>
