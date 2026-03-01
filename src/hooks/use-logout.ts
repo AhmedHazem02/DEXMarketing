@@ -16,7 +16,7 @@ export function useLogout() {
             const supabase = createClient()
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
-                await supabase.from('activity_log').insert({ user_id: user.id, action: 'logout' } as never)
+                await supabase.from('activity_log').insert({ user_id: user.id, action: 'logout' })
             }
             await supabase.auth.signOut()
             router.push('/login')

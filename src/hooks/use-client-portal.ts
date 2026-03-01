@@ -285,7 +285,7 @@ export function useCreateClientRequest() {
             const { data: teamLeader } = await supabase
                 .from('users')
                 .select('id')
-                .eq('role', 'team-leader')
+                .eq('role', 'team_leader')
                 .eq('department', input.department)
                 .eq('is_active', true)
                 .limit(1)

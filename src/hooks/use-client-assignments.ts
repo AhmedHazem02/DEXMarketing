@@ -108,7 +108,7 @@ export function useAssignClient() {
                     client_id: clientId,
                     user_id: userId,
                     assigned_by: assignedBy,
-                } as any)
+                })
                 .select()
                 .single()
 
@@ -179,7 +179,7 @@ export function useSyncClientAssignments() {
 
             if (fetchError) throw fetchError
 
-            const currentIds = new Set((current || []).map((a: any) => a.client_id))
+            const currentIds = new Set((current || []).map(a => a.client_id))
             const targetIds = new Set(clientIds)
 
             // Determine what to add and what to remove
@@ -208,7 +208,7 @@ export function useSyncClientAssignments() {
 
                 const { error: insertError } = await supabase
                     .from('client_assignments')
-                    .insert(inserts as any)
+                    .insert(inserts)
 
                 if (insertError) throw insertError
             }

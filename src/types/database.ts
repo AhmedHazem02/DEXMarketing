@@ -28,7 +28,7 @@ export type ScheduleType = 'reels' | 'post'
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
 export type AdvanceRecipientType = 'employee' | 'owner'
 
-export interface ScheduleLink {
+export type ScheduleLink = {
     url: string
     comment: string
 }
@@ -37,7 +37,7 @@ export interface ScheduleLink {
 // Table Types
 // ============================================
 
-export interface User {
+export type User = {
     id: string
     email: string
     name: string | null
@@ -49,7 +49,7 @@ export interface User {
     created_at: string
 }
 
-export interface Client {
+export type Client = {
     id: string
     user_id: string | null
     name: string
@@ -59,7 +59,7 @@ export interface Client {
     created_at: string
 }
 
-export interface ClientAssignment {
+export type ClientAssignment = {
     id: string
     client_id: string
     user_id: string
@@ -67,13 +67,13 @@ export interface ClientAssignment {
     created_at: string
 }
 
-export interface ClientAssignmentWithRelations extends ClientAssignment {
+export type ClientAssignmentWithRelations = ClientAssignment & {
     client?: Client | null
     user?: Pick<User, 'id' | 'name' | 'email' | 'role' | 'avatar_url' | 'department'> | null
     assigner?: Pick<User, 'id' | 'name' | 'role'> | null
 }
 
-export interface Project {
+export type Project = {
     id: string
     client_id: string | null
     name: string
@@ -87,7 +87,7 @@ export interface Project {
     created_at: string
 }
 
-export interface Task {
+export type Task = {
     id: string
     project_id: string | null
     title: string
@@ -115,7 +115,7 @@ export interface Task {
     updated_at: string
 }
 
-export interface Attachment {
+export type Attachment = {
     id: string
     task_id: string | null
     file_url: string
@@ -127,7 +127,7 @@ export interface Attachment {
     created_at: string
 }
 
-export interface Comment {
+export type Comment = {
     id: string
     task_id: string | null
     user_id: string | null
@@ -135,7 +135,7 @@ export interface Comment {
     created_at: string
 }
 
-export interface Treasury {
+export type Treasury = {
     id: string
     current_balance: number
     updated_at: string
@@ -143,7 +143,7 @@ export interface Treasury {
 
 export type PaymentMethod = 'cash' | 'transfer' | 'check'
 
-export interface Advance {
+export type Advance = {
     id: string
     recipient_id: string | null
     recipient_type: AdvanceRecipientType
@@ -155,7 +155,7 @@ export interface Advance {
     created_at: string
 }
 
-export interface AdvanceRecipient {
+export type AdvanceRecipient = {
     id: string
     name: string
     recipient_type: AdvanceRecipientType
@@ -163,11 +163,11 @@ export interface AdvanceRecipient {
     created_at: string
 }
 
-export interface AdvanceRecipientWithAdvances extends AdvanceRecipient {
+export type AdvanceRecipientWithAdvances = AdvanceRecipient & {
     advances: Pick<Advance, 'id' | 'amount' | 'notes' | 'transaction_id' | 'created_at'>[]
 }
 
-export interface Transaction {
+export type Transaction = {
     id: string
     type: TransactionType
     payment_method: PaymentMethod
@@ -187,9 +187,10 @@ export interface Transaction {
     notes: string | null
     created_by: string | null
     created_at: string
+    client?: { id: string; name: string; email: string | null; user?: { name: string } | null } | null
 }
 
-export interface TreasuryLog {
+export type TreasuryLog = {
     id: string
     transaction_id: string | null
     action: 'create' | 'update' | 'delete' | 'approve' | 'reject'
@@ -204,7 +205,7 @@ export interface TreasuryLog {
     created_at: string
 }
 
-export interface Package {
+export type Package = {
     id: string
     name: string
     name_ar: string | null
@@ -217,7 +218,7 @@ export interface Package {
     updated_at: string
 }
 
-export interface ClientAccount {
+export type ClientAccount = {
     id: string
     client_id: string
     package_id: string | null
@@ -237,13 +238,13 @@ export interface ClientAccount {
 }
 
 // Extended Types with Relations
-export interface ClientAccountWithRelations extends ClientAccount {
+export type ClientAccountWithRelations = ClientAccount & {
     client?: Client
     package?: Package
     transactions?: Transaction[]
 }
 
-export interface Notification {
+export type Notification = {
     id: string
     user_id: string | null
     title: string
@@ -253,7 +254,7 @@ export interface Notification {
     created_at: string
 }
 
-export interface SiteSetting {
+export type SiteSetting = {
     id: string
     key: string
     value: Json
@@ -261,7 +262,7 @@ export interface SiteSetting {
     updated_at: string
 }
 
-export interface Page {
+export type Page = {
     id: string
     slug: string
     title_en: string | null
@@ -272,7 +273,7 @@ export interface Page {
     updated_at: string
 }
 
-export interface TeamMember {
+export type TeamMember = {
     id: string
     name_en: string
     name_ar: string | null
@@ -286,7 +287,7 @@ export interface TeamMember {
     created_at: string
 }
 
-export interface PortfolioItem {
+export type PortfolioItem = {
     id: string
     title_en: string
     title_ar: string | null
@@ -298,7 +299,7 @@ export interface PortfolioItem {
     created_at: string
 }
 
-export interface ActivityLog {
+export type ActivityLog = {
     id: string
     user_id: string | null
     action: string
@@ -307,17 +308,27 @@ export interface ActivityLog {
     created_at: string
 }
 
-export interface StorageSettings {
+export type StorageSettings = {
     id: string
     auto_delete_months: number
     last_cleanup: string | null
+}
+
+export type ContactMessage = {
+    id: string
+    name: string
+    email: string
+    phone: string | null
+    message: string
+    is_read: boolean
+    created_at: string
 }
 
 // ============================================
 // New Tables - v2 Department System
 // ============================================
 
-export interface Schedule {
+export type Schedule = {
     id: string
     department: Department
     team_leader_id: string
@@ -346,7 +357,7 @@ export interface Schedule {
     updated_at: string
 }
 
-export interface Conversation {
+export type Conversation = {
     id: string
     project_id: string | null
     department: Department | null
@@ -355,7 +366,7 @@ export interface Conversation {
     last_message_at: string
 }
 
-export interface ConversationParticipant {
+export type ConversationParticipant = {
     id: string
     conversation_id: string
     user_id: string
@@ -363,7 +374,7 @@ export interface ConversationParticipant {
     joined_at: string
 }
 
-export interface Message {
+export type Message = {
     id: string
     conversation_id: string
     sender_id: string
@@ -385,121 +396,202 @@ export interface Database {
                 Row: User
                 Insert: Omit<User, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<User, 'id'>>
+                Relationships: []
             }
             clients: {
                 Row: Client
                 Insert: Omit<Client, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<Client, 'id'>>
+                Relationships: []
             }
             projects: {
                 Row: Project
                 Insert: Omit<Project, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<Project, 'id'>>
+                Relationships: []
             }
             tasks: {
                 Row: Task
                 Insert: Omit<Task, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string }
                 Update: Partial<Omit<Task, 'id'>>
+                Relationships: []
             }
             attachments: {
                 Row: Attachment
                 Insert: Omit<Attachment, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<Attachment, 'id'>>
+                Relationships: []
             }
             comments: {
                 Row: Comment
                 Insert: Omit<Comment, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<Comment, 'id'>>
+                Relationships: []
             }
             treasury: {
                 Row: Treasury
                 Insert: Omit<Treasury, 'id' | 'updated_at'> & { id?: string; updated_at?: string }
                 Update: Partial<Omit<Treasury, 'id'>>
+                Relationships: []
             }
             transactions: {
                 Row: Transaction
-                Insert: Omit<Transaction, 'id' | 'created_at'> & { id?: string; created_at?: string }
+                Insert: {
+                    id?: string
+                    type: TransactionType
+                    payment_method?: PaymentMethod
+                    amount: number
+                    description?: string | null
+                    category?: string | null
+                    sub_category?: string | null
+                    receipt_url?: string | null
+                    client_id?: string | null
+                    project_id?: string | null
+                    client_account_id?: string | null
+                    transaction_date?: string | null
+                    is_approved?: boolean
+                    approved_by?: string | null
+                    approved_at?: string | null
+                    visible_to_client?: boolean
+                    notes?: string | null
+                    created_by?: string | null
+                    created_at?: string
+                }
                 Update: Partial<Omit<Transaction, 'id'>>
+                Relationships: []
             }
             notifications: {
                 Row: Notification
-                Insert: Omit<Notification, 'id' | 'created_at'> & { id?: string; created_at?: string }
+                Insert: {
+                    id?: string
+                    user_id?: string | null
+                    title: string
+                    message?: string | null
+                    link?: string | null
+                    is_read?: boolean
+                    created_at?: string
+                }
                 Update: Partial<Omit<Notification, 'id'>>
+                Relationships: []
             }
             site_settings: {
                 Row: SiteSetting
                 Insert: Omit<SiteSetting, 'id' | 'updated_at'> & { id?: string; updated_at?: string }
                 Update: Partial<Omit<SiteSetting, 'id'>>
+                Relationships: []
             }
             pages: {
                 Row: Page
                 Insert: Omit<Page, 'id' | 'updated_at'> & { id?: string; updated_at?: string }
                 Update: Partial<Omit<Page, 'id'>>
+                Relationships: []
             }
             team_members: {
                 Row: TeamMember
                 Insert: Omit<TeamMember, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<TeamMember, 'id'>>
+                Relationships: []
             }
             portfolio: {
                 Row: PortfolioItem
                 Insert: Omit<PortfolioItem, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<PortfolioItem, 'id'>>
+                Relationships: []
             }
             activity_log: {
                 Row: ActivityLog
-                Insert: Omit<ActivityLog, 'id' | 'created_at'> & { id?: string; created_at?: string }
+                Insert: {
+                    id?: string
+                    user_id?: string | null
+                    action: string
+                    details?: Json | null
+                    ip_address?: string | null
+                    created_at?: string
+                }
                 Update: Partial<Omit<ActivityLog, 'id'>>
+                Relationships: []
             }
             storage_settings: {
                 Row: StorageSettings
                 Insert: Omit<StorageSettings, 'id'> & { id?: string }
                 Update: Partial<Omit<StorageSettings, 'id'>>
+                Relationships: []
             }
             schedules: {
                 Row: Schedule
                 Insert: Omit<Schedule, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string }
                 Update: Partial<Omit<Schedule, 'id'>>
+                Relationships: []
             }
             conversations: {
                 Row: Conversation
                 Insert: Omit<Conversation, 'id' | 'created_at' | 'updated_at' | 'last_message_at'> & { id?: string; created_at?: string; updated_at?: string; last_message_at?: string }
                 Update: Partial<Omit<Conversation, 'id'>>
+                Relationships: []
             }
             conversation_participants: {
                 Row: ConversationParticipant
-                Insert: Omit<ConversationParticipant, 'id' | 'joined_at'> & { id?: string; joined_at?: string }
+                Insert: Omit<ConversationParticipant, 'id' | 'joined_at' | 'last_read_at'> & { id?: string; joined_at?: string; last_read_at?: string | null }
                 Update: Partial<Omit<ConversationParticipant, 'id'>>
+                Relationships: []
             }
             messages: {
                 Row: Message
-                Insert: Omit<Message, 'id' | 'created_at'> & { id?: string; created_at?: string }
+                Insert: Omit<Message, 'id' | 'created_at' | 'is_read' | 'file_url' | 'file_name'> & { id?: string; created_at?: string; is_read?: boolean; file_url?: string | null; file_name?: string | null }
                 Update: Partial<Omit<Message, 'id'>>
+                Relationships: []
             }
             treasury_logs: {
                 Row: TreasuryLog
                 Insert: Omit<TreasuryLog, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<TreasuryLog, 'id'>>
+                Relationships: []
             }
             packages: {
                 Row: Package
                 Insert: Omit<Package, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string }
                 Update: Partial<Omit<Package, 'id'>>
+                Relationships: []
             }
             client_accounts: {
                 Row: ClientAccount
                 Insert: Omit<ClientAccount, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string }
                 Update: Partial<Omit<ClientAccount, 'id'>>
+                Relationships: []
             }
             advances: {
                 Row: Advance
-                Insert: Omit<Advance, 'id' | 'created_at'> & { id?: string; created_at?: string }
+                Insert: {
+                    id?: string
+                    recipient_id?: string | null
+                    recipient_type?: AdvanceRecipientType
+                    recipient_name: string
+                    amount: number
+                    notes?: string | null
+                    transaction_id?: string | null
+                    created_by?: string | null
+                    created_at?: string
+                }
                 Update: Partial<Omit<Advance, 'id'>>
+                Relationships: []
             }
             advance_recipients: {
                 Row: AdvanceRecipient
                 Insert: Omit<AdvanceRecipient, 'id' | 'created_at'> & { id?: string; created_at?: string }
                 Update: Partial<Omit<AdvanceRecipient, 'id'>>
+                Relationships: []
+            }
+            client_assignments: {
+                Row: ClientAssignment
+                Insert: Omit<ClientAssignment, 'id' | 'created_at'> & { id?: string; created_at?: string }
+                Update: Partial<Omit<ClientAssignment, 'id'>>
+                Relationships: []
+            }
+            contact_messages: {
+                Row: ContactMessage
+                Insert: Omit<ContactMessage, 'id' | 'created_at' | 'is_read'> & { id?: string; created_at?: string; is_read?: boolean }
+                Update: Partial<Omit<ContactMessage, 'id'>>
+                Relationships: []
             }
         }
         Enums: {
@@ -517,5 +609,8 @@ export interface Database {
             request_status: RequestStatus
             advance_recipient_type: AdvanceRecipientType
         }
+        // Required by Supabase SDK v2 GenericSchema constraint
+        Views: Record<string, never>
+        Functions: Record<string, never>
     }
 }

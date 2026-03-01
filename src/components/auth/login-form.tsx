@@ -64,7 +64,7 @@ export function LoginForm() {
 
             // Log login activity (fire-and-forget for performance)
             if (user) {
-                supabase.from('activity_log').insert({ user_id: user.id, action: 'login', details: { email: values.email } } as never).then()
+                supabase.from('activity_log').insert({ user_id: user.id, action: 'login', details: { email: values.email } }).then()
             }
 
             if (!user) {
@@ -82,7 +82,7 @@ export function LoginForm() {
                 .single()
 
             if (profile) {
-                role = (profile as any).role
+                role = profile.role
             }
 
             const normalizedRole = role ? String(role).toLowerCase().trim() : ''

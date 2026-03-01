@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { TreasuryLog, User, Client } from '@/types/database'
 
+type TreasuryLogAction = TreasuryLog['action']
+
 // Query keys
 const TREASURY_LOGS_KEY = ['treasury-logs'] as const
 
@@ -48,7 +50,7 @@ export function useTreasuryLogs(filters?: TreasuryLogsFilters) {
 
             // Apply filters
             if (filters?.action) {
-                query = query.eq('action', filters.action)
+                query = query.eq('action', filters.action as TreasuryLogAction)
             }
 
             if (filters?.clientId) {
@@ -157,7 +159,7 @@ export function useTreasuryActivityStats(startDate?: string, endDate?: string) {
                     .select('*', { count: 'exact', head: true })
 
                 if (action) {
-                    q = q.eq('action', action)
+                    q = q.eq('action', action as TreasuryLogAction)
                 }
                 if (startDate) {
                     q = q.gte('created_at', startDate)

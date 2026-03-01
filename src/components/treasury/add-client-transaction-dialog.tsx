@@ -57,6 +57,7 @@ const clientTransactionSchema = z.object({
     client_account_id: z.string().min(1, 'Client account is required'),
     type: z.enum(['income', 'expense']),
     payment_method: z.enum(['cash', 'transfer']),
+    service_type: z.enum(['social', 'print']).optional(),
     amount: z.number().min(0.01, 'Amount must be greater than zero'),
     description: z.string().optional(),
     date: z.date().optional(),
@@ -94,6 +95,7 @@ export function AddClientTransactionDialog({
             client_account_id: defaultClientAccountId || '',
             type: 'income',
             payment_method: 'cash',
+            service_type: undefined,
             amount: 0,
             description: '',
             visible_to_client: true,
@@ -117,6 +119,7 @@ export function AddClientTransactionDialog({
                 client_id: selectedAccount?.client_id || null,
                 type: values.type,
                 payment_method: values.payment_method,
+                category: values.service_type || null,
                 amount: values.amount,
                 description: values.description || null,
                 visible_to_client: values.visible_to_client,
@@ -265,6 +268,29 @@ export function AddClientTransactionDialog({
                                 )}
                             />
                         </div>
+
+                        {/* Service Type */}
+                        <FormField
+                            control={form.control}
+                            name="service_type"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{isAr ? 'نوع الخدمة' : 'Service Type'}</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={isAr ? 'اختر نوع الخدمة' : 'Select service type'} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent position="popper">
+                                            <SelectItem value="social">{isAr ? 'سوشيال' : 'Social'}</SelectItem>
+                                            <SelectItem value="print">{isAr ? 'طباعة' : 'Print'}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         {/* Amount */}
                         <FormField

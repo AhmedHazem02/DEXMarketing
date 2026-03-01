@@ -742,6 +742,7 @@ export function TransactionsTable() {
                     <TableHeader>
                         <TableRow className="bg-muted/50">
                             <TableHead>{isAr ? 'المعاملة' : 'Transaction'}</TableHead>
+                            <TableHead>{isAr ? 'العميل' : 'Client'}</TableHead>
                             <TableHead>{isAr ? 'الفئة' : 'Category'}</TableHead>
                             <TableHead>{isAr ? 'الحالة' : 'Status'}</TableHead>
                             <TableHead>{isAr ? 'التاريخ' : 'Date'}</TableHead>
@@ -752,7 +753,7 @@ export function TransactionsTable() {
                     <TableBody>
                         {paginatedTransactions?.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                                     {isAr ? 'لا توجد معاملات' : 'No transactions found'}
                                 </TableCell>
                             </TableRow>
@@ -781,6 +782,14 @@ export function TransactionsTable() {
                                                 )}
                                             </div>
                                         </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className="text-sm font-medium">
+                                            {tx.client
+                                                ? (tx.client.user?.name || tx.client.name)
+                                                : (isAr ? 'شركة' : 'Company')
+                                            }
+                                        </span>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col gap-1">

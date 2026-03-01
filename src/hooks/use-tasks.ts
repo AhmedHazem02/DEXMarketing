@@ -804,7 +804,7 @@ export function useAdminTasksStats(filters: TaskFilters = {}) {
                 query = applyTaskFilters(query, filtersForQuery)
                 
                 if (statusFilter) {
-                    query = query.eq('status', statusFilter)
+                    query = query.eq('status', statusFilter as TaskStatus)
                 }
                 
                 return query
@@ -1153,7 +1153,7 @@ export function usePendingRequests(teamLeaderId: string) {
                     attachments(id, file_url, file_name, file_type, file_size)
                 `)
                 .not('request_type', 'is', null)
-                .eq('department', tlUser.department)
+                .eq('department', tlUser.department as Department)
                 .order('created_at', { ascending: false })
 
             if (error) throw error
@@ -1275,7 +1275,7 @@ export function useClientTasksStats(clientId: string, filters: TaskFilters = {})
                     .eq('client_id', clientId)
                 query = applyTaskFilters(query, filtersForQuery)
                 if (statusFilter) {
-                    query = query.eq('status', statusFilter)
+                    query = query.eq('status', statusFilter as TaskStatus)
                 }
                 return query
             }

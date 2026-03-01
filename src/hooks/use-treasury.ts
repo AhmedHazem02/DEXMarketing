@@ -52,7 +52,7 @@ export function useTransactions(filters?: {
         queryFn: async () => {
             let query = supabase
                 .from('transactions')
-                .select('id, type, amount, description, category, sub_category, payment_method, receipt_url, client_id, project_id, client_account_id, visible_to_client, is_approved, approved_by, approved_at, notes, created_by, transaction_date, created_at')
+                .select('id, type, amount, description, category, sub_category, payment_method, receipt_url, client_id, project_id, client_account_id, visible_to_client, is_approved, approved_by, approved_at, notes, created_by, transaction_date, created_at, client:clients(id, name, email, user:users(name))')
                 .order('created_at', { ascending: false })
 
             if (filters?.type) {

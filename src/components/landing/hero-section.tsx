@@ -1,13 +1,19 @@
 'use client'
 
-import { useRef, useMemo } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useLocale } from 'next-intl'
 import { HeroOverlay } from './effects/hero-overlay'
 import { ChevronDown } from 'lucide-react'
 
 function StarField() {
-    const stars = useMemo(() => {
-        return Array.from({ length: 160 }, (_, i) => ({
+    const [stars, setStars] = useState<Array<{
+        id: number; x: number; y: number; size: number; opacity: number;
+        twinkleDuration: number; twinkleDelay: number; driftDuration: number;
+        driftDelay: number; driftX: number; driftY: number;
+    }>>([])
+
+    useEffect(() => {
+        setStars(Array.from({ length: 160 }, (_, i) => ({
             id: i,
             x: Math.random() * 100,
             y: Math.random() * 100,
@@ -19,7 +25,7 @@ function StarField() {
             driftDelay: Math.random() * 10,
             driftX: (Math.random() - 0.5) * 60,
             driftY: (Math.random() - 0.5) * 60,
-        }))
+        })))
     }, [])
 
     return (

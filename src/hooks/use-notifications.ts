@@ -23,7 +23,7 @@ export function useNotifications(userId?: string, limit = 20) {
                 .limit(limit)
 
             if (error) throw error
-            return data as unknown as Notification[]
+            return data ?? []
         },
         enabled: !!userId,
     })
@@ -37,7 +37,7 @@ export function useMarkNotificationRead() {
         mutationFn: async (id: string) => {
             const { error } = await supabase
                 .from('notifications')
-                .update({ is_read: true } as never)
+                .update({ is_read: true })
                 .eq('id', id)
 
             if (error) throw error
@@ -59,7 +59,7 @@ export function useMarkAllNotificationsRead() {
         mutationFn: async (userId: string) => {
             const { error } = await supabase
                 .from('notifications')
-                .update({ is_read: true } as never)
+                .update({ is_read: true })
                 .eq('user_id', userId)
                 .eq('is_read', false)
 

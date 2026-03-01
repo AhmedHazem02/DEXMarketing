@@ -60,8 +60,7 @@ export function ContactSection() {
       // Send contact form data to Supabase
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase.from('contact_messages') as any).insert({
+      const { error } = await supabase.from('contact_messages').insert({
         name: data.name,
         email: data.email,
         phone: data.phone || null,

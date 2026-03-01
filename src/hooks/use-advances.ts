@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import type { Advance, AdvanceRecipient, AdvanceRecipientType, AdvanceRecipientWithAdvances } from '@/types/database'
+import type { Advance, AdvanceRecipient, AdvanceRecipientType, AdvanceRecipientWithAdvances, Transaction } from '@/types/database'
 
 const ADVANCES_KEY = ['advances']
 const RECIPIENTS_KEY = ['advance_recipients']
@@ -16,12 +16,12 @@ export function useAdvanceRecipients() {
     return useQuery({
         queryKey: RECIPIENTS_KEY,
         queryFn: async () => {
-            const { data, error } = await (supabase as any)
+            const { data, error } = await supabase
                 .from('advance_recipients')
                 .select('*, advances(id, amount, notes, transaction_id, created_at)')
                 .order('created_at', { ascending: false })
             if (error) throw error
-            return data as AdvanceRecipientWithAdvances[]
+            return data as unknown as AdvanceRecipientWithAdvances[]
         },
         staleTime: 30 * 1000,
         gcTime: 5 * 60 * 1000,
@@ -35,7 +35,7 @@ export function useCreateAdvanceRecipient() {
         mutationFn: async (input: { name: string; recipient_type: AdvanceRecipientType }) => {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('Not authenticated')
-            const { data, error } = await (supabase as any)
+            const { data, error } = await supabase
                 .from('advance_recipients')
                 .insert({ ...input, created_by: user.id })
                 .select()
@@ -60,7 +60,7 @@ export function useDeleteAdvanceRecipient() {
                 await supabase.from('transactions').delete().eq('id', txId)
             }
             // Delete recipient (DB ON DELETE CASCADE removes their advances)
-            const { error } = await (supabase as any)
+            const { error } = await supabase
                 .from('advance_recipients')
                 .delete()
                 .eq('id', recipient.id)
@@ -93,7 +93,7 @@ export function useAdvances(filters?: { startDate?: string; endDate?: string }) 
             }
             const { data, error } = await query
             if (error) throw error
-            return data as unknown as Advance[]
+            return data ?? []
         },
         staleTime: 30 * 1000,
         gcTime: 5 * 60 * 1000,
@@ -132,10 +132,11 @@ export function useCreateAdvance() {
                     is_approved: true,
                     approved_by: user.id,
                     approved_at: new Date().toISOString(),
-                } as never)
+                })
                 .select()
                 .single()
             if (txError) throw txError
+            const tx = transaction as unknown as Transaction
 
             // 2. Create advance record linked to transaction and recipient
             const { data: advance, error: advError } = await supabase
@@ -146,13 +147,13 @@ export function useCreateAdvance() {
                     recipient_name: input.recipient_name,
                     amount: input.amount,
                     notes: input.notes || null,
-                    transaction_id: (transaction as any).id,
+                    transaction_id: tx.id,
                     created_by: user.id,
-                } as never)
+                })
                 .select()
                 .single()
             if (advError) throw advError
-            return advance as unknown as Advance
+            return advance!
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: RECIPIENTS_KEY })
