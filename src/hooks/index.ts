@@ -77,7 +77,8 @@ export {
 export {
     useRealtimeSubscription,
     useNotificationsRealtime,
-    useTasksRealtime
+    useTasksRealtime,
+    useTreasuryRealtimeSync
 } from './use-realtime'
 export {
     useSiteSettings,

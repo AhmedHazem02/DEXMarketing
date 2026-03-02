@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { taskKeys } from './use-tasks'
 import { NOTIFICATIONS_KEY } from './use-notifications'
 import { CLIENT_ACCOUNTS_KEY } from './use-client-accounts'
+import { TREASURY_KEY, TRANSACTIONS_KEY } from './use-treasury'
 
 /**
  * Returns a debounced version of `fn` that batches rapid calls.
@@ -236,6 +237,37 @@ export function useClientAccountsRealtimeSync() {
         return () => {
             supabase.removeChannel(accountsChannel)
             supabase.removeChannel(transactionsChannel)
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [queryClient])
+}
+
+/**
+ * Hook to subscribe to real-time updates for treasury balance
+ * Listens to transactions table changes and invalidates treasury + transaction queries
+ * so the computed balance updates automatically.
+ */
+export function useTreasuryRealtimeSync() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    const debouncedInvalidate = useDebouncedCallback(() => {
+        queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
+        queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
+    }, 1500)
+
+    useEffect(() => {
+        const channel = supabase
+            .channel('db-treasury-sync')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'transactions' },
+                () => { debouncedInvalidate() }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [queryClient])

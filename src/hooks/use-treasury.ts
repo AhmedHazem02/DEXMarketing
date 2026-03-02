@@ -5,11 +5,13 @@ import { createClient } from '@/lib/supabase/client'
 import type { Treasury, Transaction, TransactionType } from '@/types/database'
 import { CLIENT_ACCOUNTS_KEY } from './use-client-accounts'
 
-const TREASURY_KEY = ['treasury']
-const TRANSACTIONS_KEY = ['transactions']
+export const TREASURY_KEY = ['treasury']
+export const TRANSACTIONS_KEY = ['transactions']
 
 /**
  * Hook to fetch current treasury balance
+ * Computes balance from actual approved transactions instead of relying
+ * on the DB trigger (which may not be installed or may become stale).
  */
 export function useTreasury() {
     const supabase = createClient()
@@ -17,14 +19,30 @@ export function useTreasury() {
     return useQuery({
         queryKey: TREASURY_KEY,
         queryFn: async () => {
-            const { data, error } = await supabase
-                .from('treasury')
-                .select('id, current_balance, updated_at')
-                .maybeSingle()
+            // Compute balance from actual transactions (approved + affects_treasury)
+            const { data: transactions, error: txError } = await supabase
+                .from('transactions')
+                .select('type, amount')
+                .eq('is_approved', true)
+                .eq('affects_treasury', true)
 
-            if (error) throw error
-            // Return a default treasury object if no row exists
-            return (data as unknown as Treasury) ?? { id: '', current_balance: 0, updated_at: new Date().toISOString() } as Treasury
+            if (txError) throw txError
+
+            let computedBalance = 0
+            ;(transactions as unknown as { type: string; amount: number }[])?.forEach((t) => {
+                const amount = Number(t.amount)
+                if (t.type === 'income') {
+                    computedBalance += amount
+                } else {
+                    computedBalance -= amount
+                }
+            })
+
+            return {
+                id: 'computed',
+                current_balance: computedBalance,
+                updated_at: new Date().toISOString(),
+            } as Treasury
         },
         staleTime: 0, // Always refetch to keep balance current
         gcTime: 5 * 60 * 1000,

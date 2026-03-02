@@ -3,11 +3,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import type { Advance, AdvanceRecipient, AdvanceRecipientType, AdvanceRecipientWithAdvances, Transaction } from '@/types/database'
+import { TREASURY_KEY, TRANSACTIONS_KEY } from './use-treasury'
 
 const ADVANCES_KEY = ['advances']
 const RECIPIENTS_KEY = ['advance_recipients']
-const TREASURY_KEY = ['treasury']
-const TRANSACTIONS_KEY = ['transactions']
 
 // ── Recipients ───────────────────────────────────────────────────────────────
 
