@@ -449,7 +449,7 @@ export function getWorkflowStageConfig(stage: WorkflowStage, taskType: TaskType)
 export const PHOTOGRAPHY_ROLES = ['videographer', 'editor', 'photographer'] as const
 
 /** Roles that belong to the content department */
-export const CONTENT_ROLES = ['creator'] as const
+export const CONTENT_ROLES = ['creator', 'designer'] as const
 
 /** Shared roles (not department-specific) */
 export const SHARED_ROLES = ['admin', 'accountant', 'client'] as const

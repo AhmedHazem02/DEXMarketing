@@ -8,7 +8,7 @@ import {
     Calendar, Clock, User, MessageSquare, Paperclip, Send,
     Trash2, Download, ExternalLink, MoreHorizontal, Loader2,
     Check, X, Edit2,
-    AlertTriangle, Star, CheckCircle, RotateCcw
+    AlertTriangle, Star, CheckCircle, RotateCcw, Forward
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -61,6 +61,7 @@ import {
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import { FileUploadZone } from './file-upload-zone'
 import { ReturnTaskDialog } from './return-task-dialog'
+import { ForwardToDesignerDialog } from './forward-to-designer-dialog'
 import { getPriorityConfig, getColumnConfig } from '@/types/task'
 import type { TaskWithRelations, CommentWithUser } from '@/types/task'
 import type { Attachment } from '@/types/database'
@@ -77,6 +78,7 @@ interface TaskDetailsProps {
     onEdit?: (task: TaskWithRelations) => void
     canSubmit?: boolean
     canReturn?: boolean
+    canForward?: boolean
 }
 
 // ============================================
@@ -254,6 +256,7 @@ export function TaskDetails({
     onEdit,
     canSubmit = false,
     canReturn = false,
+    canForward = false,
 }: TaskDetailsProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
@@ -262,6 +265,7 @@ export function TaskDetails({
     const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
     const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null)
     const [returnDialogOpen, setReturnDialogOpen] = useState(false)
+    const [forwardDialogOpen, setForwardDialogOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Ref for auto-scroll to latest comment
@@ -563,7 +567,7 @@ export function TaskDetails({
                         </div>
 
                         {/* Action Buttons */}
-                        {(canSubmit || canReturn) && (
+                        {(canSubmit || canReturn || (canForward && task.status === 'approved')) && (
                             <div className="px-6 pb-4">
                                 <div className="flex items-center gap-2">
                                     {canSubmit && ['in_progress', 'revision'].includes(task.status) && (
@@ -583,6 +587,16 @@ export function TaskDetails({
                                                     {isAr ? 'تسليم للمراجعة' : 'Submit for Review'}
                                                 </>
                                             )}
+                                        </Button>
+                                    )}
+                                    {canForward && task.status === 'approved' && (
+                                        <Button
+                                            onClick={() => setForwardDialogOpen(true)}
+                                            variant="outline"
+                                            className="flex-1 border-primary text-primary hover:bg-primary/5"
+                                        >
+                                            <Forward className="h-4 w-4 me-2" />
+                                            {isAr ? 'تحويل للمصمم' : 'Forward to Designer'}
                                         </Button>
                                     )}
                                     {canReturn && task.status === 'review' && (
@@ -767,6 +781,16 @@ export function TaskDetails({
                 taskTitle={task?.title}
                 workflowStage={task?.workflow_stage}
             />
+
+            {/* Forward to Designer Dialog */}
+            {canForward && task && (
+                <ForwardToDesignerDialog
+                    open={forwardDialogOpen}
+                    onOpenChange={setForwardDialogOpen}
+                    task={task}
+                    accountManagerId={currentUserId}
+                />
+            )}
         </Sheet>
     )
 }

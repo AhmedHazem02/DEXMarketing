@@ -14,6 +14,18 @@ export function sanitizeSearch(input: string): string {
 }
 
 /**
+ * Converts a "HH:mm" or "HH:mm:ss" time string to 12-hour format (e.g. "3:30 PM").
+ */
+export function formatTime12h(time: string): string {
+  const [hourStr, minuteStr] = time.split(':')
+  const hour = parseInt(hourStr, 10)
+  const minute = minuteStr || '00'
+  const period = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12
+  return `${hour12}:${minute} ${period}`
+}
+
+/**
  * Get the start and end date strings for a given year/month range.
  * Useful for calendar/schedule queries.
  */

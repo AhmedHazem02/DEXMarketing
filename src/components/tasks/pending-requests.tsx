@@ -125,7 +125,7 @@ function RequestCard({
                                     </Badge>
                                 )}
                                 <span className="text-xs text-muted-foreground">
-                                    {format(new Date(request.created_at), 'MMM d, HH:mm', {
+                                    {format(new Date(request.created_at), 'MMM d, h:mm aa', {
                                         locale: isAr ? ar : enUS
                                     })}
                                 </span>

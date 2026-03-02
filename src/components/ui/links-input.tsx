@@ -41,7 +41,7 @@ export function LinksInput({ value, onChange, maxLinks = 10, className }: LinksI
         <div className={cn('space-y-3', className)}>
             <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <LinkIcon className="h-3.5 w-3.5" />
+                    <LinkIcon className="size-3.5" />
                     {isAr ? 'روابط' : 'Links'}
                     {value.length > 0 && (
                         <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
@@ -52,7 +52,7 @@ export function LinksInput({ value, onChange, maxLinks = 10, className }: LinksI
             </div>
 
             {value.map((link, i) => (
-                <div key={i} className="flex gap-2 items-start">
+                <div key={`${i}-${link.url}`} className="flex gap-2 items-start">
                     <div className="flex-1 space-y-1.5">
                         <Input
                             type="url"
@@ -76,7 +76,7 @@ export function LinksInput({ value, onChange, maxLinks = 10, className }: LinksI
                         className="h-8 w-8 mt-1 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 shrink-0"
                         onClick={() => removeLink(i)}
                     >
-                        <X className="h-4 w-4" />
+                        <X className="size-4" />
                     </Button>
                 </div>
             ))}
@@ -88,7 +88,7 @@ export function LinksInput({ value, onChange, maxLinks = 10, className }: LinksI
                 className="w-full rounded-xl border-dashed border-primary/30 text-primary hover:bg-primary/10"
                 onClick={addLink}
             >
-                <Plus className="h-3.5 w-3.5 me-1.5" />
+                <Plus className="size-3.5 me-1.5" />
                 {isAr ? 'إضافة لينك' : 'Add Link'}
             </Button>
         </div>

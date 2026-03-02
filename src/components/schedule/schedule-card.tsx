@@ -1,13 +1,13 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
     Clock, MapPin, Building2,
     Edit2, Trash2, CheckCircle2,
-    Users, AlertTriangle, X
+    Users, AlertTriangle, X, Link2, FileText, Image as ImageIcon, PlayCircle
 } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
+import { cn, formatTime12h } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -24,7 +24,7 @@ import {
     APPROVAL_STATUS_CONFIG
 } from '@/types/schedule'
 import type { ScheduleWithRelations, ScheduleStatus } from '@/types/schedule'
-import type { User } from '@/types/database'
+import type { User, ScheduleLink } from '@/types/database'
 import { getRoleLabel } from '@/hooks/use-users'
 import { getStatusDot, getStatusBadgeClasses, getCardBorderClass } from './schedule-helpers'
 
@@ -36,18 +36,26 @@ export interface ScheduleCardProps {
     onDelete: (id: string) => void
     onStatusChange: (status: ScheduleStatus) => void
     isAccountManager?: boolean
-    onApproval?: (id: string, status: 'approved' | 'rejected') => void
+    onApproval?: (id: string, status: 'approved' | 'rejected', note?: string) => void
 }
 
 export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onStatusChange, isAccountManager, onApproval }: ScheduleCardProps) {
     const overdue = isScheduleOverdue(schedule)
     const statusCfg = overdue ? OVERDUE_CONFIG : getScheduleStatusConfig(schedule.status)
+    const [showRejectInput, setShowRejectInput] = useState(false)
+    const [rejectNote, setRejectNote] = useState('')
 
     const members = useMemo(() => 
         (schedule.assigned_members || [])
             .map(id => memberMap.get(id))
             .filter(Boolean) as Pick<User, 'id' | 'name' | 'avatar_url' | 'role'>[],
         [schedule.assigned_members, memberMap]
+    )
+
+    // Filter once to avoid double iteration in JSX
+    const filteredLinks = useMemo(() =>
+        (schedule.links as ScheduleLink[] | undefined)?.filter(l => l.url?.trim()) ?? [],
+        [schedule.links]
     )
 
     return (
@@ -138,10 +146,10 @@ export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onSt
                     {schedule.start_time && (
                         <div className="flex items-center gap-1 text-xs bg-muted/30 text-muted-foreground px-2 py-1 rounded-lg">
                             <Clock className="h-3 w-3" />
-                            {schedule.start_time.slice(0, 5)}
+                            {formatTime12h(schedule.start_time)}
                             {schedule.end_time && (
                                 <span className="text-muted-foreground/60">
-                                    → {schedule.end_time.slice(0, 5)}
+                                    → {formatTime12h(schedule.end_time)}
                                 </span>
                             )}
                         </div>
@@ -194,78 +202,243 @@ export function ScheduleCard({ schedule, isAr, memberMap, onEdit, onDelete, onSt
                     </div>
                 )}
 
+                {/* Description */}
+                {schedule.description && (
+                    <div className="mt-2 pt-2 border-t border-border/20">
+                        <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                            <FileText className="h-3 w-3" />
+                            {isAr ? 'الوصف' : 'Description'}
+                        </div>
+                        <p className="text-xs text-foreground/80 whitespace-pre-wrap break-words">
+                            {schedule.description}
+                        </p>
+                    </div>
+                )}
+
                 {/* Notes */}
                 {schedule.notes && (
-                    <p className="text-xs text-muted-foreground/60 mt-2 line-clamp-1 italic">
-                        {schedule.notes}
-                    </p>
+                    <div className="mt-2">
+                        <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                            {isAr ? '📌 ملاحظات' : '📌 Notes'}
+                        </div>
+                        <p className="text-xs text-muted-foreground/80 italic whitespace-pre-wrap break-words">
+                            {schedule.notes}
+                        </p>
+                    </div>
+                )}
+
+                {/* Links */}
+                {filteredLinks.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border/20">
+                        <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                            <Link2 className="h-3 w-3" />
+                            {isAr ? 'الروابط' : 'Links'}
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            {filteredLinks.map((link, i) => (
+                                <div key={i} className="flex flex-col gap-0.5">
+                                    <a
+                                        href={link.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-primary underline underline-offset-2 truncate hover:text-primary/80 transition-colors"
+                                    >
+                                        {link.url}
+                                    </a>
+                                    {link.comment?.trim() && (
+                                        <span className="text-[10px] text-muted-foreground/70 ps-1 italic">
+                                            {link.comment}
+                                        </span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Images & Videos */}
+                {schedule.images && (schedule.images as string[]).length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-border/20">
+                        <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                            <ImageIcon className="h-3 w-3" />
+                            {isAr ? 'الصور والفيديوهات' : 'Images & Videos'}
+                            <span className="text-primary bg-primary/10 px-1.5 rounded-full ms-1">
+                                {(schedule.images as string[]).length}
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                            {(schedule.images as string[]).map((url, i) => {
+                                const isVideo = /\.(mp4|mov|webm|avi|mkv|m4v)$/i.test(url) || url.includes('video')
+                                return isVideo ? (
+                                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-muted/40 group/media">
+                                        <video
+                                            src={url}
+                                            className="w-full h-full object-cover"
+                                            preload="metadata"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover/media:bg-black/50 transition-colors">
+                                            <PlayCircle className="h-7 w-7 text-white drop-shadow" />
+                                        </div>
+                                        <a
+                                            href={url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="absolute inset-0"
+                                            aria-label={isAr ? 'فتح الفيديو' : 'Open video'}
+                                        />
+                                    </div>
+                                ) : (
+                                    <a
+                                        key={i}
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="relative aspect-square rounded-lg overflow-hidden bg-muted/40 block hover:opacity-90 transition-opacity"
+                                    >
+                                        <img
+                                            src={url}
+                                            alt={`media-${i}`}
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                        />
+                                    </a>
+                                )
+                            })}
+                        </div>
+                    </div>
                 )}
 
                 {/* Approval Status & Missing Items */}
                 {(schedule.approval_status || schedule.missing_items) && (
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-border/20">
-                        {schedule.approval_status && (
-                            <Badge
-                                variant="outline"
-                                className={cn(
-                                    'text-[10px] px-2 py-0 h-5 rounded-md border',
-                                    schedule.approval_status === 'approved' && 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
-                                    schedule.approval_status === 'rejected' && 'bg-red-500/10 text-red-600 border-red-500/30',
-                                    schedule.approval_status === 'pending' && 'bg-amber-500/10 text-amber-600 border-amber-500/30',
-                                )}
-                            >
-                                {isAr
-                                    ? APPROVAL_STATUS_CONFIG.find(c => c.id === schedule.approval_status)?.labelAr
-                                    : APPROVAL_STATUS_CONFIG.find(c => c.id === schedule.approval_status)?.label}
-                            </Badge>
-                        )}
+                    <div className="mt-2 pt-2 border-t border-border/20">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            {schedule.approval_status && (
+                                <Badge
+                                    variant="outline"
+                                    className={cn(
+                                        'text-[10px] px-2 py-0 h-5 rounded-md border',
+                                        schedule.approval_status === 'approved' && 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
+                                        schedule.approval_status === 'rejected' && 'bg-red-500/10 text-red-600 border-red-500/30',
+                                        schedule.approval_status === 'pending' && 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+                                    )}
+                                >
+                                    {isAr
+                                        ? APPROVAL_STATUS_CONFIG.find(c => c.id === schedule.approval_status)?.labelAr
+                                        : APPROVAL_STATUS_CONFIG.find(c => c.id === schedule.approval_status)?.label}
+                                </Badge>
+                            )}
+                        </div>
                         {schedule.missing_items && (
-                            <Badge
-                                variant="outline"
-                                className={cn(
-                                    'text-[10px] px-2 py-0 h-5 rounded-md border',
-                                    schedule.missing_items_status === 'pending' && 'bg-orange-500/10 text-orange-600 border-orange-500/30',
-                                    schedule.missing_items_status === 'resolved' && 'bg-green-500/10 text-green-600 border-green-500/30',
-                                    schedule.missing_items_status === 'not_applicable' && 'bg-gray-400/10 text-gray-500 border-gray-400/30',
-                                )}
-                            >
-                                <AlertTriangle className="h-3 w-3 me-1" />
-                                {isAr ? 'نواقص' : 'Missing'}
-                            </Badge>
+                            <div className={cn(
+                                'mt-2 px-2.5 py-2 rounded-lg border text-xs',
+                                schedule.missing_items_status === 'pending' && 'bg-orange-500/8 text-orange-700 border-orange-500/30 dark:text-orange-400',
+                                schedule.missing_items_status === 'resolved' && 'bg-green-500/8 text-green-700 border-green-500/30 dark:text-green-400',
+                                schedule.missing_items_status === 'not_applicable' && 'bg-gray-400/8 text-gray-600 border-gray-400/30 dark:text-gray-400',
+                            )}>
+                                <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider mb-0.5 opacity-75">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    {isAr ? 'النواقص' : 'Missing Items'}
+                                </div>
+                                <p className="whitespace-pre-wrap break-words">{schedule.missing_items}</p>
+                            </div>
                         )}
                     </div>
                 )}
 
-                {/* Manager Notes */}
+                {/* Manager Notes / Rejection reason */}
                 {schedule.manager_notes && (
-                    <div className="mt-2 px-2.5 py-1.5 rounded-lg bg-blue-500/5 border border-blue-500/20">
-                        <p className="text-[10px] font-semibold text-blue-600 mb-0.5">{isAr ? 'ملاحظات المدير' : 'Manager Notes'}</p>
-                        <p className="text-xs text-blue-600/80 line-clamp-2">{schedule.manager_notes}</p>
+                    <div className={cn(
+                        'mt-2 px-2.5 py-1.5 rounded-lg border',
+                        schedule.approval_status === 'rejected'
+                            ? 'bg-red-500/5 border-red-500/30'
+                            : 'bg-blue-500/5 border-blue-500/20'
+                    )}>
+                        <p className={cn(
+                            'text-[10px] font-semibold mb-0.5 flex items-center gap-1',
+                            schedule.approval_status === 'rejected' ? 'text-red-600' : 'text-blue-600'
+                        )}>
+                            {schedule.approval_status === 'rejected' && '❌'}
+                            {isAr
+                                ? (schedule.approval_status === 'rejected' ? 'سبب الرفض' : 'ملاحظات المدير')
+                                : (schedule.approval_status === 'rejected' ? 'Rejection Reason' : 'Manager Notes')}
+                        </p>
+                        <p className={cn(
+                            'text-xs',
+                            schedule.approval_status === 'rejected' ? 'text-red-600/80' : 'text-blue-600/80'
+                        )}>
+                            {schedule.manager_notes}
+                        </p>
                     </div>
                 )}
 
                 {/* Account Manager Approval Controls */}
                 {isAccountManager && onApproval && schedule.approval_status !== 'approved' && (
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-7 text-xs rounded-lg bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20"
-                            onClick={() => onApproval(schedule.id, 'approved')}
-                        >
-                            <CheckCircle2 className="h-3 w-3 me-1" />
-                            {isAr ? 'موافقة' : 'Approve'}
-                        </Button>
-                        {schedule.approval_status !== 'rejected' && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 h-7 text-xs rounded-lg bg-red-500/10 text-red-600 border-red-500/30 hover:bg-red-500/20"
-                                onClick={() => onApproval(schedule.id, 'rejected')}
-                            >
-                                <X className="h-3 w-3 me-1" />
-                                {isAr ? 'رفض' : 'Reject'}
-                            </Button>
+                    <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+                        {/* Approve + Reject buttons */}
+                        {!showRejectInput && (
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 h-7 text-xs rounded-lg bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20"
+                                    onClick={() => onApproval(schedule.id, 'approved')}
+                                >
+                                    <CheckCircle2 className="h-3 w-3 me-1" />
+                                    {isAr ? 'موافقة' : 'Approve'}
+                                </Button>
+                                {schedule.approval_status !== 'rejected' && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 h-7 text-xs rounded-lg bg-red-500/10 text-red-600 border-red-500/30 hover:bg-red-500/20"
+                                        onClick={() => { setShowRejectInput(true); setRejectNote('') }}
+                                    >
+                                        <X className="h-3 w-3 me-1" />
+                                        {isAr ? 'رفض' : 'Reject'}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Inline rejection note form */}
+                        {showRejectInput && (
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-semibold text-red-500 uppercase tracking-wider">
+                                    {isAr ? '⚠️ سبب الرفض (مطلوب)' : '⚠️ Rejection reason (required)'}
+                                </p>
+                                <textarea
+                                    value={rejectNote}
+                                    onChange={e => setRejectNote(e.target.value)}
+                                    placeholder={isAr ? 'أدخل سبب الرفض...' : 'Enter rejection reason...'}
+                                    rows={3}
+                                    className="w-full text-xs rounded-lg border border-red-500/30 bg-red-500/5 px-2.5 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-red-500/40 placeholder:text-muted-foreground/50"
+                                />
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 h-7 text-xs rounded-lg bg-red-500/10 text-red-600 border-red-500/30 hover:bg-red-500/20 disabled:opacity-40"
+                                        disabled={!rejectNote.trim()}
+                                        onClick={() => {
+                                            if (!rejectNote.trim()) return
+                                            onApproval(schedule.id, 'rejected', rejectNote.trim())
+                                            setShowRejectInput(false)
+                                            setRejectNote('')
+                                        }}
+                                    >
+                                        <X className="h-3 w-3 me-1" />
+                                        {isAr ? 'تأكيد الرفض' : 'Confirm Reject'}
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-xs rounded-lg"
+                                        onClick={() => { setShowRejectInput(false); setRejectNote('') }}
+                                    >
+                                        {isAr ? 'إلغاء' : 'Cancel'}
+                                    </Button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 )}

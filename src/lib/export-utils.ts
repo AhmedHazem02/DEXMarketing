@@ -7,6 +7,34 @@ import { format } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
 import type { Transaction } from '@/types/database'
 
+// ============================================
+// Module-level cache — declared at top so all functions can reference them
+// ============================================
+
+/** Cached base64 Arabic font — null = not fetched yet, '' = fetch failed */
+let cachedFontBase64: string | null = null
+
+/** Cached base64 DEX logo — null = not fetched yet, '' = fetch failed */
+let cachedLogoBase64: string | null = null
+
+/** In-flight font fetch promise — prevents duplicate concurrent requests */
+let fontFetchPromise: Promise<void> | null = null
+
+/** In-flight logo fetch promise — prevents duplicate concurrent requests */
+let logoFetchPromise: Promise<void> | null = null
+
+// ============================================
+// Static letterhead block definitions (portrait A4 = 210 mm wide)
+// Left blocks are fully static; right blocks are computed once per draw
+// because pageWidth can differ between portrait/landscape.
+// ============================================
+const LEFT_BLOCKS = [
+    { x: 0,  w: 22, r: 247, g: 210, b: 0 },
+    { x: 22, w: 11, r: 220, g: 185, b: 0 },
+    { x: 33, w: 7,  r: 180, g: 150, b: 0 },
+    { x: 40, w: 5,  r: 120, g: 100, b: 0 },
+] as const
+
 /**
  * Export transactions to CSV with proper Arabic support
  */
@@ -69,15 +97,16 @@ export async function exportToPDF(
 
     try {
         const { doc, autoTable, fontName, fontStyle, pageWidth } = await createPDFDocument()
+        const pageHeight = doc.internal.pageSize.getHeight()
         doc.setFontSize(16)
 
-        // Title
+        // Title — pushed down below the letterhead header (~35 mm)
         const title = isAr ? 'تقرير المعاملات المالية' : 'Financial Transactions Report'
 
         if (isAr) {
-            doc.text(title, pageWidth - 15, 20, { align: 'right', lang: 'ar' })
+            doc.text(title, pageWidth - 15, 40, { align: 'right', lang: 'ar' })
         } else {
-            doc.text(title, 15, 20)
+            doc.text(title, 15, 40)
         }
 
         // Date range and stats
@@ -86,12 +115,12 @@ export async function exportToPDF(
         const dateLabel = isAr ? `التاريخ: ${dateStr}` : `Date: ${dateStr}`
 
         if (isAr) {
-            doc.text(dateLabel, pageWidth - 15, 30, { align: 'right', lang: 'ar' })
+            doc.text(dateLabel, pageWidth - 15, 48, { align: 'right', lang: 'ar' })
         } else {
-            doc.text(dateLabel, 15, 30)
+            doc.text(dateLabel, 15, 48)
         }
 
-        let yPos = 40
+        let yPos = 58
 
         // Add statistics
         if (stats) {
@@ -141,7 +170,7 @@ export async function exportToPDF(
             head: [headers],
             body: tableData,
             startY: yPos,
-            margin: { left: 15, right: 15 },
+            margin: { top: 35, bottom: 30, left: 15, right: 15 },
             styles: {
                 font: fontName,
                 fontSize: 9,
@@ -170,7 +199,7 @@ export async function exportToPDF(
         }
 
         runAutoTable(doc, autoTable, tableOptions)
-        addPDFFooter(doc, pageWidth, isAr)
+        await addLetterheadToAllPages(doc, pageWidth, pageHeight, fontName, isAr)
 
         // Save PDF
         doc.save(filename)
@@ -192,11 +221,154 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 // ============================================
-// Shared PDF Helpers
+// DEX Letterhead Helpers
 // ============================================
 
-// Module-level cache for the Arabic font to avoid re-fetching on every PDF export
-let cachedFontBase64: string | null = null
+/**
+ * Draws the DEX branded header bar (coloured blocks + logo) at the top of the current page.
+ */
+function _drawLetterheadHeader(doc: any, pageWidth: number, fontName: string, logoBase64: string | null): void {
+    const barH = 10 // top decorative bar height in mm
+
+    // Draw left static blocks
+    for (const b of LEFT_BLOCKS) {
+        doc.setFillColor(b.r, b.g, b.b)
+        doc.rect(b.x, 0, b.w, barH, 'F')
+    }
+
+    // Draw right mirrored blocks (x depends on pageWidth — computed inline, no array allocation)
+    doc.setFillColor(120, 100, 0); doc.rect(pageWidth - 45, 0, 5,  barH, 'F')
+    doc.setFillColor(180, 150, 0); doc.rect(pageWidth - 40, 0, 7,  barH, 'F')
+    doc.setFillColor(220, 185, 0); doc.rect(pageWidth - 33, 0, 11, barH, 'F')
+    doc.setFillColor(247, 210, 0); doc.rect(pageWidth - 22, 0, 22, barH, 'F')
+
+    // Thin dark separator line below the bar
+    doc.setDrawColor(0, 0, 0)
+    doc.setLineWidth(0.3)
+    doc.line(0, barH, pageWidth, barH)
+
+    // DEX Logo (centred below the bar)
+    const logoW = 28
+    const logoH = 14
+    const logoX = (pageWidth - logoW) / 2
+    if (logoBase64) {
+        try {
+            doc.addImage(logoBase64, 'PNG', logoX, barH + 3, logoW, logoH)
+        } catch {
+            _drawTextLogo(doc, pageWidth, barH, fontName)
+        }
+    } else {
+        _drawTextLogo(doc, pageWidth, barH, fontName)
+    }
+}
+
+function _drawTextLogo(doc: any, pageWidth: number, barH: number, fontName: string): void {
+    doc.setFont(fontName)
+    doc.setFontSize(14)
+    doc.setTextColor(0, 0, 0)
+    doc.text('DEX', pageWidth / 2, barH + 11, { align: 'center' })
+    doc.setFontSize(6)
+    doc.text('FOR ADVERTISING', pageWidth / 2, barH + 16, { align: 'center' })
+}
+
+/**
+ * Draws the DEX branded footer (address + contact + golden bar) on the current page.
+ */
+function _drawLetterheadFooter(
+    doc: any,
+    pageWidth: number,
+    pageHeight: number,
+    fontName: string,
+    isAr: boolean,
+    currentPage: number,
+    totalPages: number
+): void {
+    const footerBarH = 8
+    const footerBarY = pageHeight - footerBarH
+    const sepY        = pageHeight - 28
+
+    // Bottom golden bar
+    doc.setFillColor(247, 210, 0)
+    doc.rect(0, footerBarY, pageWidth, footerBarH, 'F')
+
+    // Separator line above footer text
+    doc.setDrawColor(200, 200, 200)
+    doc.setLineWidth(0.3)
+    doc.line(12, sepY, pageWidth - 12, sepY)
+
+    doc.setFont(fontName)
+
+    // Arabic address (right-aligned)
+    doc.setFontSize(7.5)
+    doc.setTextColor(60, 60, 60)
+    if (isAr) {
+        doc.text('سوهاج، أمام مدرسة الراهبات', pageWidth - 14, sepY + 6,  { align: 'right', lang: 'ar' })
+        doc.text('أعلى مكتبة الشريف، الدور الثالث', pageWidth - 14, sepY + 12, { align: 'right', lang: 'ar' })
+    } else {
+        doc.text('Sohag, In front of Al-Rahbat School', pageWidth - 14, sepY + 6,  { align: 'right' })
+        doc.text('Above Al-Shareef Library, 3rd Floor', pageWidth - 14, sepY + 12, { align: 'right' })
+    }
+
+    // Centre: company name + phone
+    doc.setFontSize(8)
+    doc.setTextColor(40, 40, 40)
+    doc.text('Dex Advertising Agency', pageWidth / 2, sepY + 6,  { align: 'center' })
+    doc.setFontSize(7.5)
+    doc.setTextColor(80, 80, 80)
+    doc.text('01553030051', pageWidth / 2, sepY + 12, { align: 'center' })
+
+    // Page number (left side)
+    doc.setFontSize(7.5)
+    doc.setTextColor(120, 120, 120)
+    doc.text(`${currentPage} / ${totalPages}`, 14, sepY + 9)
+
+    // Reset
+    doc.setTextColor(0, 0, 0)
+    doc.setDrawColor(0, 0, 0)
+    doc.setLineWidth(0.2)
+}
+
+/**
+ * Applies the DEX letterhead (header + footer) to every page of the document.
+ * Call this AFTER all content has been added so the page count is final.
+ */
+async function addLetterheadToAllPages(
+    doc: any,
+    pageWidth: number,
+    pageHeight: number,
+    fontName: string,
+    isAr: boolean
+): Promise<void> {
+    // Load & cache the logo once — use a shared promise to prevent duplicate concurrent fetches
+    if (cachedLogoBase64 === null) {
+        if (!logoFetchPromise) {
+            logoFetchPromise = (async () => {
+                try {
+                    const response = await fetch('/images/DEX LOGO 2.png')
+                    if (response.ok) {
+                        const bytes = await response.arrayBuffer()
+                        cachedLogoBase64 = 'data:image/png;base64,' + arrayBufferToBase64(bytes)
+                    } else {
+                        cachedLogoBase64 = ''
+                    }
+                } catch {
+                    cachedLogoBase64 = ''
+                } finally {
+                    logoFetchPromise = null
+                }
+            })()
+        }
+        await logoFetchPromise
+    }
+
+    const pageCount = doc.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        _drawLetterheadHeader(doc, pageWidth, fontName, cachedLogoBase64 || null)
+        _drawLetterheadFooter(doc, pageWidth, pageHeight, fontName, isAr, i, pageCount)
+    }
+}
+// ============================================
 
 interface PDFDocumentResult {
     doc: any
@@ -229,12 +401,25 @@ async function createPDFDocument(options?: {
     let fontStyle = defaultFontStyle
 
     try {
-        if (!cachedFontBase64) {
-            const response = await fetch('/fonts/Amiri-Regular.ttf')
-            if (response.ok) {
-                const fontBytes = await response.arrayBuffer()
-                cachedFontBase64 = arrayBufferToBase64(fontBytes)
+        if (cachedFontBase64 === null) {
+            if (!fontFetchPromise) {
+                fontFetchPromise = (async () => {
+                    try {
+                        const response = await fetch('/fonts/Amiri-Regular.ttf')
+                        if (response.ok) {
+                            const fontBytes = await response.arrayBuffer()
+                            cachedFontBase64 = arrayBufferToBase64(fontBytes)
+                        } else {
+                            cachedFontBase64 = ''
+                        }
+                    } catch {
+                        cachedFontBase64 = ''
+                    } finally {
+                        fontFetchPromise = null
+                    }
+                })()
             }
+            await fontFetchPromise
         }
         if (cachedFontBase64) {
             doc.addFileToVFS('Amiri-Regular.ttf', cachedFontBase64)
@@ -261,23 +446,6 @@ function runAutoTable(doc: any, autoTable: any, options: any): void {
         autoTable(doc, options)
     } else {
         throw new Error('PDF Table generation failed: autoTable not found')
-    }
-}
-
-/**
- * Adds page number footers to all pages of the PDF document.
- */
-function addPDFFooter(doc: any, pageWidth: number, isAr = true): void {
-    const pageCount = doc.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i)
-        doc.setFontSize(8)
-        doc.setTextColor(128)
-        const footer = isAr ? `صفحة ${i} من ${pageCount}` : `Page ${i} of ${pageCount}`
-        doc.text(footer, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, {
-            align: 'center',
-            lang: isAr ? 'ar' : 'en'
-        })
     }
 }
 
@@ -407,15 +575,16 @@ export async function exportClientAccountsToPDF(
 
     try {
         const { doc, autoTable, fontName, fontStyle, pageWidth } = await createPDFDocument()
+        const pageHeight = doc.internal.pageSize.getHeight()
         doc.setFontSize(16)
 
-        // Title
+        // Title — pushed down below the letterhead header (~35 mm)
         const title = isAr ? 'تقرير حسابات العملاء' : 'Client Accounts Report'
 
         if (isAr) {
-            doc.text(title, pageWidth - 15, 20, { align: 'right', lang: 'ar' })
+            doc.text(title, pageWidth - 15, 40, { align: 'right', lang: 'ar' })
         } else {
-            doc.text(title, 15, 20)
+            doc.text(title, 15, 40)
         }
 
         // Date
@@ -424,12 +593,12 @@ export async function exportClientAccountsToPDF(
         const dateLabel = isAr ? `التاريخ: ${dateStr}` : `Date: ${dateStr}`
 
         if (isAr) {
-            doc.text(dateLabel, pageWidth - 15, 30, { align: 'right', lang: 'ar' })
+            doc.text(dateLabel, pageWidth - 15, 48, { align: 'right', lang: 'ar' })
         } else {
-            doc.text(dateLabel, 15, 30)
+            doc.text(dateLabel, 15, 48)
         }
 
-        let yPos = 40
+        let yPos = 57
 
         // ── Section 1: Accounts summary table ──
         const accountSectionTitle = isAr ? 'ملخص الحسابات' : 'Accounts Summary'
@@ -465,7 +634,7 @@ export async function exportClientAccountsToPDF(
             head: [headers],
             body: tableData,
             startY: yPos,
-            margin: { left: 15, right: 15 },
+            margin: { top: 35, bottom: 30, left: 15, right: 15 },
             styles: {
                 font: fontName,
                 fontSize: 9,
@@ -546,7 +715,7 @@ export async function exportClientAccountsToPDF(
                 head: [txHeaders],
                 body: allTransactions,
                 startY: txTitleY + 6,
-                margin: { left: 15, right: 15 },
+                margin: { top: 35, bottom: 30, left: 15, right: 15 },
                 styles: {
                     font: fontName,
                     fontSize: 8,
@@ -579,7 +748,7 @@ export async function exportClientAccountsToPDF(
             runAutoTable(doc, autoTable, txTableOptions)
         }
 
-        addPDFFooter(doc, pageWidth, isAr)
+        await addLetterheadToAllPages(doc, pageWidth, pageHeight, fontName, isAr)
 
         // Save PDF
         doc.save(filename)
@@ -803,21 +972,22 @@ export async function exportTasksToPDF(
             orientation: 'landscape',
             defaultFontStyle: 'normal'
         })
+        const pageHeight = doc.internal.pageSize.getHeight()
         doc.setFontSize(18)
 
-        // Title
+        // Title — pushed down below the letterhead header (~35 mm)
         const title = isAr ? 'تقرير المهام الشامل' : 'Comprehensive Tasks Report'
         const textAlign = isAr ? 'right' as const : 'left' as const
         const textX = isAr ? pageWidth - 15 : 15
-        doc.text(title, textX, 20, { align: textAlign, lang: isAr ? 'ar' : 'en' })
+        doc.text(title, textX, 38, { align: textAlign, lang: isAr ? 'ar' : 'en' })
 
         // Date and subtitle
         doc.setFontSize(10)
         const dateStr = format(new Date(), 'PPP', { locale: isAr ? ar : enUS })
         const dateLabel = isAr ? `التاريخ: ${dateStr}` : `Date: ${dateStr}`
-        doc.text(dateLabel, textX, 28, { align: textAlign, lang: isAr ? 'ar' : 'en' })
+        doc.text(dateLabel, textX, 46, { align: textAlign, lang: isAr ? 'ar' : 'en' })
 
-        let yPos = 38
+        let yPos = 55
 
         // Add statistics
         if (stats) {
@@ -900,7 +1070,7 @@ export async function exportTasksToPDF(
             head: [headers],
             body: tableData,
             startY: yPos,
-            margin: { left: 10, right: 10 },
+            margin: { top: 35, bottom: 28, left: 10, right: 10 },
             styles: {
                 font: fontName,
                 fontSize: 8,
@@ -931,7 +1101,7 @@ export async function exportTasksToPDF(
         }
 
         runAutoTable(doc, autoTable, tableOptions)
-        addPDFFooter(doc, pageWidth)
+        await addLetterheadToAllPages(doc, pageWidth, pageHeight, fontName, isAr)
 
         // Save PDF
         const defaultFilename = `tasks_report_${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`

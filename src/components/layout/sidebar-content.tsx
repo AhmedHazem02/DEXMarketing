@@ -27,6 +27,17 @@ export function SidebarContent({
     const routes = getRoutes(role || 'guest', isAr, department)
     const handleLogout = useLogout()
 
+    // Find the most specific (longest) matching route to avoid false positives.
+    // e.g. /admin/treasury/packages should highlight "Packages", not "Overview" (/admin).
+    const activeHref = routes.reduce<string | null>((best, route) => {
+        const isMatch =
+            pathWithoutLocale === route.href ||
+            (route.href.length > 1 && pathWithoutLocale.startsWith(route.href + '/'))
+        if (!isMatch) return best
+        if (!best || route.href.length > best.length) return route.href
+        return best
+    }, null)
+
     return (
         <>
             <div className="flex h-16 items-center border-b px-6">
@@ -39,9 +50,7 @@ export function SidebarContent({
                 <nav className="space-y-1 px-2">
                     {routes.map((route) => {
                         const Icon = route.icon
-                        const isActive =
-                            pathWithoutLocale === route.href ||
-                            pathWithoutLocale.startsWith(route.href + '/')
+                        const isActive = route.href === activeHref
                         return (
                             <Link
                                 key={route.href}

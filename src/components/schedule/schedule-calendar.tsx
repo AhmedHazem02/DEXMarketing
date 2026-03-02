@@ -16,7 +16,7 @@ import {
     CalendarDays, Timer
 } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
+import { cn, formatTime12h } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -79,7 +79,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
     const [formOpen, setFormOpen] = useState(false)
     const [missingFormOpen, setMissingFormOpen] = useState(false)
     const [editingSchedule, setEditingSchedule] = useState<ScheduleWithRelations | null>(null)
-    const [statusFilter, setStatusFilter] = useState<ScheduleStatus | 'all'>('all')
+    const [statusFilter, setStatusFilter] = useState<ScheduleStatus | 'all' | 'overdue' | 'missing'>('all')
     const [clientFilter, setClientFilter] = useState<string>('all')
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [scheduleToDelete, setScheduleToDelete] = useState<string | null>(null)
@@ -129,6 +129,10 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
             if (statusFilter === 'scheduled') {
                 // show non-overdue scheduled
                 filtered = filtered.filter(s => s.status === 'scheduled' && !isScheduleOverdue(s))
+            } else if (statusFilter === 'overdue') {
+                filtered = filtered.filter(s => isScheduleOverdue(s))
+            } else if (statusFilter === 'missing') {
+                filtered = filtered.filter(s => s.missing_items && s.missing_items.trim() && s.missing_items_status !== 'resolved')
             } else {
                 filtered = filtered.filter(s => s.status === statusFilter)
             }
@@ -215,6 +219,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
             setMissingFormOpen(false)
             toast.success(isAr ? '✅ تم إرسال النواقص بنجاح' : '✅ Missing items reported successfully')
         } catch (error: any) {
+            console.error('Create missing items error:', error?.message, error?.code, error)
             toast.error(isAr ? '❌ فشل إرسال النواقص' : '❌ Failed to report missing items')
         }
     }
@@ -484,8 +489,8 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                     label={isAr ? 'النواقص' : 'Missing'}
                     value={monthStats.missingItems}
                     color="amber"
-                    active={false}
-                    onClick={() => setStatusFilter('all')}
+                    active={statusFilter === 'missing'}
+                    onClick={() => setStatusFilter(statusFilter === 'missing' ? 'all' : 'missing')}
                     pulse={monthStats.missingItems > 0}
                 />
                 <StatsCard
@@ -501,8 +506,8 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                     label={isAr ? 'متأخر' : 'Overdue'}
                     value={monthStats.overdue}
                     color="red"
-                    active={false}
-                    onClick={() => setStatusFilter('all')}
+                    active={statusFilter === 'overdue'}
+                    onClick={() => setStatusFilter(statusFilter === 'overdue' ? 'all' : 'overdue')}
                     pulse={monthStats.overdue > 0}
                 />
             </div>
@@ -615,7 +620,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                                                 </span>
                                                             )}
                                                             <span className="truncate">
-                                                                {s.start_time?.slice(0, 5)} {s.title}
+                                                                {s.start_time ? formatTime12h(s.start_time) : ''} {s.title}
                                                             </span>
                                                         </div>
                                                     )

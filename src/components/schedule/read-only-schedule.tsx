@@ -29,7 +29,7 @@ import {
     X,
 } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
+import { cn, formatTime12h } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -223,7 +223,7 @@ export function ReadOnlyScheduleView({ userId, clientId, teamLeaderId, title }: 
                             })}
 
                             {/* Calendar cells */}
-                            {calendarDays.map((day, i) => {
+                            {calendarDays.map((day) => {
                                 const dateKey = format(day, 'yyyy-MM-dd')
                                 const daySchedules = schedulesByDate.get(dateKey) || []
                                 const isCurrentMonth = isSameMonth(day, currentDate)
@@ -233,7 +233,7 @@ export function ReadOnlyScheduleView({ userId, clientId, teamLeaderId, title }: 
 
                                 return (
                                     <button
-                                        key={i}
+                                        key={dateKey}
                                         onClick={() => {
                                             if (daySchedules.length > 0) {
                                                 setSelectedDate(day)
@@ -274,7 +274,7 @@ export function ReadOnlyScheduleView({ userId, clientId, teamLeaderId, title }: 
                                                                     : getScheduleStatusConfig(schedule.status).bgColor
                                                         )}
                                                     >
-                                                        {deptEmoji} {schedule.start_time?.slice(0, 5)} {schedule.schedule_type ? (schedule.schedule_type === 'reels' ? '📹' : '📝') + ' ' : ''}{schedule.title}
+                                                        {deptEmoji} {schedule.start_time ? formatTime12h(schedule.start_time) : ''} {schedule.schedule_type ? (schedule.schedule_type === 'reels' ? '📹' : '📝') + ' ' : ''}{schedule.title}
                                                     </div>
                                                 )
                                             })}
@@ -377,8 +377,8 @@ export function ReadOnlyScheduleView({ userId, clientId, teamLeaderId, title }: 
                                                     {schedule.start_time && (
                                                         <span className="flex items-center gap-1">
                                                             <Clock className="h-3 w-3" />
-                                                            {schedule.start_time.slice(0, 5)}
-                                                            {schedule.end_time && ` - ${schedule.end_time.slice(0, 5)}`}
+                                                            {formatTime12h(schedule.start_time)}
+                                                            {schedule.end_time && ` - ${formatTime12h(schedule.end_time)}`}
                                                         </span>
                                                     )}
                                                     {schedule.location && (

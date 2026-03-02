@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import './GlareHover.css';
 
 interface GlareHoverProps {
@@ -20,7 +20,24 @@ interface GlareHoverProps {
     style?: React.CSSProperties;
 }
 
-const GlareHover = ({
+function hexToRgba(color: string, opacity: number): string {
+    const hex = color.replace('#', '');
+    if (/^[0-9A-Fa-f]{6}$/.test(hex)) {
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    if (/^[0-9A-Fa-f]{3}$/.test(hex)) {
+        const r = parseInt(hex[0] + hex[0], 16);
+        const g = parseInt(hex[1] + hex[1], 16);
+        const b = parseInt(hex[2] + hex[2], 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    return color;
+}
+
+function GlareHover({
     width = '100%',
     height = '100%',
     background = 'transparent',
@@ -35,22 +52,13 @@ const GlareHover = ({
     playOnce = false,
     className = '',
     style = {}
-}: GlareHoverProps) => {
-    const hex = glareColor.replace('#', '');
-    let rgba = glareColor;
-    if (/^[0-9A-Fa-f]{6}$/.test(hex)) {
-        const r = parseInt(hex.slice(0, 2), 16);
-        const g = parseInt(hex.slice(2, 4), 16);
-        const b = parseInt(hex.slice(4, 6), 16);
-        rgba = `rgba(${r}, ${g}, ${b}, ${glareOpacity})`;
-    } else if (/^[0-9A-Fa-f]{3}$/.test(hex)) {
-        const r = parseInt(hex[0] + hex[0], 16);
-        const g = parseInt(hex[1] + hex[1], 16);
-        const b = parseInt(hex[2] + hex[2], 16);
-        rgba = `rgba(${r}, ${g}, ${b}, ${glareOpacity})`;
-    }
+}: GlareHoverProps) {
+    const rgba = useMemo(
+        () => hexToRgba(glareColor, glareOpacity),
+        [glareColor, glareOpacity]
+    );
 
-    const vars = {
+    const vars = useMemo(() => ({
         '--gh-width': width,
         '--gh-height': height,
         '--gh-bg': background,
@@ -60,7 +68,7 @@ const GlareHover = ({
         '--gh-size': `${glareSize}%`,
         '--gh-rgba': rgba,
         '--gh-border': borderColor
-    } as React.CSSProperties;
+    }) as React.CSSProperties, [width, height, background, borderRadius, glareAngle, transitionDuration, glareSize, rgba, borderColor]);
 
     return (
         <div
@@ -70,6 +78,6 @@ const GlareHover = ({
             {children}
         </div>
     );
-};
+}
 
 export default GlareHover;

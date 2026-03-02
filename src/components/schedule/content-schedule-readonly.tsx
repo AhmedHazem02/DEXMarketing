@@ -13,7 +13,7 @@ import {
     Clock, MapPin, Users, ExternalLink, Image as ImageIcon,
 } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
+import { cn, formatTime12h } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,20 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useContentSchedules } from '@/hooks/use-schedule'
 import { getScheduleStatusConfig, isScheduleOverdue, OVERDUE_CONFIG } from '@/types/schedule'
 import type { ScheduleWithRelations } from '@/types/schedule'
-
-// ============================================
-// Status helpers
-// ============================================
-
-function getStatusDot(status: string, overdue: boolean): string {
-    if (overdue) return 'bg-red-500'
-    switch (status) {
-        case 'completed': return 'bg-emerald-500'
-        case 'in_progress': return 'bg-amber-400'
-        case 'cancelled': return 'bg-gray-400'
-        default: return 'bg-sky-400'
-    }
-}
+import { getStatusDot } from './schedule-helpers'
 
 function getApprovalBadge(approval: string | null, isAr: boolean) {
     switch (approval) {
@@ -272,8 +259,8 @@ export function ContentScheduleReadOnly() {
                                                     {schedule.start_time && (
                                                         <span className="flex items-center gap-1">
                                                             <Clock className="h-3 w-3" />
-                                                            {schedule.start_time.slice(0, 5)}
-                                                            {schedule.end_time && ` - ${schedule.end_time.slice(0, 5)}`}
+                                                            {formatTime12h(schedule.start_time)}
+                                                            {schedule.end_time && ` - ${formatTime12h(schedule.end_time)}`}
                                                         </span>
                                                     )}
                                                     {schedule.location && (

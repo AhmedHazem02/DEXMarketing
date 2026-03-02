@@ -20,6 +20,11 @@ import {
     ThumbsUp,
     ThumbsDown,
     Info,
+    Video,
+    Camera,
+    Film,
+    FileText,
+    Layers,
 } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,8 +63,63 @@ import { useClientProfile, useApproveTask, useRejectTask } from '@/hooks/use-cli
 import { useClientTasks, useClientTasksStats } from '@/hooks/use-tasks'
 import { TaskFiltersComponent } from '@/components/tasks/task-filters'
 import type { TaskFilters, TaskWithRelations } from '@/types/task'
+import type { TaskType } from '@/types/database'
 import { cn } from '@/lib/utils'
 import { ensureClientRecord } from '@/lib/actions/users'
+
+// ============================================
+// Task Type Badge — visual indicator per type
+// ============================================
+
+const TASK_TYPE_CONFIG: Record<TaskType, {
+    label: string
+    labelAr: string
+    icon: typeof Video
+    className: string
+}> = {
+    video: {
+        label: 'Video',
+        labelAr: 'فيديو',
+        icon: Video,
+        className: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+    },
+    photo: {
+        label: 'Photo',
+        labelAr: 'تصوير',
+        icon: Camera,
+        className: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800',
+    },
+    editing: {
+        label: 'Editing',
+        labelAr: 'مونتاج',
+        icon: Film,
+        className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+    },
+    content: {
+        label: 'Content',
+        labelAr: 'محتوى',
+        icon: FileText,
+        className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+    },
+    general: {
+        label: 'General',
+        labelAr: 'عام',
+        icon: Layers,
+        className: 'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300 border-gray-200 dark:border-gray-700',
+    },
+}
+
+function TaskTypeBadge({ taskType, isAr }: { taskType: TaskType; isAr: boolean }) {
+    const config = TASK_TYPE_CONFIG[taskType] ?? TASK_TYPE_CONFIG.general
+    const Icon = config.icon
+
+    return (
+        <Badge variant="outline" className={cn('gap-1 text-[11px] h-5 px-2 font-medium', config.className)}>
+            <Icon className="h-3 w-3" />
+            {isAr ? config.labelAr : config.label}
+        </Badge>
+    )
+}
 
 export default function ClientTasksPage() {
     const locale = useLocale()
@@ -375,7 +435,8 @@ export default function ClientTasksPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-muted/70 border-b">
-                                            <TableHead className="font-semibold text-foreground w-[55%]">{isAr ? 'المهمة' : 'Task'}</TableHead>
+                                            <TableHead className="font-semibold text-foreground w-[45%]">{isAr ? 'المهمة' : 'Task'}</TableHead>
+                                            <TableHead className="font-semibold text-foreground w-[120px]">{isAr ? 'النوع' : 'Type'}</TableHead>
                                             <TableHead className="font-semibold text-foreground">{isAr ? 'الموعد النهائي' : 'Deadline'}</TableHead>
                                             <TableHead className="font-semibold text-foreground text-center w-[120px]">{isAr ? 'إجراء' : 'Action'}</TableHead>
                                         </TableRow>
@@ -418,6 +479,9 @@ export default function ClientTasksPage() {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                    </TableCell>
+                                                    <TableCell className="py-3">
+                                                        <TaskTypeBadge taskType={task.task_type} isAr={isAr} />
                                                     </TableCell>
                                                     <TableCell className="py-3">
                                                         {task.deadline ? (

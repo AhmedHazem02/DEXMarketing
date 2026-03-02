@@ -20,7 +20,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { EmojiTextarea } from '@/components/ui/emoji-textarea'
 import { LinksInput } from '@/components/ui/links-input'
-import { ImageUploader } from '@/components/ui/image-uploader'
+import { MediaUploader } from '@/components/ui/media-uploader'
 
 import { useClients } from '@/hooks/use-clients'
 import { useMyAssignedClients } from '@/hooks/use-client-assignments'
@@ -58,7 +58,8 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
     const clients = isTeamMember ? assignedClients : allClients
 
     const [title, setTitle] = useState(schedule?.title || '')
-    const [date] = useState(schedule?.scheduled_date || initialDate || format(new Date(), 'yyyy-MM-dd'))
+    // date is read-only (form is remounted by Dialog on each open)
+    const date = schedule?.scheduled_date || initialDate || format(new Date(), 'yyyy-MM-dd')
     const [time, setTime] = useState(schedule?.start_time?.slice(0, 5) || '')
     const [endTime, setEndTime] = useState(schedule?.end_time?.slice(0, 5) || '')
     const [location, setLocation] = useState(schedule?.location || '')
@@ -103,7 +104,7 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
             title,
             company_name: companyName,
             scheduled_date: date,
-            start_time: isSimplified ? '00:00' : (time || '00:00'),
+            start_time: time || '00:00',
             end_time: isSimplified ? null : (endTime || null),
             location: isSimplified ? null : (location || null),
             description: description || null,
@@ -117,7 +118,7 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
             missing_items: isSimplified ? null : (missingItems || null),
             missing_items_status: isSimplified ? 'not_applicable' : (missingItems.trim() ? missingItemsStatus : 'not_applicable'),
             links: isSimplified ? [] : links.filter(l => l.url.trim()),
-            images: isSimplified ? [] : images,
+            images: images,
         })
     }
 
@@ -160,7 +161,7 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
             </div>
 
             {/* Date & Time */}
-            <div className={cn("grid gap-3", isSimplified ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-3")}>
+            <div className={cn("grid gap-3", isSimplified ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-3")}>
                 <div className="space-y-2">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         {isAr ? 'التاريخ' : 'Date'}
@@ -170,14 +171,12 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
                         <span>{date ? format(new Date(date + 'T00:00:00'), 'dd MMM yyyy', { locale: isAr ? ar : enUS }) : (isAr ? 'اختر من التقويم' : 'Select from calendar')}</span>
                     </div>
                 </div>
-                {!isSimplified && (
-                    <div className="space-y-2">
-                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            {isAr ? 'من' : 'From'}
-                        </Label>
-                        <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="rounded-xl" />
-                    </div>
-                )}
+                <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {isAr ? (isSimplified ? 'الساعة' : 'من') : (isSimplified ? 'Time' : 'From')}
+                    </Label>
+                    <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="rounded-xl" />
+                </div>
                 {!isSimplified && (
                     <div className="space-y-2">
                         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -550,14 +549,13 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
             />
             )}
 
-            {/* Images */}
-            {!isSimplified && (
-            <ImageUploader
+            {/* Media (images, videos, reels) */}
+            <MediaUploader
                 value={images}
                 onChange={setImages}
-                maxImages={10}
+                maxFiles={20}
+                folder="schedules"
             />
-            )}
 
             {/* Submit */}
             <Button

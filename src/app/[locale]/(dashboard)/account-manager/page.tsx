@@ -165,6 +165,7 @@ export default function AccountManagerDashboard() {
                 currentUserId={userId}
                 onEdit={isPhotography ? undefined : handleEditTask}
                 canReturn={true}
+                canForward={!isPhotography}
             />
         </div>
     )

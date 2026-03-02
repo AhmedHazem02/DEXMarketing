@@ -31,7 +31,7 @@ export interface MissingItemsFormProps {
     defaultClientId?: string
 }
 
-export function MissingItemsForm({ teamLeaderId, initialDate, isLoading, onSubmit }: MissingItemsFormProps) {
+export function MissingItemsForm({ teamLeaderId, initialDate, isLoading, onSubmit, defaultClientId }: MissingItemsFormProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
 
@@ -39,6 +39,7 @@ export function MissingItemsForm({ teamLeaderId, initialDate, isLoading, onSubmi
     const { data: myTasks } = useMyTasks(currentUser?.id || '')
 
     const [selectedTaskId, setSelectedTaskId] = useState<string>('no-task')
+    // defaultClientId is used as fallback client_id in handleSubmit when no task is selected
     const [missingItems, setMissingItems] = useState('')
     const [missingItemsStatus, setMissingItemsStatus] = useState<MissingItemsStatus>('pending')
     const [notes, setNotes] = useState('')
@@ -67,7 +68,7 @@ export function MissingItemsForm({ teamLeaderId, initialDate, isLoading, onSubmi
             description: null,
             notes: notes || null,
             status: 'scheduled' as ScheduleStatus,
-            client_id: selectedTask?.project?.client?.id || null,
+            client_id: selectedTask?.project?.client?.id || defaultClientId || null,
             department: currentUser?.department || 'content',
             assigned_members: [],
             team_leader_id: teamLeaderId,

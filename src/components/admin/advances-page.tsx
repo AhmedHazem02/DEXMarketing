@@ -108,7 +108,7 @@ function DetailsDialog({
                                                 <p className="text-xs text-muted-foreground mt-0.5 truncate">{advance.notes}</p>
                                             )}
                                             <p className="text-xs text-muted-foreground mt-0.5">
-                                                {format(new Date(advance.created_at), 'dd/MM/yyyy - HH:mm')}
+                                                {format(new Date(advance.created_at), 'dd/MM/yyyy - h:mm aa')}
                                             </p>
                                         </div>
                                     </div>

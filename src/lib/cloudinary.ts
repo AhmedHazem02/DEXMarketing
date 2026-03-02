@@ -9,9 +9,10 @@ export const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOA
 export const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME || 'demo'}/auto/upload`
 
 /**
- * Maximum file size allowed for upload (10MB)
+ * Maximum file size for images (10MB) and videos (200MB)
  */
-const MAX_FILE_SIZE = 10 * 1024 * 1024
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+const MAX_VIDEO_SIZE = 200 * 1024 * 1024
 
 /**
  * Allowed MIME types for upload
@@ -34,9 +35,11 @@ export async function uploadToCloudinary(file: File, folder?: string): Promise<s
         throw new Error('Cloudinary is not configured. Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.')
     }
 
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-        throw new Error(`File size exceeds ${MAX_FILE_SIZE / (1024 * 1024)}MB limit`)
+    // Validate file size (videos up to 200MB, images up to 10MB)
+    const isVideo = file.type.startsWith('video/')
+    const sizeLimit = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE
+    if (file.size > sizeLimit) {
+        throw new Error(`File size exceeds ${sizeLimit / (1024 * 1024)}MB limit`)
     }
 
     // Validate file type

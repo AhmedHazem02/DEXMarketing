@@ -477,6 +477,99 @@ export function useReturnTask() {
 }
 
 /**
+ * Forward an approved task to a designer.
+ * Creates an independent clone with a new ID, assigned to the chosen designer.
+ * Attachments are copied by reference (same file URLs — no storage duplication).
+ */
+export function useForwardTask() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({
+            task,
+            designerId,
+            notes,
+            accountManagerId,
+        }: {
+            task: TaskWithRelations
+            designerId: string
+            notes?: string
+            accountManagerId: string
+        }) => {
+            // ── Step 1: Clone the task ──
+            const clonedTask = {
+                title: task.title,
+                description: notes
+                    ? `🔀 Notes: ${notes}\n───────────────────\n${task.description ?? ''}`
+                    : task.description ?? null,
+                project_id: task.project_id ?? null,
+                client_id: task.client_id ?? null,
+                priority: task.priority,
+                deadline: task.deadline ?? null,
+                department: task.department ?? null,
+                task_type: task.task_type ?? 'general',
+                company_name: task.company_name ?? null,
+                location: task.location ?? null,
+                assigned_to: designerId,
+                status: 'new' as TaskStatus,
+                created_by: accountManagerId,
+                workflow_stage: 'none' as const,
+                client_feedback: null,
+            }
+
+            const { data: newTask, error: taskError } = await supabase
+                .from('tasks')
+                .insert(clonedTask as never)
+                .select()
+                .single()
+
+            if (taskError) throw taskError
+
+            const newTaskId = (newTask as Record<string, unknown>).id as string
+
+            // ── Step 2: Clone attachments (by reference — same URLs) ──
+            const { data: attachments } = await supabase
+                .from('attachments')
+                .select('file_url, file_name, file_type, file_size, uploaded_by')
+                .eq('task_id', task.id)
+
+            if (attachments && attachments.length > 0) {
+                const clonedAttachments = attachments.map((att) => ({
+                    task_id: newTaskId,
+                    file_url: att.file_url,
+                    file_name: att.file_name,
+                    file_type: att.file_type,
+                    file_size: att.file_size,
+                    uploaded_by: att.uploaded_by,
+                }))
+
+                const { error: attachError } = await supabase
+                    .from('attachments')
+                    .insert(clonedAttachments as never[])
+
+                if (attachError) {
+                    console.warn('[useForwardTask] Failed to clone attachments:', attachError)
+                }
+            }
+
+            // ── Step 3: Notify the designer ──
+            await supabase.from('notifications').insert({
+                user_id: designerId,
+                title: 'تم تحويل تاسك جديدة إليك',
+                message: `Task: ${task.title}`,
+                link: '/creator',
+            } as never)
+
+            return newTask as unknown as TaskWithRelations
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: taskKeys.all })
+        },
+    })
+}
+
+/**
  * Delete a task
  */
 export function useDeleteTask() {

@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 
 interface SplitTextProps {
@@ -8,8 +8,8 @@ interface SplitTextProps {
     className?: string;
     delay?: number;
     duration?: number;
-    animationFrom?: any;
-    animationTo?: any;
+    animationFrom?: Record<string, unknown>;
+    animationTo?: Record<string, unknown>;
     easing?: string;
     threshold?: number;
     rootMargin?: string;
@@ -19,10 +19,10 @@ interface SplitTextProps {
     type?: 'chars' | 'words';
 }
 
-export const SplitText: React.FC<SplitTextProps> = ({
+export function SplitText({
     text = '',
     className = '',
-    delay = 0.05, // delay between each letter in seconds
+    delay = 0.05,
     duration = 0.5,
     animationFrom = { opacity: 0, y: 40 },
     animationTo = { opacity: 1, y: 0 },
@@ -33,12 +33,15 @@ export const SplitText: React.FC<SplitTextProps> = ({
     onLetterAnimationComplete,
     start,
     type = 'chars',
-}) => {
+}: SplitTextProps) {
     const words = text.split(' ');
     const [inView, setInView] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
@@ -49,9 +52,7 @@ export const SplitText: React.FC<SplitTextProps> = ({
             { threshold, rootMargin }
         );
 
-        if (ref.current) {
-            observer.observe(ref.current);
-        }
+        observer.observe(el);
 
         return () => observer.disconnect();
     }, [threshold, rootMargin]);
@@ -71,12 +72,12 @@ export const SplitText: React.FC<SplitTextProps> = ({
             ...animationTo,
             transition: { duration, ease: easing },
         },
-    };
+    } as Variants;
 
     return (
         <motion.div
             ref={ref}
-            className={`block w-full flex flex-wrap gap-[0.25em] ${className}`}
+            className={`flex w-full flex-wrap gap-[0.25em] ${className}`}
             style={{
                 textAlign,
                 justifyContent: textAlign === 'center' ? 'center' : 'flex-start'
@@ -112,6 +113,4 @@ export const SplitText: React.FC<SplitTextProps> = ({
             ))}
         </motion.div>
     );
-};
-
-export default SplitText;
+}

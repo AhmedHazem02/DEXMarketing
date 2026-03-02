@@ -257,7 +257,7 @@ export default function ClientRevisionsPage() {
                                         )}
                                         <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-muted text-muted-foreground font-medium">
                                             <Clock className="h-3 w-3" />
-                                            {format(new Date(task.updated_at), 'd MMM · HH:mm', { locale: dateLocale })}
+                                            {format(new Date(task.updated_at), 'd MMM · h:mm aa', { locale: dateLocale })}
                                         </span>
                                     </div>
 

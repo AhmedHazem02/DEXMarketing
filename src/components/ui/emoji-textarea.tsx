@@ -1,14 +1,18 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, lazy, Suspense } from 'react'
 import { useLocale } from 'next-intl'
-import { Smile } from 'lucide-react'
+import { Smile, Loader2 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import data from '@emoji-mart/data'
-import Picker from '@emoji-mart/react'
+
+// Lazy-load emoji picker — saves ~1.4MB from initial bundle
+const LazyEmojiPicker = lazy(() => import('@emoji-mart/react').then(mod => ({ default: mod.default })))
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let emojiData: any = null
+const loadEmojiData = () => import('@emoji-mart/data').then(mod => { emojiData = mod.default; return emojiData })
 
 interface EmojiTextareaProps {
     value: string
@@ -24,6 +28,14 @@ export function EmojiTextarea({ value, onChange, placeholder, rows = 3, classNam
     const isAr = locale === 'ar'
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const [emojiOpen, setEmojiOpen] = useState(false)
+    const [dataLoaded, setDataLoaded] = useState(false)
+
+    const handleOpenChange = useCallback((open: boolean) => {
+        setEmojiOpen(open)
+        if (open && !dataLoaded) {
+            loadEmojiData().then(() => setDataLoaded(true))
+        }
+    }, [dataLoaded])
 
     const handleEmojiSelect = useCallback((emoji: { native: string }) => {
         const textarea = textareaRef.current
@@ -56,7 +68,7 @@ export function EmojiTextarea({ value, onChange, placeholder, rows = 3, classNam
                     className
                 )}
             />
-            <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+            <Popover open={emojiOpen} onOpenChange={handleOpenChange}>
                 <PopoverTrigger asChild>
                     <Button
                         type="button"
@@ -67,7 +79,7 @@ export function EmojiTextarea({ value, onChange, placeholder, rows = 3, classNam
                             isAr ? 'left-2' : 'right-2'
                         )}
                     >
-                        <Smile className="h-4 w-4" />
+                        <Smile className="size-4" />
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent
@@ -75,16 +87,24 @@ export function EmojiTextarea({ value, onChange, placeholder, rows = 3, classNam
                     side="top"
                     align={isAr ? 'start' : 'end'}
                 >
-                    <Picker
-                        data={data}
-                        onEmojiSelect={handleEmojiSelect}
-                        theme="dark"
-                        locale={isAr ? 'ar' : 'en'}
-                        previewPosition="none"
-                        skinTonePosition="search"
-                        set="native"
-                        maxFrequentRows={2}
-                    />
+                    <Suspense fallback={
+                        <div className="flex items-center justify-center h-[350px] w-[350px]">
+                            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                        </div>
+                    }>
+                        {dataLoaded && emojiData && (
+                            <LazyEmojiPicker
+                                data={emojiData}
+                                onEmojiSelect={handleEmojiSelect}
+                                theme="dark"
+                                locale={isAr ? 'ar' : 'en'}
+                                previewPosition="none"
+                                skinTonePosition="search"
+                                set="native"
+                                maxFrequentRows={2}
+                            />
+                        )}
+                    </Suspense>
                 </PopoverContent>
             </Popover>
         </div>

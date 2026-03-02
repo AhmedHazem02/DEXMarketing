@@ -21,7 +21,7 @@ export interface ScheduleListViewProps {
     onDelete: (id: string) => void
     onStatusChange: (id: string, status: ScheduleStatus) => void
     isAccountManager?: boolean
-    onApproval?: (id: string, status: 'approved' | 'rejected') => void
+    onApproval?: (id: string, status: 'approved' | 'rejected', note?: string) => void
 }
 
 export function ScheduleListView({ schedules, isAr, memberMap, onEdit, onDelete, onStatusChange, isAccountManager, onApproval }: ScheduleListViewProps) {
@@ -67,7 +67,7 @@ export function ScheduleListView({ schedules, isAr, memberMap, onEdit, onDelete,
             <ScrollArea className="h-[600px]">
                 <div className="divide-y divide-border/30">
                     {Array.from(grouped.entries()).map(([dateStr, items]) => {
-                        const date = new Date(dateStr)
+                        const date = new Date(dateStr + 'T00:00:00')
                         const isToday = isTodayFn(date)
 
                         return (

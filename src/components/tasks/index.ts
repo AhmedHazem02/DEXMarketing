@@ -9,6 +9,7 @@ export { FileUploadZone } from './file-upload-zone'
 export { RevisionsHub } from './revisions-hub'
 export { PendingRequests } from './pending-requests'
 export { ReturnTaskDialog } from './return-task-dialog'
+export { ForwardToDesignerDialog } from './forward-to-designer-dialog'
 
 // Re-export types for convenience
 export type {
