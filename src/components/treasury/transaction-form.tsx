@@ -127,6 +127,7 @@ export function TransactionForm() {
                 ...rest,
                 created_by: currentUser.id,
                 sub_category: values.sub_category || null,
+                affects_treasury: true, // Treasury page transactions always affect treasury
             }
 
             // Only include transaction_date if admin and date is provided

@@ -10,7 +10,7 @@ export function TreasuryStats() {
     const locale = useLocale()
     const isAr = locale === 'ar'
 
-    const { isLoading: treasuryLoading } = useTreasury()
+    const { data: treasury, isLoading: treasuryLoading } = useTreasury()
     const { data: summary, isLoading: summaryLoading } = useTransactionSummary('month')
     const { data: allTimeSummary, isLoading: allTimeLoading } = useTransactionSummary(undefined)
     const { data: paymentSummary, isLoading: paymentLoading } = usePaymentMethodSummary()
@@ -34,8 +34,8 @@ export function TreasuryStats() {
         )
     }
 
-    // Compute current balance from all approved transactions (more reliable than stored value)
-    const currentBalance = (allTimeSummary?.totalIncome ?? 0) - (allTimeSummary?.totalExpense ?? 0)
+    // Use the stored treasury balance (correctly maintained by DB trigger which filters by affects_treasury)
+    const currentBalance = treasury?.current_balance ?? 0
     const income = summary?.totalIncome ?? 0
     const expense = summary?.totalExpense ?? 0
     const cashNet = (paymentSummary?.cashIncome ?? 0) - (paymentSummary?.cashExpense ?? 0)

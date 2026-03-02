@@ -95,6 +95,7 @@ export const getRoutes = (
             return [
                 { name: t('Treasury', 'الخزينة'), href: '/accountant', icon: Wallet },
                 { name: t('Client Accounts', 'حسابات العملاء'), href: '/accountant/client-accounts', icon: UserCircle },
+                { name: t('Advances', 'السلف'), href: '/accountant/advances', icon: Banknote },
                 { name: t('Reports', 'التقارير'), href: '/accountant/reports', icon: BarChart3 },
             ]
 

@@ -184,6 +184,7 @@ export type Transaction = {
     approved_by: string | null
     approved_at: string | null
     visible_to_client: boolean
+    affects_treasury: boolean
     notes: string | null
     created_by: string | null
     created_at: string
@@ -453,6 +454,7 @@ export interface Database {
                     approved_by?: string | null
                     approved_at?: string | null
                     visible_to_client?: boolean
+                    affects_treasury?: boolean
                     notes?: string | null
                     created_by?: string | null
                     created_at?: string

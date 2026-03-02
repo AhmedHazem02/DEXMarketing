@@ -16,6 +16,8 @@ import {
     FileText,
     Download,
     Eye,
+    CalendarIcon,
+    X,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -84,9 +86,12 @@ export function ClientAccountsPage() {
 
     const [searchQuery, setSearchQuery] = useState('')
     const [clientFilter, setClientFilter] = useState<string>('')
+    const [dateFrom, setDateFrom] = useState<string>('')
+    const [dateTo, setDateTo] = useState<string>('')
     const [expandedAccountId, setExpandedAccountId] = useState<string | null>(null)
     const [addAccountOpen, setAddAccountOpen] = useState(false)
     const [addTransactionOpen, setAddTransactionOpen] = useState(false)
+    const [transactionMode, setTransactionMode] = useState<'client' | 'treasury'>('client')
     const [selectedAccountForTransaction, setSelectedAccountForTransaction] = useState<string | undefined>()
     const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null)
     const [editAccount, setEditAccount] = useState<ClientAccountWithRelations | null>(null)
@@ -94,12 +99,13 @@ export function ClientAccountsPage() {
     const [editTransaction, setEditTransaction] = useState<Transaction | null>(null)
     const [isExporting, setIsExporting] = useState(false)
 
-    const { data: clientAccounts, isLoading } = useClientAccounts({ search: searchQuery, clientId: clientFilter })
+    const { data: clientAccounts, isLoading } = useClientAccounts({ search: searchQuery, clientId: clientFilter, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined })
     const { data: clients } = useClients()
     const deleteClientAccount = useDeleteClientAccount()
 
-    const handleAddTransaction = (accountId: string) => {
+    const handleAddTransaction = (accountId: string, mode: 'client' | 'treasury') => {
         setSelectedAccountForTransaction(accountId)
+        setTransactionMode(mode)
         setAddTransactionOpen(true)
     }
 
@@ -120,7 +126,8 @@ export function ClientAccountsPage() {
             const filename = generateFilename('client_accounts', 'csv', isAr)
             const exportData = clientAccounts.map(acc => ({
                 ...acc,
-                client: acc.client ?? null
+                client: acc.client ?? null,
+                transactions: acc.transactions ?? []
             }))
             exportClientAccountsToCSV(exportData, filename, isAr)
             toast.success(isAr ? 'تم تصدير الملف بنجاح' : 'File exported successfully')
@@ -139,7 +146,8 @@ export function ClientAccountsPage() {
             const filename = generateFilename('client_accounts', 'pdf', isAr)
             const exportData = clientAccounts.map(acc => ({
                 ...acc,
-                client: acc.client ?? null
+                client: acc.client ?? null,
+                transactions: acc.transactions ?? []
             }))
             await exportClientAccountsToPDF(exportData, filename, isAr)
             toast.success(isAr ? 'تم تصدير الملف بنجاح' : 'File exported successfully')
@@ -200,20 +208,33 @@ export function ClientAccountsPage() {
                     <Button
                         onClick={() => {
                             setSelectedAccountForTransaction(undefined)
+                            setTransactionMode('client')
                             setAddTransactionOpen(true)
                         }}
                         variant="outline"
                         size="sm"
                     >
                         <Banknote className="me-2 h-4 w-4" />
-                        {isAr ? 'معاملة جديدة' : 'New Transaction'}
+                        {isAr ? 'معاملة عميل' : 'Client Transaction'}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setSelectedAccountForTransaction(undefined)
+                            setTransactionMode('treasury')
+                            setAddTransactionOpen(true)
+                        }}
+                        variant="outline"
+                        size="sm"
+                    >
+                        <Banknote className="me-2 h-4 w-4" />
+                        {isAr ? 'معاملة خزنة' : 'Treasury Transaction'}
                     </Button>
                 </div>
             </div>
 
             {/* Search Filter */}
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="relative flex-1 max-w-sm w-full">
+            <div className="flex flex-col sm:flex-row items-center gap-3 flex-wrap">
+                <div className="relative flex-1 min-w-[180px] max-w-sm w-full">
                     <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder={isAr ? 'ابحث عن عميل...' : 'Search client...'}
@@ -235,6 +256,56 @@ export function ClientAccountsPage() {
                         ))}
                     </SelectContent>
                 </Select>
+                {/* From Date Filter */}
+                <div className="relative w-full sm:w-auto">
+                    <CalendarIcon className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className="ps-9 pe-8 w-full sm:w-[170px]"
+                        title={isAr ? 'من تاريخ' : 'From date'}
+                    />
+                    {dateFrom && (
+                        <button
+                            type="button"
+                            onClick={() => setDateFrom('')}
+                            className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                </div>
+                {/* To Date Filter */}
+                <div className="relative w-full sm:w-auto">
+                    <CalendarIcon className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        className="ps-9 pe-8 w-full sm:w-[170px]"
+                        title={isAr ? 'إلى تاريخ' : 'To date'}
+                    />
+                    {dateTo && (
+                        <button
+                            type="button"
+                            onClick={() => setDateTo('')}
+                            className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                </div>
+                {/* Clear all date filters */}
+                {(dateFrom || dateTo) && (
+                    <button
+                        type="button"
+                        onClick={() => { setDateFrom(''); setDateTo('') }}
+                        className="text-xs text-muted-foreground hover:text-destructive underline whitespace-nowrap"
+                    >
+                        {isAr ? 'مسح التواريخ' : 'Clear dates'}
+                    </button>
+                )}
             </div>
 
             {/* Table */}
@@ -244,8 +315,7 @@ export function ClientAccountsPage() {
                         <TableRow className="bg-muted/50">
                             <TableHead className="w-10"></TableHead>
                             <TableHead>{isAr ? 'العميل' : 'Client'}</TableHead>
-                            <TableHead>{isAr ? 'الباقة' : 'Package'}</TableHead>
-                            <TableHead className="text-center">{isAr ? 'سعر الباقة' : 'Package Price'}</TableHead>
+                            <TableHead>{isAr ? 'اسم الباقة' : 'Package Name'}</TableHead>
                             <TableHead className="text-center">{isAr ? 'الرصيد المتبقي' : 'Remaining Balance'}</TableHead>
                             <TableHead>{isAr ? 'تاريخ الإنشاء' : 'Created At'}</TableHead>
                             <TableHead className="text-end">{isAr ? 'إجراءات' : 'Actions'}</TableHead>
@@ -254,13 +324,13 @@ export function ClientAccountsPage() {
                     <TableBody>
                         {isLoading ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                     {isAr ? 'جاري التحميل...' : 'Loading...'}
                                 </TableCell>
                             </TableRow>
                         ) : !clientAccounts || clientAccounts.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                     {isAr ? 'لا توجد حسابات' : 'No accounts found'}
                                 </TableCell>
                             </TableRow>
@@ -272,7 +342,6 @@ export function ClientAccountsPage() {
                                 const packageName = isAr
                                     ? (account.package_name_ar || account.package_name)
                                     : account.package_name
-                                const packagePrice = account.package_price || 0
                                 const remainingBalance = account.remaining_balance || 0
 
                                 return (
@@ -295,9 +364,6 @@ export function ClientAccountsPage() {
                                             </TableCell>
                                             <TableCell className="font-medium">{clientName}</TableCell>
                                             <TableCell>{packageName}</TableCell>
-                                            <TableCell className="text-center">
-                                                {packagePrice.toLocaleString()} ج.م
-                                            </TableCell>
                                             <TableCell className="text-center">
                                                 <span
                                                     className={cn(
@@ -335,10 +401,16 @@ export function ClientAccountsPage() {
                                                             {isAr ? 'عرض التفاصيل' : 'View Details'}
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
-                                                            onClick={() => handleAddTransaction(account.id)}
+                                                            onClick={() => handleAddTransaction(account.id, 'client')}
                                                         >
                                                             <Banknote className="me-2 h-4 w-4" />
-                                                            {isAr ? 'إضافة معاملة' : 'Add Transaction'}
+                                                            {isAr ? 'معاملة عميل' : 'Client Transaction'}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleAddTransaction(account.id, 'treasury')}
+                                                        >
+                                                            <Banknote className="me-2 h-4 w-4" />
+                                                            {isAr ? 'معاملة خزنة' : 'Treasury Transaction'}
                                                         </DropdownMenuItem>
                                                         {!isAccountant && (
                                                             <DropdownMenuItem
@@ -365,7 +437,7 @@ export function ClientAccountsPage() {
                                         {/* Expanded Transactions */}
                                         {isExpanded && account.transactions && account.transactions.length > 0 && (
                                             <TableRow>
-                                                <TableCell colSpan={7} className="bg-muted/30 p-4">
+                                                <TableCell colSpan={6} className="bg-muted/30 p-4">
                                                     <div className="space-y-2">
                                                         <h4 className="font-medium text-sm mb-3">
                                                             {isAr ? 'المعاملات المرتبطة:' : 'Related Transactions:'}
@@ -429,7 +501,7 @@ export function ClientAccountsPage() {
 
                                         {isExpanded && (!account.transactions || account.transactions.length === 0) && (
                                             <TableRow>
-                                                <TableCell colSpan={7} className="bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+                                                <TableCell colSpan={6} className="bg-muted/30 p-4 text-center text-sm text-muted-foreground">
                                                     {isAr ? 'لا توجد معاملات' : 'No transactions'}
                                                 </TableCell>
                                             </TableRow>
@@ -454,6 +526,7 @@ export function ClientAccountsPage() {
                     if (!open) setSelectedAccountForTransaction(undefined)
                 }}
                 defaultClientAccountId={selectedAccountForTransaction}
+                mode={transactionMode}
             />
             <EditClientAccountDialog
                 open={!!editAccount}

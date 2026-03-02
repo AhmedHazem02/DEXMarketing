@@ -11,7 +11,6 @@ import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Calendar } from '@/components/ui/calendar'
 import {
     Dialog,
@@ -61,7 +60,6 @@ const clientTransactionSchema = z.object({
     amount: z.number().min(0.01, 'Amount must be greater than zero'),
     description: z.string().optional(),
     date: z.date().optional(),
-    visible_to_client: z.boolean(),
 })
 
 type ClientTransactionFormValues = z.infer<typeof clientTransactionSchema>
@@ -74,12 +72,14 @@ interface AddClientTransactionDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     defaultClientAccountId?: string
+    mode: 'client' | 'treasury'
 }
 
 export function AddClientTransactionDialog({
     open,
     onOpenChange,
     defaultClientAccountId,
+    mode,
 }: AddClientTransactionDialogProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
@@ -98,7 +98,6 @@ export function AddClientTransactionDialog({
             service_type: undefined,
             amount: 0,
             description: '',
-            visible_to_client: true,
         },
     })
 
@@ -122,8 +121,11 @@ export function AddClientTransactionDialog({
                 category: values.service_type || null,
                 amount: values.amount,
                 description: values.description || null,
-                visible_to_client: values.visible_to_client,
-                is_approved: false, // Route through approval workflow
+                // Client mode: visible to client, doesn't affect treasury, auto-approved
+                // Treasury mode: NOT visible to client, affects treasury, needs approval
+                visible_to_client: mode === 'client',
+                affects_treasury: mode === 'treasury',
+                is_approved: mode === 'client', // Client transactions don't need approval
             }
 
             // Only include date if admin and date is provided
@@ -151,12 +153,21 @@ export function AddClientTransactionDialog({
             <DialogContent className="sm:max-w-[600px] flex flex-col max-h-[90vh]">
                 <DialogHeader className="shrink-0">
                     <DialogTitle>
-                        {isAr ? 'إضافة معاملة للعميل' : 'Add Client Transaction'}
+                        {mode === 'client'
+                            ? (isAr ? 'معاملة عميل' : 'Client Transaction')
+                            : (isAr ? 'معاملة خزنة' : 'Treasury Transaction')
+                        }
                     </DialogTitle>
                     <DialogDescription>
-                        {isAr
-                            ? 'أضف معاملة مالية (دخل أو صرف) مرتبطة بحساب العميل'
-                            : 'Add a financial transaction (income or expense) linked to client account'
+                        {mode === 'client'
+                            ? (isAr
+                                ? 'معاملة مالية تظهر للعميل فقط ولا تؤثر على رصيد الخزنة'
+                                : 'Financial transaction visible to client only, does not affect treasury balance'
+                            )
+                            : (isAr
+                                ? 'معاملة مالية تُسجَّل في الخزنة ولا تظهر للعميل'
+                                : 'Financial transaction recorded in treasury, not visible to client'
+                            )
                         }
                     </DialogDescription>
                 </DialogHeader>
@@ -376,33 +387,6 @@ export function AddClientTransactionDialog({
                                         />
                                     </FormControl>
                                     <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* Visible to Client */}
-                        <FormField
-                            control={form.control}
-                            name="visible_to_client"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-md border p-4">
-                                    <FormControl>
-                                        <Checkbox
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                    <div className="space-y-1 leading-none">
-                                        <FormLabel className="cursor-pointer">
-                                            {isAr ? 'مرئي للعميل' : 'Visible to Client'}
-                                        </FormLabel>
-                                        <FormDescription>
-                                            {isAr
-                                                ? 'إذا كان مفعّل، سيتمكن العميل من رؤية هذه المعاملة في حسابه'
-                                                : 'If checked, client will be able to see this transaction in their account'
-                                            }
-                                        </FormDescription>
-                                    </div>
                                 </FormItem>
                             )}
                         />

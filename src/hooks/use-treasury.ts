@@ -52,7 +52,8 @@ export function useTransactions(filters?: {
         queryFn: async () => {
             let query = supabase
                 .from('transactions')
-                .select('id, type, amount, description, category, sub_category, payment_method, receipt_url, client_id, project_id, client_account_id, visible_to_client, is_approved, approved_by, approved_at, notes, created_by, transaction_date, created_at, client:clients(id, name, email, user:users(name))')
+                .select('id, type, amount, description, category, sub_category, payment_method, receipt_url, client_id, project_id, client_account_id, visible_to_client, is_approved, approved_by, approved_at, notes, created_by, transaction_date, created_at, affects_treasury, client:clients(id, name, email, user:users(name))')
+                .eq('affects_treasury', true)
                 .order('created_at', { ascending: false })
 
             if (filters?.type) {
@@ -123,6 +124,7 @@ export function useTransactionSummary(period?: 'day' | 'week' | 'month' | 'year'
                 .from('transactions')
                 .select('type, amount')
                 .eq('is_approved', true)
+                .eq('affects_treasury', true)
                 .gte('created_at', startDate.toISOString())
 
             if (error) throw error
@@ -307,6 +309,7 @@ export function usePaymentMethodSummary() {
                 .from('transactions')
                 .select('type, amount, payment_method')
                 .eq('is_approved', true)
+                .eq('affects_treasury', true)
 
             if (error) throw error
 

@@ -17,6 +17,8 @@ export function useClientAccounts(filters?: {
     clientId?: string
     isActive?: boolean
     search?: string
+    dateFrom?: string
+    dateTo?: string
 }) {
     const supabase = createClient()
 
@@ -29,7 +31,7 @@ export function useClientAccounts(filters?: {
                     *,
                     client:clients!inner(id, name, email, user:users(id, name, email)),
                     package:packages(id, name, name_ar),
-                    transactions:transactions(id, type, amount, description, category, transaction_date, created_at, is_approved, visible_to_client, payment_method)
+                    transactions:transactions(id, type, amount, description, category, transaction_date, created_at, is_approved, visible_to_client, payment_method, affects_treasury)
                 `)
                 .order('created_at', { ascending: false })
 
@@ -39,6 +41,15 @@ export function useClientAccounts(filters?: {
 
             if (filters?.isActive !== undefined) {
                 query = query.eq('is_active', filters.isActive)
+            }
+
+            if (filters?.dateFrom) {
+                query = query.gte('created_at', filters.dateFrom)
+            }
+
+            if (filters?.dateTo) {
+                // include the full end day
+                query = query.lte('created_at', filters.dateTo + 'T23:59:59')
             }
 
             // Server-side search filter
@@ -76,7 +87,7 @@ export function useClientAccount(id: string | undefined) {
                     *,
                     client:clients(id, name, email, phone),
                     package:packages(id, name, name_ar, price, duration_days),
-                    transactions:transactions(id, type, amount, description, category, created_at, payment_method)
+                    transactions:transactions(id, type, amount, description, category, created_at, payment_method, affects_treasury)
                 `)
                 .eq('id', id)
                 .single()
@@ -143,12 +154,13 @@ export function useMyClientAccounts() {
 
             const clientId = (clientData as any).id as string
 
-            // Fetch client accounts (without transactions — load on detail view)
+            // Fetch client accounts with their visible transactions
             const { data, error } = await supabase
                 .from('client_accounts')
                 .select(`
                     *,
-                    package:packages(id, name, name_ar)
+                    package:packages(id, name, name_ar),
+                    transactions:transactions(id, type, amount, description, category, transaction_date, created_at, is_approved, visible_to_client, payment_method, affects_treasury)
                 `)
                 .eq('client_id', clientId)
                 .eq('is_active', true)

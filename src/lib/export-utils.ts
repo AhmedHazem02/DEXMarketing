@@ -296,6 +296,15 @@ export interface ClientAccountExportData {
     package_price: number | null
     remaining_balance: number | null
     created_at: string
+    transactions?: Array<{
+        id: string
+        type: string
+        amount: number
+        description?: string | null
+        category?: string | null
+        transaction_date?: string | null
+        payment_method?: string | null
+    }>
 }
 
 /**
@@ -310,12 +319,13 @@ export function exportClientAccountsToCSV(
 
     // CSV Headers with BOM
     const BOM = '\uFEFF'
-    const headers = isAr
+
+    // ── Section 1: Accounts summary ──
+    const accountHeaders = isAr
         ? ['العميل', 'الباقة', 'سعر الباقة', 'الرصيد المتبقي', 'تاريخ الإنشاء']
         : ['Client', 'Package', 'Package Price', 'Remaining Balance', 'Created At']
 
-    // Map rows
-    const rows = accounts.map(account => {
+    const accountRows = accounts.map(account => {
         const userName = account.client?.user?.name
         const clientName = userName || account.client?.name || 'N/A'
         const packageName = isAr
@@ -331,11 +341,54 @@ export function exportClientAccountsToCSV(
         ]
     })
 
-    // Build CSV content
-    const csvContent = [
-        headers.join(';'),
-        ...rows.map(row => row.join(';'))
-    ].join('\n')
+    // ── Section 2: Transactions ──
+    const txHeaders = isAr
+        ? ['العميل', 'الباقة', 'النوع', 'الفئة', 'الوصف', 'المبلغ', 'تاريخ المعاملة', 'طريقة الدفع']
+        : ['Client', 'Package', 'Type', 'Category', 'Description', 'Amount', 'Transaction Date', 'Payment Method']
+
+    const txRows: string[][] = []
+    for (const account of accounts) {
+        const userName = account.client?.user?.name
+        const clientName = userName || account.client?.name || 'N/A'
+        const packageName = isAr
+            ? (account.package_name_ar || account.package_name)
+            : account.package_name
+
+        for (const tx of account.transactions ?? []) {
+            const txType = isAr
+                ? (tx.type === 'income' ? 'دخل' : 'صرف')
+                : (tx.type === 'income' ? 'Income' : 'Expense')
+
+            txRows.push([
+                `"${(clientName || '').replace(/"/g, '""')}"`,
+                `"${(packageName || '').replace(/"/g, '""')}"`,
+                `"${txType}"`,
+                `"${(tx.category || '').replace(/"/g, '""')}"`,
+                `"${(tx.description || '').replace(/"/g, '""')}"`,
+                tx.amount.toString(),
+                tx.transaction_date
+                    ? `"=""${format(new Date(tx.transaction_date), 'dd/MM/yyyy')}"""`
+                    : '""',
+                `"${(tx.payment_method || '').replace(/"/g, '""')}"`
+            ])
+        }
+    }
+
+    // Build CSV content: accounts block + blank line + transactions block
+    const sectionLabel1 = isAr ? '=== ملخص الحسابات ===' : '=== Accounts Summary ==='
+    const sectionLabel2 = isAr ? '=== تفاصيل المعاملات ===' : '=== Transactions Detail ==='
+
+    const lines: string[] = [
+        `"${sectionLabel1}"`,
+        accountHeaders.join(';'),
+        ...accountRows.map(r => r.join(';')),
+        '',
+        `"${sectionLabel2}"`,
+        txHeaders.join(';'),
+        ...txRows.map(r => r.join(';'))
+    ]
+
+    const csvContent = lines.join('\n')
 
     // Create and download file
     const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -378,7 +431,16 @@ export async function exportClientAccountsToPDF(
 
         let yPos = 40
 
-        // Prepare table data
+        // ── Section 1: Accounts summary table ──
+        const accountSectionTitle = isAr ? 'ملخص الحسابات' : 'Accounts Summary'
+        doc.setFontSize(13)
+        if (isAr) {
+            doc.text(accountSectionTitle, pageWidth - 15, yPos, { align: 'right', lang: 'ar' })
+        } else {
+            doc.text(accountSectionTitle, 15, yPos)
+        }
+        yPos += 8
+
         const headers = isAr
             ? ['العميل', 'الباقة', 'سعر الباقة', 'الرصيد المتبقي', 'تاريخ الإنشاء']
             : ['Client', 'Package', 'Package Price', 'Remaining Balance', 'Created At']
@@ -390,17 +452,16 @@ export async function exportClientAccountsToPDF(
                 ? (account.package_name_ar || account.package_name)
                 : account.package_name
 
-            const row = [
+            return [
                 clientName,
                 packageName || '-',
                 `${(account.package_price || 0).toLocaleString()} ${isAr ? 'ج.م' : 'EGP'}`,
                 `${(account.remaining_balance || 0).toLocaleString()} ${isAr ? 'ج.م' : 'EGP'}`,
                 format(new Date(account.created_at), 'dd/MM/yyyy')
             ]
-            return row
         })
 
-        const tableOptions = {
+        const summaryTableOptions = {
             head: [headers],
             body: tableData,
             startY: yPos,
@@ -427,12 +488,97 @@ export async function exportClientAccountsToPDF(
                 3: { halign: 'right' as 'right' },
                 4: { halign: 'right' as 'right' }
             } : {
-                2: { halign: 'right' as 'right' }, // Price
-                3: { halign: 'right' as 'right' }  // Balance
+                2: { halign: 'right' as 'right' },
+                3: { halign: 'right' as 'right' }
             }) as any
         }
 
-        runAutoTable(doc, autoTable, tableOptions)
+        runAutoTable(doc, autoTable, summaryTableOptions)
+
+        // ── Section 2: Transactions per account ──
+        const allTransactions: Array<string[]> = []
+        for (const account of accounts) {
+            const userName = account.client?.user?.name
+            const clientName = userName || account.client?.name || 'N/A'
+            const packageName = isAr
+                ? (account.package_name_ar || account.package_name)
+                : account.package_name
+
+            for (const tx of account.transactions ?? []) {
+                const txType = isAr
+                    ? (tx.type === 'income' ? 'دخل' : 'صرف')
+                    : (tx.type === 'income' ? 'Income' : 'Expense')
+
+                allTransactions.push([
+                    clientName,
+                    packageName || '-',
+                    txType,
+                    tx.category || '-',
+                    tx.description || '-',
+                    `${tx.amount.toLocaleString()} ${isAr ? 'ج.م' : 'EGP'}`,
+                    tx.transaction_date
+                        ? format(new Date(tx.transaction_date), 'dd/MM/yyyy')
+                        : '-',
+                    tx.payment_method || '-'
+                ])
+            }
+        }
+
+        if (allTransactions.length > 0) {
+            const txSectionTitle = isAr ? 'تفاصيل المعاملات' : 'Transactions Detail'
+
+            // Get Y position after the first table
+            const lastY = (doc as any).lastAutoTable?.finalY ?? (doc.internal.pageSize.height / 2)
+            const txTitleY = lastY + 12
+
+            doc.setFontSize(13)
+            if (isAr) {
+                doc.text(txSectionTitle, pageWidth - 15, txTitleY, { align: 'right', lang: 'ar' })
+            } else {
+                doc.text(txSectionTitle, 15, txTitleY)
+            }
+
+            const txHeaders = isAr
+                ? ['العميل', 'الباقة', 'النوع', 'الفئة', 'الوصف', 'المبلغ', 'التاريخ', 'الدفع']
+                : ['Client', 'Package', 'Type', 'Category', 'Description', 'Amount', 'Date', 'Payment']
+
+            const txTableOptions = {
+                head: [txHeaders],
+                body: allTransactions,
+                startY: txTitleY + 6,
+                margin: { left: 15, right: 15 },
+                styles: {
+                    font: fontName,
+                    fontSize: 8,
+                    cellPadding: 2.5,
+                    halign: (isAr ? 'right' : 'left') as 'right' | 'left'
+                },
+                headStyles: {
+                    fillColor: [30, 120, 120] as [number, number, number],
+                    textColor: [255, 255, 255] as [number, number, number],
+                    fontStyle: fontStyle,
+                    halign: (isAr ? 'right' : 'left') as 'right' | 'left'
+                },
+                alternateRowStyles: {
+                    fillColor: [240, 253, 252] as [number, number, number]
+                },
+                columnStyles: (isAr ? {
+                    0: { halign: 'right' as 'right' },
+                    1: { halign: 'right' as 'right' },
+                    2: { halign: 'right' as 'right' },
+                    3: { halign: 'right' as 'right' },
+                    4: { halign: 'right' as 'right' },
+                    5: { halign: 'right' as 'right' },
+                    6: { halign: 'right' as 'right' },
+                    7: { halign: 'right' as 'right' }
+                } : {
+                    5: { halign: 'right' as 'right' }
+                }) as any
+            }
+
+            runAutoTable(doc, autoTable, txTableOptions)
+        }
+
         addPDFFooter(doc, pageWidth, isAr)
 
         // Save PDF
