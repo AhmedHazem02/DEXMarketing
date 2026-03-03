@@ -469,12 +469,6 @@ export function KanbanBoard({ projectId, department, readOnly, onTaskClick, onCr
                         </SelectContent>
                     </Select>
 
-                    {!readOnly && (
-                        <Button onClick={() => onCreateTask?.()}>
-                            <Plus className="h-4 w-4 me-2" />
-                            {isAr ? 'مهمة جديدة' : 'New Task'}
-                        </Button>
-                    )}
                 </div>
             </div>
 

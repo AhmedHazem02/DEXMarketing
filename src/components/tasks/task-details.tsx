@@ -343,8 +343,14 @@ export function TaskDetails({
 
     const handleDeleteTask = async () => {
         if (!task) return
-        await deleteTask.mutateAsync(task.id)
-        onOpenChange(false)
+        try {
+            await deleteTask.mutateAsync(task.id)
+            onOpenChange(false)
+        } catch (e: any) {
+            const { toast } = await import('sonner')
+            toast.error(isAr ? 'حدث خطأ أثناء حذف المهمة' : 'Failed to delete task')
+            console.error('[handleDeleteTask]', e?.message || e)
+        }
     }
 
     const handleSubmitTask = async () => {

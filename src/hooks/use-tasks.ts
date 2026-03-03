@@ -283,7 +283,11 @@ export function useTaskDetails(taskId: string) {
                     .order('created_at', { ascending: false }),
             ])
 
-            if (taskResult.error) throw taskResult.error
+            // PGRST116 = no rows found (task deleted) — return null gracefully
+            if (taskResult.error) {
+                if (taskResult.error.code === 'PGRST116') return null
+                throw taskResult.error
+            }
 
             const task = taskResult.data as Record<string, unknown>
             return {
@@ -553,7 +557,30 @@ export function useForwardTask() {
                 }
             }
 
-            // ── Step 3: Notify the designer ──
+            // ── Step 3: Clone comments (conversation history for the designer) ──
+            const { data: comments } = await supabase
+                .from('comments')
+                .select('user_id, content')
+                .eq('task_id', task.id)
+                .order('created_at', { ascending: true })
+
+            if (comments && comments.length > 0) {
+                const clonedComments = comments.map((c) => ({
+                    task_id: newTaskId,
+                    user_id: c.user_id,
+                    content: c.content,
+                }))
+
+                const { error: commentsError } = await supabase
+                    .from('comments')
+                    .insert(clonedComments as never[])
+
+                if (commentsError) {
+                    console.warn('[useForwardTask] Failed to clone comments:', commentsError)
+                }
+            }
+
+            // ── Step 4: Notify the designer ──
             await supabase.from('notifications').insert({
                 user_id: designerId,
                 title: 'تم تحويل تاسك جديدة إليك',
@@ -590,9 +617,15 @@ export function useDeleteTask() {
             const { error } = await supabase.from('tasks').delete().eq('id', taskId)
 
             if (error) throw error
+
+            return taskId
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: taskKeys.all })
+        onSuccess: (taskId) => {
+            // Remove the detail query immediately so it doesn't refetch a deleted task (→ 406)
+            queryClient.removeQueries({ queryKey: taskKeys.detail(taskId) })
+            // Invalidate list & kanban queries to reflect removal
+            queryClient.invalidateQueries({ queryKey: taskKeys.lists() })
+            queryClient.invalidateQueries({ queryKey: taskKeys.kanban() })
         },
     })
 }

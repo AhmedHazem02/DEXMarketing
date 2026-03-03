@@ -39,3 +39,11 @@ CREATE POLICY "Task owners can update" ON public.tasks
     public.is_team_leader_or_admin()
   );
 
+-- DELETE: creators and team leaders / account managers / admins
+DROP POLICY IF EXISTS "Task owners can delete" ON public.tasks;
+CREATE POLICY "Task owners can delete" ON public.tasks
+  FOR DELETE USING (
+    auth.uid() = created_by OR
+    public.is_team_leader_or_admin()
+  );
+

@@ -50,7 +50,6 @@ import { isScheduleOverdue } from '@/types/schedule'
 import type { ScheduleWithRelations, CreateScheduleInput, ScheduleStatus } from '@/types/schedule'
 import type { User } from '@/types/database'
 
-import { getStatusDot } from './schedule-helpers'
 import { StatsCard } from './stats-card'
 import { ScheduleCard } from './schedule-card'
 import { ScheduleListView } from './schedule-list-view'
@@ -66,9 +65,10 @@ interface ScheduleCalendarProps {
     canCreate?: boolean  // Hide create button for read-only mode (e.g., Account Manager)
     userRole?: string   // To customize form fields based on role
     simplifiedForm?: boolean // Hide endTime & team members (for content creators)
+    hideMissingItems?: boolean // Hide missing items field in form (for team leader)
 }
 
-export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, simplifiedForm = false }: ScheduleCalendarProps) {
+export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, simplifiedForm = false, hideMissingItems = false }: ScheduleCalendarProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const dateLocale = isAr ? ar : enUS
@@ -426,12 +426,13 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                     defaultClientId={clientFilter !== 'all' ? clientFilter : undefined}
                                     userRole={userRole}
                                     simplifiedForm={simplifiedForm}
+                                    hideMissingItems={hideMissingItems}
                                 />
                             </DialogContent>
                         </Dialog>
 
                         {/* Missing Items - separate form */}
-                        {canCreate && (
+                        {canCreate && !hideMissingItems && (
                         <Dialog open={missingFormOpen} onOpenChange={setMissingFormOpen}>
                             <DialogTrigger asChild>
                                 <Button
@@ -557,7 +558,7 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                             key={dateKey}
                                             onClick={() => setSelectedDate(day)}
                                             className={cn(
-                                                'relative min-h-[90px] p-2 rounded-xl border transition-all duration-200 text-start group',
+                                                'relative min-h-[100px] p-2 rounded-xl border transition-all duration-200 text-start group',
                                                 isCurrentMonth
                                                     ? 'bg-card/50 hover:bg-card'
                                                     : 'bg-background/30 opacity-40',
@@ -591,37 +592,41 @@ export function ScheduleCalendar({ teamLeaderId, canCreate = true, userRole, sim
                                             <div className="space-y-1">
                                                 {daySchedules.slice(0, 2).map(s => {
                                                     const overdue = isScheduleOverdue(s)
+                                                    const clientName = s.client?.name || s.company_name || s.title
                                                     return (
                                                         <div
                                                             key={s.id}
                                                             className={cn(
-                                                                'flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md truncate font-medium',
+                                                                'flex flex-col gap-0.5 text-[10px] px-1.5 py-1 rounded-md font-medium border-s-2',
                                                                 overdue
-                                                                    ? 'bg-red-500/15 text-red-400'
+                                                                    ? 'bg-red-500/10 text-red-400 border-red-500'
                                                                     : s.status === 'completed'
-                                                                        ? 'bg-emerald-500/10 text-emerald-400'
+                                                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500'
                                                                         : s.status === 'in_progress'
-                                                                            ? 'bg-amber-500/10 text-amber-400'
-                                                                            : 'bg-sky-500/10 text-sky-300'
+                                                                            ? 'bg-amber-500/10 text-amber-400 border-amber-500'
+                                                                            : 'bg-sky-500/10 text-sky-300 border-sky-500'
                                                             )}
                                                         >
-                                                            <div className={cn(
-                                                                'w-1 h-1 rounded-full shrink-0',
-                                                                getStatusDot(s.status, overdue)
-                                                            )} />
-                                                            {s.schedule_type && (
-                                                                <span className={cn(
-                                                                    'shrink-0 text-[9px] px-1 rounded font-bold leading-tight',
-                                                                    s.schedule_type === 'reels'
-                                                                        ? 'bg-violet-500/20 text-violet-400'
-                                                                        : 'bg-blue-500/20 text-blue-400'
-                                                                )}>
-                                                                    {s.schedule_type === 'reels' ? 'R' : 'P'}
-                                                                </span>
-                                                            )}
-                                                            <span className="truncate">
-                                                                {s.start_time ? formatTime12h(s.start_time) : ''} {s.title}
-                                                            </span>
+                                                            {/* Row 1: type badge + time */}
+                                                            <div className="flex items-center gap-1">
+                                                                {s.schedule_type && (
+                                                                    <span className={cn(
+                                                                        'shrink-0 text-[9px] px-1 py-0.5 rounded font-bold leading-none',
+                                                                        s.schedule_type === 'reels'
+                                                                            ? 'bg-violet-500/20 text-violet-400'
+                                                                            : 'bg-blue-500/20 text-blue-400'
+                                                                    )}>
+                                                                        {s.schedule_type === 'reels'
+                                                                            ? (isAr ? 'ريلز' : 'Reels')
+                                                                            : (isAr ? 'بوست' : 'Post')}
+                                                                    </span>
+                                                                )}
+                                                                {s.start_time && (
+                                                                    <span className="opacity-80 shrink-0">{formatTime12h(s.start_time)}</span>
+                                                                )}
+                                                            </div>
+                                                            {/* Row 2: client name */}
+                                                            <span className="truncate font-semibold">{clientName}</span>
                                                         </div>
                                                     )
                                                 })}

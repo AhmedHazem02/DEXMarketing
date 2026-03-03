@@ -97,7 +97,7 @@ export default function TeamLeaderSchedulePage() {
 
             {/* Tab Content */}
             {activeTab === 'own' ? (
-                <ScheduleCalendar teamLeaderId={currentUser.id} />
+                <ScheduleCalendar teamLeaderId={currentUser.id} hideMissingItems={true} />
             ) : activeTab === 'content' ? (
                 <ContentScheduleReadOnly />
             ) : (

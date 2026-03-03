@@ -40,6 +40,11 @@ export default function AccountManagerDashboard() {
         setIsDetailsOpen(true)
     }, [])
 
+    const handleDetailsOpenChange = useCallback((open: boolean) => {
+        setIsDetailsOpen(open)
+        if (!open) setSelectedTask(null)
+    }, [])
+
     const handleCreateTask = useCallback((status?: TaskStatus) => {
         setDefaultStatus(status ?? 'new')
         setSelectedTask(null)
@@ -160,7 +165,7 @@ export default function AccountManagerDashboard() {
 
             <TaskDetails
                 open={isDetailsOpen}
-                onOpenChange={setIsDetailsOpen}
+                onOpenChange={handleDetailsOpenChange}
                 taskId={selectedTask?.id ?? null}
                 currentUserId={userId}
                 onEdit={isPhotography ? undefined : handleEditTask}

@@ -36,3 +36,19 @@ BEGIN
             WITH CHECK (public.is_team_leader_or_admin());
     END IF;
 END $$;
+
+-- 3. Comments INSERT — allow team leaders & account managers (needed for Forward cloning)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename  = 'comments'
+          AND policyname = 'Leaders can insert comments'
+    ) THEN
+        CREATE POLICY "Leaders can insert comments"
+            ON public.comments
+            FOR INSERT
+            WITH CHECK (public.is_team_leader_or_admin());
+    END IF;
+END $$;

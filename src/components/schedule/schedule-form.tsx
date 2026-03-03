@@ -41,9 +41,10 @@ export interface ScheduleFormProps {
     defaultClientId?: string
     userRole?: string
     simplifiedForm?: boolean
+    hideMissingItems?: boolean
 }
 
-export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, onSubmit, defaultClientId, userRole, simplifiedForm = false }: ScheduleFormProps) {
+export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, onSubmit, defaultClientId, userRole, simplifiedForm = false, hideMissingItems = false }: ScheduleFormProps) {
     const locale = useLocale()
     const isAr = locale === 'ar'
 
@@ -501,7 +502,7 @@ export function ScheduleForm({ teamLeaderId, initialDate, schedule, isLoading, o
             </div>
 
             {/* Missing Items */}
-            {!isSimplified && (
+            {!isSimplified && !hideMissingItems && (
             <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                     <AlertTriangle className="h-3.5 w-3.5" />
