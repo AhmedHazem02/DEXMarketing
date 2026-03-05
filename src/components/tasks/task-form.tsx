@@ -68,6 +68,7 @@ function createTaskFormSchema(isAr: boolean) {
             (date) => !date || date >= new Date(new Date().setHours(0, 0, 0, 0)),
             { message: isAr ? 'لا يمكن اختيار تاريخ في الماضي' : 'Deadline cannot be in the past' }
         ),
+        scheduled_date: z.date().optional(),
     })
 }
 
@@ -155,6 +156,7 @@ export function TaskForm({
             client_id: undefined,
             project_id: undefined,
             deadline: undefined,
+            scheduled_date: undefined,
         },
     })
 
@@ -170,6 +172,7 @@ export function TaskForm({
                 client_id: task.client_id ?? undefined,
                 project_id: task.project_id ?? undefined,
                 deadline: task.deadline ? new Date(task.deadline) : undefined,
+                scheduled_date: task.scheduled_date ? new Date(task.scheduled_date + 'T12:00:00') : undefined,
             })
         } else {
             form.reset({
@@ -181,9 +184,16 @@ export function TaskForm({
                 client_id: undefined,
                 project_id: undefined,
                 deadline: undefined,
+                scheduled_date: undefined,
             })
         }
     }, [task, defaultStatus, form])
+
+    // Watch assigned_to to conditionally show shoot date for photography roles
+    const watchedAssignedTo = form.watch('assigned_to')
+    const isPhotographyAssignment = !!watchedAssignedTo && assignableUsers.some(u =>
+        u.id === watchedAssignedTo && ['photographer', 'videographer', 'editor'].includes(u.role ?? '')
+    )
 
     // Resolve department + workflow_stage + editor_id from assigned user's role
     const resolveAssignedUserMeta = (assignedToId?: string) => {
@@ -231,6 +241,7 @@ export function TaskForm({
                     client_id: values.client_id || undefined,
                     project_id: values.project_id || undefined,
                     deadline: values.deadline?.toISOString(),
+                    scheduled_date: values.scheduled_date?.toISOString().split('T')[0],
                     // Only update department/workflow_stage if assignee changed or not yet set
                     ...(assigneeChanged || !task.department ? { department: department as never } : {}),
                     ...(assigneeChanged || !task.workflow_stage || task.workflow_stage === 'none'
@@ -251,6 +262,7 @@ export function TaskForm({
                     client_id: values.client_id || undefined,
                     project_id: values.project_id || undefined,
                     deadline: values.deadline?.toISOString(),
+                    scheduled_date: values.scheduled_date?.toISOString().split('T')[0],
                     created_by: currentUserId,
                     department: department as never,
                     workflow_stage: workflow_stage as never,
@@ -507,6 +519,48 @@ export function TaskForm({
                                 </FormItem>
                             )}
                         />
+
+                        {/* Scheduled Date - shown for photography/videography assignments */}
+                        {isPhotographyAssignment && (
+                            <FormField
+                                control={form.control}
+                                name="scheduled_date"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>{isAr ? 'تاريخ التنفيذ (التصوير)' : 'Shoot Date'}</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant="outline"
+                                                        className={cn(
+                                                            'w-full justify-start text-start font-normal',
+                                                            !field.value && 'text-muted-foreground'
+                                                        )}
+                                                    >
+                                                        <CalendarIcon className="me-2 h-4 w-4" />
+                                                        {field.value ? (
+                                                            format(field.value, 'PPP', { locale: isAr ? ar : enUS })
+                                                        ) : (
+                                                            <span>{isAr ? 'اختر تاريخ التصوير' : 'Pick shoot date'}</span>
+                                                        )}
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={field.value}
+                                                    onSelect={field.onChange}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
 
                         {/* Actions */}
                         <DialogFooter className="gap-2 sm:gap-0">

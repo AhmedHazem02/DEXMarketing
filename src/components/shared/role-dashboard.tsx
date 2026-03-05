@@ -19,6 +19,7 @@ import { useMarkTaskComplete, useAddAttachment } from '@/hooks/use-tasks'
 import { useTasksRealtime } from '@/hooks/use-realtime'
 import { useCurrentUser } from '@/hooks/use-users'
 import { FileUploadZone, TaskDetails } from '@/components/tasks'
+import { TodayTasksSection } from '@/components/shared/today-tasks-section'
 import { getWorkflowStageConfig } from '@/types/task'
 import type { TaskWithRelations } from '@/types/task'
 import type { WorkflowStage } from '@/types/database'
@@ -129,6 +130,9 @@ export function RoleDashboard({ config, tasks, isLoading }: RoleDashboardProps) 
                     {isAr ? config.subtitle.ar : config.subtitle.en}
                 </p>
             </div>
+
+            {/* Today's Tasks Section */}
+            <TodayTasksSection userId={userId} workflowStage={config.workflowStage} />
 
             {/* Stats */}
             <div className={`grid gap-4 ${

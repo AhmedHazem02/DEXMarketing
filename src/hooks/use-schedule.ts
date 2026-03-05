@@ -21,6 +21,7 @@ export const scheduleKeys = {
     list: (filters: ScheduleFilters) => [...scheduleKeys.lists(), filters] as const,
     detail: (id: string) => [...scheduleKeys.all, 'detail', id] as const,
     calendar: (month: string) => [...scheduleKeys.all, 'calendar', month] as const,
+    today: (userId: string) => [...scheduleKeys.all, 'today', userId] as const,
 }
 
 // ============================================
@@ -65,6 +66,38 @@ export function useSchedules(filters: ScheduleFilters = {}) {
             }
 
             const { data, error } = await query
+            if (error) throw error
+            return (data ?? []) as ScheduleWithRelations[]
+        },
+    })
+}
+
+// ============================================
+// Fetch today's schedules for a specific user (assigned_members)
+// ============================================
+
+export function useTodayAssignedSchedules(userId: string) {
+    const supabase = createClient()
+    const today = new Date().toISOString().split('T')[0]
+
+    return useQuery({
+        queryKey: scheduleKeys.today(userId),
+        enabled: !!userId,
+        staleTime: 30 * 1000, // 30 seconds
+        queryFn: async () => {
+            const { data, error } = await (supabase
+                .from('schedules') as any)
+                .select(`
+                    *,
+                    team_leader:users!schedules_team_leader_id_fkey(id, name, avatar_url),
+                    client:clients!schedules_client_id_fkey(id, name),
+                    project:projects!schedules_project_id_fkey(id, name),
+                    task:tasks!schedules_task_id_fkey(id, title)
+                `)
+                .eq('scheduled_date', today)
+                .contains('assigned_members', [userId])
+                .order('start_time', { ascending: true })
+
             if (error) throw error
             return (data ?? []) as ScheduleWithRelations[]
         },

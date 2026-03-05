@@ -30,6 +30,7 @@ export const taskKeys = {
     comments: (taskId: string) => [...taskKeys.all, 'comments', taskId] as const,
     attachments: (taskId: string) => [...taskKeys.all, 'attachments', taskId] as const,
     myTasks: (userId: string) => [...taskKeys.all, 'my', userId] as const,
+    todayTasks: (userId: string) => [...taskKeys.all, 'today', userId] as const,
     revisions: () => [...taskKeys.all, 'revisions'] as const,
     departmentTasks: (dept: string) => [...taskKeys.all, 'department', dept] as const,
     editorTasks: (userId: string) => [...taskKeys.all, 'editor', userId] as const,
@@ -170,6 +171,44 @@ export function useMyTasks(userId: string) {
 
             if (error) throw error
             return data as unknown as TaskWithRelations[]
+        },
+        enabled: !!userId,
+        staleTime: 30 * 1000,
+    })
+}
+
+// ============================================
+// Tasks - Today's Tasks (For team members)
+// ============================================
+
+/**
+ * Fetch tasks assigned to a user for today:
+ * - Tasks explicitly scheduled for today (scheduled_date = today), OR
+ * - Tasks created today (covers TL creating a task without setting scheduled_date)
+ */
+export function useTodayMyTasks(userId: string) {
+    const supabase = createClient()
+    const today = new Date().toISOString().split('T')[0]
+    const todayStart = `${today}T00:00:00.000Z`
+
+    return useQuery({
+        queryKey: taskKeys.todayTasks(userId),
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('tasks')
+                .select(`
+                    *,
+                    project:projects(id, name, status, client:clients(id, name)),
+                    creator:users!tasks_created_by_fkey(id, name, avatar_url)
+                `)
+                .eq('assigned_to', userId)
+                .or(`scheduled_date.eq.${today},created_at.gte.${todayStart}`)
+                .order('created_at', { ascending: true })
+
+            if (error) throw error
+            // Filter out completed client-side to avoid PostgREST enum issues
+            const tasks = (data as unknown as TaskWithRelations[]) ?? []
+            return tasks.filter(t => t.status !== 'completed')
         },
         enabled: !!userId,
         staleTime: 30 * 1000,

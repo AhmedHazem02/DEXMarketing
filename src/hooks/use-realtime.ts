@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { taskKeys } from './use-tasks'
+import { scheduleKeys } from './use-schedule'
 import { NOTIFICATIONS_KEY } from './use-notifications'
 import { CLIENT_ACCOUNTS_KEY } from './use-client-accounts'
 import { TREASURY_KEY, TRANSACTIONS_KEY } from './use-treasury'
@@ -195,6 +196,55 @@ export function useTasksRealtime() {
             if (_tasksRealtime.subscribers === 0 && _tasksRealtime.cleanup) {
                 _tasksRealtime.cleanup()
                 _tasksRealtime.cleanup = null
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [queryClient])
+}
+
+// Singleton for schedules realtime (same pattern as useTasksRealtime)
+const _schedulesRealtime = { subscribers: 0, cleanup: null as (() => void) | null }
+
+/**
+ * Hook to subscribe to real-time updates for schedules table.
+ * Invalidates today's schedules query so the "مهام اليوم" section updates live.
+ * Uses singleton pattern to prevent duplicate subscriptions.
+ */
+export function useSchedulesRealtime() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+    const subscribedRef = useRef(false)
+
+    const debouncedInvalidate = useDebouncedCallback(() => {
+        queryClient.invalidateQueries({ queryKey: scheduleKeys.all })
+    }, 2000)
+
+    useEffect(() => {
+        if (subscribedRef.current) return
+        subscribedRef.current = true
+        _schedulesRealtime.subscribers++
+
+        if (_schedulesRealtime.subscribers === 1) {
+            const channel = supabase
+                .channel('db-schedules')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'schedules' },
+                    () => { debouncedInvalidate() }
+                )
+                .subscribe()
+
+            _schedulesRealtime.cleanup = () => {
+                supabase.removeChannel(channel)
+            }
+        }
+
+        return () => {
+            subscribedRef.current = false
+            _schedulesRealtime.subscribers--
+            if (_schedulesRealtime.subscribers === 0 && _schedulesRealtime.cleanup) {
+                _schedulesRealtime.cleanup()
+                _schedulesRealtime.cleanup = null
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
