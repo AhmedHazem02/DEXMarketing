@@ -178,6 +178,7 @@ export {
     useAdvances,
     useCreateAdvance,
     useDeleteAdvance,
+    useApproveAdvance,
     useAdvanceRecipients,
     useCreateAdvanceRecipient,
     useDeleteAdvanceRecipient,

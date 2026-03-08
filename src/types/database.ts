@@ -163,8 +163,12 @@ export type AdvanceRecipient = {
     created_at: string
 }
 
+export type AdvanceWithApproval = Pick<Advance, 'id' | 'amount' | 'notes' | 'transaction_id' | 'created_at'> & {
+    transaction: { id: string; is_approved: boolean } | null
+}
+
 export type AdvanceRecipientWithAdvances = AdvanceRecipient & {
-    advances: Pick<Advance, 'id' | 'amount' | 'notes' | 'transaction_id' | 'created_at'>[]
+    advances: AdvanceWithApproval[]
 }
 
 export type Transaction = {

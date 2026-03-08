@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import type { Advance, AdvanceRecipient, AdvanceRecipientType, AdvanceRecipientWithAdvances, Transaction } from '@/types/database'
+import type { Advance, AdvanceRecipient, AdvanceRecipientType, AdvanceRecipientWithAdvances } from '@/types/database'
 import { TREASURY_KEY, TRANSACTIONS_KEY } from './use-treasury'
 
 const ADVANCES_KEY = ['advances']
@@ -17,7 +17,7 @@ export function useAdvanceRecipients() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('advance_recipients')
-                .select('*, advances(id, amount, notes, transaction_id, created_at)')
+                .select('*, advances(id, amount, notes, transaction_id, created_at, transaction:transactions(id,is_approved))')
                 .order('created_at', { ascending: false })
             if (error) throw error
             return data as unknown as AdvanceRecipientWithAdvances[]
@@ -117,7 +117,7 @@ export function useCreateAdvance() {
             if (!user) throw new Error('Not authenticated')
             const label = input.recipient_type === 'owner' ? 'مالك' : 'موظف'
 
-            // 1. Create expense transaction (triggers treasury balance deduction)
+            // 1. Create expense transaction (pending admin approval — NOT approved yet)
             const { data: transaction, error: txError } = await supabase
                 .from('transactions')
                 .insert({
@@ -128,14 +128,12 @@ export function useCreateAdvance() {
                     notes: input.notes || null,
                     payment_method: 'cash',
                     created_by: user.id,
-                    is_approved: true,
-                    approved_by: user.id,
-                    approved_at: new Date().toISOString(),
+                    is_approved: false,
                 })
                 .select()
                 .single()
             if (txError) throw txError
-            const tx = transaction as unknown as Transaction
+            const tx = transaction as unknown as { id: string }
 
             // 2. Create advance record linked to transaction and recipient
             const { data: advance, error: advError } = await supabase
@@ -153,6 +151,33 @@ export function useCreateAdvance() {
                 .single()
             if (advError) throw advError
             return advance!
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: RECIPIENTS_KEY })
+            queryClient.invalidateQueries({ queryKey: ADVANCES_KEY })
+            queryClient.invalidateQueries({ queryKey: TREASURY_KEY })
+            queryClient.invalidateQueries({ queryKey: TRANSACTIONS_KEY })
+        },
+    })
+}
+
+export function useApproveAdvance() {
+    const supabase = createClient()
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: async (advance: { transaction_id: string | null }) => {
+            if (!advance.transaction_id) throw new Error('No linked transaction')
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('Not authenticated')
+            const { error } = await supabase
+                .from('transactions')
+                .update({
+                    is_approved: true,
+                    approved_by: user.id,
+                    approved_at: new Date().toISOString(),
+                })
+                .eq('id', advance.transaction_id)
+            if (error) throw error
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: RECIPIENTS_KEY })

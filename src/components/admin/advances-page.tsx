@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useLocale } from 'next-intl'
 import { format } from 'date-fns'
 import { ar } from 'date-fns/locale'
-import { Plus, Trash2, Banknote, AlertCircle, UserPlus, Eye } from 'lucide-react'
+import { Plus, Trash2, Banknote, AlertCircle, UserPlus, Eye, CheckCircle, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
@@ -17,7 +17,9 @@ import {
     useDeleteAdvanceRecipient,
     useCreateAdvance,
     useDeleteAdvance,
+    useApproveAdvance,
 } from '@/hooks'
+import { useCurrentRole } from '@/hooks/use-current-role'
 import type { AdvanceRecipientWithAdvances } from '@/types/database'
 
 import { Button } from '@/components/ui/button'
@@ -69,8 +71,14 @@ function DetailsDialog({
 }) {
     const [open, setOpen] = useState(false)
     const deleteAdvance = useDeleteAdvance()
+    const approveAdvance = useApproveAdvance()
+    const { isAdmin } = useCurrentRole()
 
-    const total = recipient.advances.reduce((s, a) => s + Number(a.amount), 0)
+    const approvedAdvances = recipient.advances.filter(a => a.transaction?.is_approved)
+    const total = approvedAdvances.reduce((s, a) => s + Number(a.amount), 0)
+    const pendingTotal = recipient.advances
+        .filter(a => !a.transaction?.is_approved)
+        .reduce((s, a) => s + Number(a.amount), 0)
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -82,10 +90,19 @@ function DetailsDialog({
             <DialogContent className="sm:max-w-[520px]" dir={isAr ? 'rtl' : 'ltr'}>
                 <DialogHeader>
                     <DialogTitle>{recipient.name}</DialogTitle>
-                    <DialogDescription>
-                        {isAr
-                            ? `إجمالي السلف: ${total.toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م`
-                            : `Total advances: ${total.toLocaleString('en-US', { minimumFractionDigits: 2 })} EGP`}
+                    <DialogDescription className="space-y-0.5">
+                        <span className="block">
+                            {isAr
+                                ? `معتمدة: ${total.toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م`
+                                : `Approved: ${total.toLocaleString('en-US', { minimumFractionDigits: 2 })} EGP`}
+                        </span>
+                        {pendingTotal > 0 && (
+                            <span className="block text-amber-500">
+                                {isAr
+                                    ? `معلقة: ${pendingTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م`
+                                    : `Pending: ${pendingTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })} EGP`}
+                            </span>
+                        )}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="max-h-[400px] overflow-y-auto">
@@ -100,10 +117,23 @@ function DetailsDialog({
                                     <div className="flex items-start gap-3 min-w-0">
                                         <span className="text-xs text-muted-foreground mt-0.5 shrink-0">{i + 1}</span>
                                         <div className="min-w-0">
-                                            <p className="font-mono font-semibold text-sm">
-                                                {Number(advance.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                                <span className="text-muted-foreground text-xs ms-1">{isAr ? 'ج.م' : 'EGP'}</span>
-                                            </p>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <p className="font-mono font-semibold text-sm">
+                                                    {Number(advance.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                    <span className="text-muted-foreground text-xs ms-1">{isAr ? 'ج.م' : 'EGP'}</span>
+                                                </p>
+                                                {advance.transaction?.is_approved ? (
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-green-500/40 text-green-500 gap-1">
+                                                        <CheckCircle className="h-2.5 w-2.5" />
+                                                        {isAr ? 'معتمدة' : 'Approved'}
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/40 text-amber-500 gap-1">
+                                                        <Clock className="h-2.5 w-2.5" />
+                                                        {isAr ? 'بانتظار' : 'Pending'}
+                                                    </Badge>
+                                                )}
+                                            </div>
                                             {advance.notes && (
                                                 <p className="text-xs text-muted-foreground mt-0.5 truncate">{advance.notes}</p>
                                             )}
@@ -112,32 +142,52 @@ function DetailsDialog({
                                             </p>
                                         </div>
                                     </div>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive">
-                                                <Trash2 className="h-3.5 w-3.5" />
+                                    <div className="flex items-center gap-1">
+                                        {isAdmin && !advance.transaction?.is_approved && (
+                                            <Button
+                                                variant="ghost" size="icon"
+                                                className="h-7 w-7 shrink-0 text-green-600 hover:text-green-700"
+                                                title={isAr ? 'اعتماد السلفة' : 'Approve advance'}
+                                                disabled={approveAdvance.isPending}
+                                                onClick={async () => {
+                                                    try {
+                                                        await approveAdvance.mutateAsync({ transaction_id: advance.transaction_id })
+                                                        toast.success(isAr ? 'تم اعتماد السلفة' : 'Advance approved')
+                                                    } catch {
+                                                        toast.error(isAr ? 'حدث خطأ' : 'Failed to approve')
+                                                    }
+                                                }}
+                                            >
+                                                <CheckCircle className="h-3.5 w-3.5" />
                                             </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent dir={isAr ? 'rtl' : 'ltr'}>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>{isAr ? 'حذف السلفة' : 'Delete Advance'}</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    {isAr
-                                                        ? `سيتم حذف سلفة ${Number(advance.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م وإرجاعها للخزنة.`
-                                                        : `This will delete the ${Number(advance.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} EGP advance and restore it to treasury.`}
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>{isAr ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    onClick={() => deleteAdvance.mutate(advance as any)}
-                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                >
-                                                    {isAr ? 'حذف' : 'Delete'}
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
+                                        )}
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive">
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent dir={isAr ? 'rtl' : 'ltr'}>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>{isAr ? 'حذف السلفة' : 'Delete Advance'}</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        {isAr
+                                                            ? `سيتم حذف سلفة ${Number(advance.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} ج.م وإرجاعها للخزنة.`
+                                                            : `This will delete the ${Number(advance.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} EGP advance and restore it to treasury.`}
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>{isAr ? 'إلغاء' : 'Cancel'}</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() => deleteAdvance.mutate(advance as any)}
+                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    >
+                                                        {isAr ? 'حذف' : 'Delete'}
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -196,8 +246,8 @@ function AddAdvanceDialog({
                     </DialogTitle>
                     <DialogDescription>
                         {isAr
-                            ? 'سيتم خصم المبلغ من الخزنة تلقائياً'
-                            : 'Amount will be deducted from treasury automatically'}
+                            ? 'ستُضاف كطلب معلق حتى يعتمدها المدير وتُخصم من الخزنة'
+                            : 'Will be added as pending until approved by admin, then deducted from treasury'}
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
