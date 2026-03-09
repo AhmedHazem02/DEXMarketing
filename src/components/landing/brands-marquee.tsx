@@ -18,19 +18,11 @@ const BRANDS = [
     { name: 'Pulse Media',    nameAr: 'بالس ميديا',     color: '#f43f5e' },
 ]
 
-const MARQUEE_STYLES = `
-    @keyframes marquee-scroll {
-        from { transform: translateX(0) }
-        to   { transform: translateX(-50%) }
-    }
-`
-
 export function BrandsMarquee() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const prefersReducedMotion = useReducedMotion()
 
-    // Double for seamless loop: CSS -50% = exactly 1 set width
     const loopItems = [...BRANDS, ...BRANDS]
 
     return (
@@ -38,8 +30,6 @@ export function BrandsMarquee() {
             className="relative overflow-hidden py-8 md:py-12 lg:py-14 bg-[#022026]"
             aria-label={isAr ? 'شركاء النجاح' : 'Trusted brands'}
         >
-            <style dangerouslySetInnerHTML={{ __html: MARQUEE_STYLES }} />
-
             {/* Top & bottom lines */}
             <div className="section-divider absolute top-0 left-0 right-0" />
             <div className="section-divider absolute bottom-0 left-0 right-0" />
@@ -61,18 +51,14 @@ export function BrandsMarquee() {
             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 sm:w-20 md:w-36 bg-gradient-to-r from-[#022026] to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 sm:w-20 md:w-36 bg-gradient-to-l from-[#022026] to-transparent" />
 
-            <div className={prefersReducedMotion ? 'overflow-x-auto' : 'overflow-hidden'}>
+            <div className="overflow-hidden">
                 <div
-                    className="flex items-center w-max"
-                    style={prefersReducedMotion ? undefined : {
-                        animation: 'marquee-scroll 28s linear infinite',
-                        animationDirection: isAr ? 'reverse' : 'normal',
-                    }}
+                    className={`flex items-center w-max${prefersReducedMotion ? '' : ' marquee-track'}`}
                 >
                     {loopItems.map((brand, i) => (
                         <div
                             key={`${brand.name}-${i}`}
-                            className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 md:gap-3 mx-1 sm:mx-1.5 md:mx-2 px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-2.5 rounded-full border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] hover:bg-white/[0.04] transition-colors duration-300 cursor-default"
+                            className="flex-shrink-0 flex items-center gap-1.5 sm:gap-2 md:gap-3 mr-2 sm:mr-3 md:mr-4 px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-2.5 rounded-full border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm hover:border-white/[0.12] hover:bg-white/[0.04] transition-colors duration-300 cursor-default"
                         >
                             <span
                                 className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full flex-shrink-0"

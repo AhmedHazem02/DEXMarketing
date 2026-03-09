@@ -346,6 +346,17 @@
   animation: float-up-down 6s ease-in-out infinite;
 }
 
+/* ───── Brands Marquee ───── */
+@keyframes marquee-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+.marquee-track {
+  animation: marquee-scroll 28s linear infinite;
+  will-change: transform;
+}
+
 /* ───── Decorative Shapes ───── */
 .hexagon {
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
