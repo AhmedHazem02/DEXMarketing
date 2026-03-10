@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { useLocale } from 'next-intl'
 import { HeroOverlay } from './effects/hero-overlay'
+import { HeroSectionMobile } from './hero-section-mobile'
 import { ChevronDown } from 'lucide-react'
 
 function StarField() {
@@ -65,7 +66,7 @@ function StarField() {
     )
 }
 
-export function HeroSection() {
+function HeroSectionDesktop() {
     const locale = useLocale()
     const isAr = locale === 'ar'
     const sectionRef = useRef<HTMLDivElement>(null)
@@ -134,5 +135,21 @@ export function HeroSection() {
                 <defs />
             </svg>
         </section >
+    )
+}
+
+export function HeroSection() {
+    return (
+        <>
+            {/* Desktop: lg وما فوق */}
+            <div className="hidden lg:block">
+                <HeroSectionDesktop />
+            </div>
+
+            {/* Mobile: أقل من lg */}
+            <div className="lg:hidden">
+                <HeroSectionMobile />
+            </div>
+        </>
     )
 }
