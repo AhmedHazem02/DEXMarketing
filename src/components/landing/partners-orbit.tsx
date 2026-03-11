@@ -92,11 +92,11 @@ function PartnerCard({
   return (
     <div
       className="flex-shrink-0 flex flex-col items-center gap-3 mx-5 cursor-default select-none"
-      style={{ width: 108 }}
+      style={{ width: 140 }}
     >
       {/* circle */}
       <div
-        className="relative w-[108px] h-[108px] rounded-full border flex items-center justify-center"
+        className="relative w-[140px] h-[140px] rounded-full border flex items-center justify-center"
         style={{
           borderColor:    'rgba(255,255,255,0.08)',
           background:     'rgba(255,255,255,0.025)',
@@ -111,7 +111,7 @@ function PartnerCard({
       >
         {/* logo image */}
         <div
-          className="absolute inset-[3px] rounded-full flex items-center justify-center overflow-hidden"
+          className="absolute inset-0 rounded-full flex items-center justify-center overflow-hidden"
           style={{
             background: '#022026',
             border:     `1px solid ${partner.color}${hovered ? '80' : '30'}`,
@@ -122,9 +122,9 @@ function PartnerCard({
             src={partner.logo}
             alt={partner.name}
             style={{
-              width:      '90%',
-              height:     '90%',
-              objectFit:  'contain',
+              width:      '100%',
+              height:     '100%',
+              objectFit:  'cover',
               display:    'block',
               transition: 'transform 0.35s',
               transform:  hovered ? 'scale(1.08)' : 'scale(1)',
