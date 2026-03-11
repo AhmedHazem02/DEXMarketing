@@ -365,7 +365,8 @@
 .marquee-ticker-track {
   display: flex;
   align-items: flex-start;
-  animation: marquee-ticker 15s linear infinite;
+  width: max-content;
+  animation: marquee-ticker 25s linear infinite;
   will-change: transform;
 }
 

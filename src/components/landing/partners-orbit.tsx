@@ -1,7 +1,7 @@
 ﻿'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useRef } from 'react'
+import { motion, useMotionValue, useAnimationFrame } from 'framer-motion'
 import { useLocale } from 'next-intl'
 
 const GOLD = '#fbbf24'
@@ -28,6 +28,32 @@ const PARTNERS = [
 ]
 
 type Partner = { name: string; logo: string; color: string }
+
+function InfiniteMarquee({ children, paused, speed = 45 }: { children: React.ReactNode; paused: boolean; speed?: number }) {
+  const trackRef = useRef<HTMLDivElement>(null)
+  const x = useMotionValue(0)
+
+  useAnimationFrame((_, delta) => {
+    if (paused) return
+    const el = trackRef.current
+    if (!el) return
+    const halfWidth = el.scrollWidth / 2
+    let next = x.get() - (speed * delta) / 1000
+    if (Math.abs(next) >= halfWidth) next = 0
+    x.set(next)
+  })
+
+  return (
+    <div className="overflow-hidden py-4" dir="ltr">
+      <motion.div
+        ref={trackRef}
+        style={{ x, display: 'flex', alignItems: 'flex-start', width: 'max-content' }}
+      >
+        {children}
+      </motion.div>
+    </div>
+  )
+}
 
 function PartnerCard({
   partner,
@@ -96,8 +122,8 @@ function PartnerCard({
             src={partner.logo}
             alt={partner.name}
             style={{
-              width:      '300%',
-              height:     '300%',
+              width:      '90%',
+              height:     '90%',
               objectFit:  'contain',
               display:    'block',
               transition: 'transform 0.35s',
@@ -162,19 +188,17 @@ export function PartnersOrbit() {
         <div className="pointer-events-none absolute inset-y-0 left-0  z-20 w-28 md:w-52 bg-gradient-to-r  from-[#022026] to-transparent" />
         <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-28 md:w-52 bg-gradient-to-l from-[#022026] to-transparent" />
 
-        <div className="overflow-hidden py-4" dir="ltr">
-          <div className={`marquee-ticker-track${isPaused ? ' paused' : ''}`}>
-            {items.map((p, i) => (
-              <PartnerCard
-                key={`${p.name}-${i}`}
-                partner={p}
-                index={i}
-                onHover={setIsPaused}
-                isPaused={isPaused}
-              />
-            ))}
-          </div>
-        </div>
+        <InfiniteMarquee paused={isPaused}>
+          {items.map((p, i) => (
+            <PartnerCard
+              key={`${p.name}-${i}`}
+              partner={p}
+              index={i}
+              onHover={setIsPaused}
+              isPaused={isPaused}
+            />
+          ))}
+        </InfiniteMarquee>
       </motion.div>
 
       {/* pause hint */}
